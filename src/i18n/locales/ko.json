@@ -637,6 +637,9 @@
     "vsLastMonth": "전월 대비",
     "scheduled": "예정",
     "completed": "완료",
-    "requiresAttention": "조치 필요"
+    "requiresAttention": "조치 필요",
+    "selectScheduleToStart": "PM 일정을 선택하세요",
+    "selectScheduleToStartDesc": "PM 일정 목록 또는 캘린더에서 PM을 선택하여 시작하세요.",
+    "scheduleNotFound": "PM 일정을 찾을 수 없습니다."
   }
 }

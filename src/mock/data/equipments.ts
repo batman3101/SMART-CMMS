@@ -1,6 +1,12 @@
 import type { Equipment, EquipmentStatus } from '@/types'
 import { mockEquipmentTypes } from './equipmentTypes'
 
+// Building translations
+const buildingTranslations: Record<string, string> = {
+  'A동': 'Tòa A',
+  'B동': 'Tòa B',
+}
+
 // Generate CNC equipments (800 units)
 const generateCNCEquipments = (): Equipment[] => {
   const cncType = mockEquipmentTypes.find((t) => t.code === 'CNC')!
@@ -22,16 +28,21 @@ const generateCNCEquipments = (): Equipment[] => {
       }
     }
 
+    const building = buildings[i < 400 ? 0 : 1]
+
     return {
       id: `cnc-${num}`,
       equipment_code: `CNC-${num}`,
       equipment_name: `CNC 밀링 머신 #${i + 1}`,
+      equipment_name_ko: `CNC 밀링 머신 #${i + 1}`,
+      equipment_name_vi: `Máy phay CNC #${i + 1}`,
       equipment_type_id: cncType.id,
       equipment_type: cncType,
       status,
       install_date: `202${Math.floor(Math.random() * 4)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
       manufacturer: ['FANUC', 'Mazak', 'DMG MORI', 'Haas'][Math.floor(Math.random() * 4)],
-      building: buildings[i < 400 ? 0 : 1],
+      building,
+      building_vi: buildingTranslations[building],
       is_active: true,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: new Date().toISOString(),
@@ -50,12 +61,15 @@ const generateOtherEquipments = (): Equipment[] => {
       id: `cl-${String(i).padStart(3, '0')}`,
       equipment_code: `CL-${String(i).padStart(3, '0')}`,
       equipment_name: `초음파 클리닝 #${i}`,
+      equipment_name_ko: `초음파 클리닝 #${i}`,
+      equipment_name_vi: `Máy rửa siêu âm #${i}`,
       equipment_type_id: clType.id,
       equipment_type: clType,
       status: 'normal',
       install_date: '2023-06-15',
       manufacturer: 'Ultrasonic Co.',
       building: 'A동',
+      building_vi: 'Tòa A',
       is_active: true,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: new Date().toISOString(),
@@ -69,12 +83,15 @@ const generateOtherEquipments = (): Equipment[] => {
       id: `dbr-${String(i).padStart(3, '0')}`,
       equipment_code: `DBR-${String(i).padStart(3, '0')}`,
       equipment_name: `디버링 설비 #${i}`,
+      equipment_name_ko: `디버링 설비 #${i}`,
+      equipment_name_vi: `Máy mài ba via #${i}`,
       equipment_type_id: dbrType.id,
       equipment_type: dbrType,
       status: i === 2 ? 'repair' : 'normal',
       install_date: '2023-08-20',
       manufacturer: 'Deburring Tech',
       building: 'B동',
+      building_vi: 'Tòa B',
       is_active: true,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: new Date().toISOString(),
@@ -88,12 +105,15 @@ const generateOtherEquipments = (): Equipment[] => {
       id: `tri-${String(i).padStart(3, '0')}`,
       equipment_code: `TRI-${String(i).padStart(3, '0')}`,
       equipment_name: `TRI 검사 설비 #${i}`,
+      equipment_name_ko: `TRI 검사 설비 #${i}`,
+      equipment_name_vi: `Máy kiểm tra TRI #${i}`,
       equipment_type_id: triType.id,
       equipment_type: triType,
       status: 'normal',
       install_date: '2023-05-10',
       manufacturer: 'Inspection Systems',
       building: 'B동',
+      building_vi: 'Tòa B',
       is_active: true,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: new Date().toISOString(),

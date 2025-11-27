@@ -41,6 +41,8 @@ export default function PMExecutionPage() {
   useEffect(() => {
     if (scheduleId) {
       fetchData()
+    } else {
+      setLoading(false)
     }
   }, [scheduleId])
 
@@ -191,11 +193,29 @@ export default function PMExecutionPage() {
     )
   }
 
+  if (!scheduleId) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <Play className="mb-4 h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-medium">{t('pm.selectScheduleToStart')}</p>
+        <p className="mt-2 text-muted-foreground">{t('pm.selectScheduleToStartDesc')}</p>
+        <div className="mt-6 flex gap-4">
+          <Button variant="outline" onClick={() => navigate('/pm/schedules')}>
+            {t('pm.schedules')}
+          </Button>
+          <Button onClick={() => navigate('/pm/calendar')}>
+            {t('pm.calendar')}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   if (!schedule) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <AlertTriangle className="mb-4 h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground">PM 일정을 찾을 수 없습니다.</p>
+        <p className="text-muted-foreground">{t('pm.scheduleNotFound')}</p>
         <Button className="mt-4" onClick={() => navigate('/pm')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           {t('pm.dashboard')}

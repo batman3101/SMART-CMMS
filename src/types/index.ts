@@ -43,12 +43,15 @@ export interface Equipment {
   id: string
   equipment_code: string
   equipment_name: string
+  equipment_name_ko?: string
+  equipment_name_vi?: string
   equipment_type_id: string
   equipment_type?: EquipmentType
   status: EquipmentStatus
   install_date: string | null
   manufacturer: string | null
   building: string
+  building_vi?: string
   is_active: boolean
   created_at: string
   updated_at: string

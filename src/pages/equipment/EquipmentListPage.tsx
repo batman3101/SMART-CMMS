@@ -41,8 +41,25 @@ const statusColors: Record<EquipmentStatus, string> = {
 const ITEMS_PER_PAGE = 20
 
 export default function EquipmentListPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+
+  // Helper functions for multilingual display
+  const getEquipmentName = (eq: Equipment) => {
+    if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
+    return eq.equipment_name_ko || eq.equipment_name
+  }
+
+  const getEquipmentTypeName = (type: EquipmentType | undefined) => {
+    if (!type) return '-'
+    if (i18n.language === 'vi') return type.name_vi || type.name
+    return type.name_ko || type.name
+  }
+
+  const getBuilding = (eq: Equipment) => {
+    if (i18n.language === 'vi') return eq.building_vi || eq.building
+    return eq.building
+  }
   const [loading, setLoading] = useState(true)
   const [equipments, setEquipments] = useState<Equipment[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
@@ -82,10 +99,11 @@ export default function EquipmentListPage() {
   // 필터링된 데이터
   const filteredEquipments = useMemo(() => {
     return equipments.filter((eq) => {
+      const eqName = getEquipmentName(eq)
       const matchSearch =
         !search ||
         eq.equipment_code.toLowerCase().includes(search.toLowerCase()) ||
-        eq.equipment_name.toLowerCase().includes(search.toLowerCase())
+        eqName.toLowerCase().includes(search.toLowerCase())
 
       const matchType = !typeFilter || eq.equipment_type_id === typeFilter
       const matchStatus = !statusFilter || eq.status === statusFilter
@@ -309,9 +327,9 @@ export default function EquipmentListPage() {
                 {paginatedEquipments.map((equipment) => (
                   <TableRow key={equipment.id} className="cursor-pointer hover:bg-muted/50">
                     <TableCell className="font-medium">{equipment.equipment_code}</TableCell>
-                    <TableCell>{equipment.equipment_name}</TableCell>
-                    <TableCell>{equipment.equipment_type?.name || '-'}</TableCell>
-                    <TableCell>{equipment.building}</TableCell>
+                    <TableCell>{getEquipmentName(equipment)}</TableCell>
+                    <TableCell>{getEquipmentTypeName(equipment.equipment_type)}</TableCell>
+                    <TableCell>{getBuilding(equipment)}</TableCell>
                     <TableCell>
                       <Badge variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
                         {getStatusLabel(equipment.status)}
@@ -413,10 +431,10 @@ export default function EquipmentListPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-2 text-sm text-muted-foreground">{equipment.equipment_name}</p>
+                  <p className="mb-2 text-sm text-muted-foreground">{getEquipmentName(equipment)}</p>
                   <div className="flex justify-between text-sm">
-                    <span>{equipment.equipment_type?.name || '-'}</span>
-                    <span>{equipment.building}</span>
+                    <span>{getEquipmentTypeName(equipment.equipment_type)}</span>
+                    <span>{getBuilding(equipment)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -470,15 +488,15 @@ export default function EquipmentListPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('equipment.equipmentName')}</p>
-                  <p className="font-medium">{selectedEquipment.equipment_name}</p>
+                  <p className="font-medium">{getEquipmentName(selectedEquipment)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('equipment.equipmentType')}</p>
-                  <p className="font-medium">{selectedEquipment.equipment_type?.name || '-'}</p>
+                  <p className="font-medium">{getEquipmentTypeName(selectedEquipment.equipment_type)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('equipment.building')}</p>
-                  <p className="font-medium">{selectedEquipment.building}</p>
+                  <p className="font-medium">{getBuilding(selectedEquipment)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('equipment.status')}</p>

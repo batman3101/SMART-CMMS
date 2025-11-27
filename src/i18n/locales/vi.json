@@ -637,6 +637,9 @@
     "vsLastMonth": "So với tháng trước",
     "scheduled": "Đã lên lịch",
     "completed": "Hoàn thành",
-    "requiresAttention": "Cần xử lý"
+    "requiresAttention": "Cần xử lý",
+    "selectScheduleToStart": "Chọn lịch PM",
+    "selectScheduleToStartDesc": "Chọn PM từ danh sách lịch hoặc lịch để bắt đầu.",
+    "scheduleNotFound": "Không tìm thấy lịch PM."
   }
 }

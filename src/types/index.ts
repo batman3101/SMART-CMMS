@@ -211,3 +211,170 @@ export interface MaintenanceFilter {
   technician_id?: string
   status?: MaintenanceStatus
 }
+
+// ========================================
+// PM (Preventive Maintenance) Types
+// ========================================
+
+// PM 주기 타입
+export type PMIntervalType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+
+// PM 일정 상태
+export type PMScheduleStatus = 'scheduled' | 'in_progress' | 'completed' | 'overdue' | 'cancelled'
+
+// PM 우선순위
+export type PMPriority = 'low' | 'medium' | 'high'
+
+// PM 체크리스트 항목
+export interface PMChecklistItem {
+  id: string
+  order: number
+  description: string
+  description_ko?: string
+  description_vi?: string
+  is_required: boolean
+}
+
+// PM 체크리스트 수행 결과
+export interface PMChecklistResult {
+  item_id: string
+  is_checked: boolean
+  notes?: string
+  has_issue: boolean
+}
+
+// PM 필요 부품
+export interface PMRequiredPart {
+  part_code: string
+  part_name: string
+  quantity: number
+}
+
+// PM 템플릿
+export interface PMTemplate {
+  id: string
+  name: string
+  name_ko?: string
+  name_vi?: string
+  description?: string
+  equipment_type_id: string
+  equipment_type?: EquipmentType
+  interval_type: PMIntervalType
+  interval_value: number              // 주기 값 (예: 3개월마다 = monthly, 3)
+  estimated_duration: number          // 예상 소요시간 (분)
+  checklist_items: PMChecklistItem[]
+  required_parts: PMRequiredPart[]
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// PM 일정
+export interface PMSchedule {
+  id: string
+  template_id: string
+  template?: PMTemplate
+  equipment_id: string
+  equipment?: Equipment
+  scheduled_date: string              // 예정일 (YYYY-MM-DD)
+  assigned_technician_id?: string
+  assigned_technician?: User
+  status: PMScheduleStatus
+  priority: PMPriority
+  notes?: string
+  notification_sent_3days: boolean
+  notification_sent_1day: boolean
+  notification_sent_today: boolean
+  created_at: string
+  updated_at: string
+}
+
+// PM 실행 기록
+export interface PMExecution {
+  id: string
+  schedule_id: string
+  schedule?: PMSchedule
+  equipment_id: string
+  equipment?: Equipment
+  technician_id: string
+  technician?: User
+  started_at: string
+  completed_at?: string
+  duration_minutes?: number
+  checklist_results: PMChecklistResult[]
+  used_parts: PMUsedPart[]
+  findings?: string                   // 발견 사항
+  findings_severity?: 'none' | 'minor' | 'major' | 'critical'
+  created_repair_id?: string          // 이상 발견 시 생성된 수리 ID
+  rating?: number
+  notes?: string
+  status: 'in_progress' | 'completed'
+  created_at: string
+  updated_at: string
+}
+
+// PM 사용 부품
+export interface PMUsedPart {
+  part_code: string
+  part_name: string
+  quantity: number
+}
+
+// PM 대시보드 통계
+export interface PMDashboardStats {
+  total_scheduled: number             // 총 예정된 PM
+  completed_this_month: number        // 이번 달 완료
+  overdue_count: number               // 지연 중
+  upcoming_week: number               // 이번 주 예정
+  compliance_rate: number             // 준수율 (%)
+}
+
+// PM 준수율 통계
+export interface PMComplianceStats {
+  period: string
+  scheduled_count: number
+  completed_count: number
+  overdue_count: number
+  cancelled_count: number
+  compliance_rate: number
+}
+
+// PM 알림
+export interface PMNotification {
+  id: string
+  schedule_id: string
+  schedule?: PMSchedule
+  notification_type: 'reminder_3days' | 'reminder_1day' | 'reminder_today' | 'overdue'
+  sent_at: string
+  recipient_id: string
+  is_read: boolean
+}
+
+// PM 필터
+export interface PMScheduleFilter {
+  start_date?: string
+  end_date?: string
+  equipment_id?: string
+  equipment_type_id?: string
+  technician_id?: string
+  status?: PMScheduleStatus
+  priority?: PMPriority
+}
+
+// PM 일정 생성 폼
+export interface PMScheduleCreateForm {
+  template_id: string
+  equipment_id: string
+  scheduled_date: string
+  assigned_technician_id?: string
+  priority?: PMPriority
+  notes?: string
+}
+
+// PM 자동 생성 설정
+export interface PMAutoGenerateConfig {
+  template_id: string
+  equipment_ids: string[]             // 적용할 설비 목록
+  start_date: string                  // 시작일
+  months_ahead: number                // 몇 개월 앞까지 생성 (기본 6개월)
+}

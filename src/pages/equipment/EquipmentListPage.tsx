@@ -164,7 +164,7 @@ export default function EquipmentListPage() {
         <div>
           <h1 className="text-2xl font-bold">{t('equipment.list')}</h1>
           <p className="text-sm text-muted-foreground">
-            총 {filteredEquipments.length}대의 설비
+            {t('equipment.totalCount', { count: filteredEquipments.length })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -254,7 +254,7 @@ export default function EquipmentListPage() {
             </Select>
             <Button variant="outline" onClick={handleResetFilters}>
               <Filter className="mr-2 h-4 w-4" />
-              필터 초기화
+              {t('common.resetFilter')}
             </Button>
           </div>
         </CardContent>
@@ -313,7 +313,7 @@ export default function EquipmentListPage() {
                     <TableCell>{equipment.equipment_type?.name || '-'}</TableCell>
                     <TableCell>{equipment.building}</TableCell>
                     <TableCell>
-                      <Badge variant={statusColors[equipment.status] as any}>
+                      <Badge variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
                         {getStatusLabel(equipment.status)}
                       </Badge>
                     </TableCell>
@@ -336,7 +336,7 @@ export default function EquipmentListPage() {
                 {paginatedEquipments.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                      검색 결과가 없습니다.
+                      {t('common.noSearchResults')}
                     </TableCell>
                   </TableRow>
                 )}
@@ -407,7 +407,7 @@ export default function EquipmentListPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{equipment.equipment_code}</CardTitle>
-                    <Badge variant={statusColors[equipment.status] as any}>
+                    <Badge variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
                       {getStatusLabel(equipment.status)}
                     </Badge>
                   </div>
@@ -433,7 +433,7 @@ export default function EquipmentListPage() {
                 onClick={() => setCurrentPage((p) => p - 1)}
               >
                 <ChevronLeft className="h-4 w-4" />
-                이전
+                {t('common.previous')}
               </Button>
               <span className="text-sm text-muted-foreground">
                 {currentPage} / {totalPages}
@@ -444,7 +444,7 @@ export default function EquipmentListPage() {
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
               >
-                다음
+                {t('common.next')}
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -457,7 +457,7 @@ export default function EquipmentListPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="w-full max-w-lg">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>설비 상세 정보</CardTitle>
+              <CardTitle>{t('equipment.detail')}</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setSelectedEquipment(null)}>
                 ✕
               </Button>
@@ -465,15 +465,15 @@ export default function EquipmentListPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">설비 코드</p>
+                  <p className="text-sm text-muted-foreground">{t('equipment.equipmentCode')}</p>
                   <p className="font-medium">{selectedEquipment.equipment_code}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">설비명</p>
+                  <p className="text-sm text-muted-foreground">{t('equipment.equipmentName')}</p>
                   <p className="font-medium">{selectedEquipment.equipment_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">설비 유형</p>
+                  <p className="text-sm text-muted-foreground">{t('equipment.equipmentType')}</p>
                   <p className="font-medium">{selectedEquipment.equipment_type?.name || '-'}</p>
                 </div>
                 <div>
@@ -481,13 +481,13 @@ export default function EquipmentListPage() {
                   <p className="font-medium">{selectedEquipment.building}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">상태</p>
-                  <Badge variant={statusColors[selectedEquipment.status] as any}>
+                  <p className="text-sm text-muted-foreground">{t('equipment.status')}</p>
+                  <Badge variant={statusColors[selectedEquipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
                     {getStatusLabel(selectedEquipment.status)}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">설치일</p>
+                  <p className="text-sm text-muted-foreground">{t('equipment.installDate')}</p>
                   <p className="font-medium">
                     {selectedEquipment.install_date
                       ? new Date(selectedEquipment.install_date).toLocaleDateString('ko-KR')
@@ -498,7 +498,7 @@ export default function EquipmentListPage() {
 
               {selectedEquipment.manufacturer && (
                 <div>
-                  <p className="text-sm text-muted-foreground">제조사</p>
+                  <p className="text-sm text-muted-foreground">{t('equipment.manufacturer')}</p>
                   <p className="font-medium">{selectedEquipment.manufacturer}</p>
                 </div>
               )}
@@ -506,10 +506,10 @@ export default function EquipmentListPage() {
               <div className="flex gap-2 pt-4">
                 <Button className="flex-1">
                   <Wrench className="mr-2 h-4 w-4" />
-                  수리 시작
+                  {t('equipment.startRepair')}
                 </Button>
                 <Button variant="outline" className="flex-1">
-                  수리 이력 보기
+                  {t('equipment.viewHistory')}
                 </Button>
               </div>
             </CardContent>

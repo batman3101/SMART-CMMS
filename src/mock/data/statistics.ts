@@ -149,7 +149,7 @@ export const getTechnicianPerformance = (): TechnicianPerformance[] => {
 
     return {
       technician_id: tech.id,
-      technician_name: tech.name_ko,
+      technician_name: tech.name,
       completed_count: techRecords.length,
       avg_repair_time:
         techRecords.length > 0 ? Math.round(totalDuration / techRecords.length) : 0,
@@ -471,7 +471,7 @@ export const getFilteredTechnicianPerformance = (filter?: StatisticsFilter) => {
 
     return {
       technician_id: tech.id,
-      technician_name: tech.name_ko,
+      technician_name: tech.name,
       completed_count: techRecords.length,
       avg_repair_time:
         techRecords.length > 0 ? Math.round(totalDuration / techRecords.length) : 0,

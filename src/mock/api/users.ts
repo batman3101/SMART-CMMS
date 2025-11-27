@@ -85,6 +85,7 @@ export const mockUsersApi = {
     }
 
     // In real implementation, password would be handled by Supabase Auth
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userUpdates } = updates
 
     const updatedUser: User = {

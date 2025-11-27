@@ -175,7 +175,8 @@ class PushNotificationService {
   /**
    * 서버에 FCM 토큰 전송 (Supabase 연동 시 사용)
    */
-  async sendTokenToServer(token: string, userId?: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async sendTokenToServer(_token: string, _userId?: string): Promise<void> {
     console.log('[PushNotificationService] 서버에 FCM 토큰 전송 (Supabase 연동 필요)')
 
     // Supabase 연동 시 아래 코드 활성화
@@ -183,8 +184,8 @@ class PushNotificationService {
     await supabase
       .from('push_tokens')
       .upsert({
-        user_id: userId,
-        token: token,
+        user_id: _userId,
+        token: _token,
         platform: 'web',
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
@@ -225,7 +226,6 @@ class PushNotificationService {
       tag?: string
       data?: Record<string, string | undefined>
       requireInteraction?: boolean
-      actions?: NotificationAction[]
     }
   ): void {
     const settings = useNotificationStore.getState().pushSettings
@@ -423,7 +423,8 @@ export const createSupabaseNotificationHandler = (/* supabase: SupabaseClient */
     /**
      * 장시간 수리 체크 (주기적 실행)
      */
-    checkLongRepairs: async (thresholdMinutes: number = 120) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    checkLongRepairs: async (_thresholdMinutes: number = 120) => {
       console.log('[SupabaseNotification] 장시간 수리 체크 (Supabase 연동 필요)')
 
       // Supabase 연동 시 아래 코드 활성화
@@ -472,8 +473,10 @@ export const createSupabaseNotificationHandler = (/* supabase: SupabaseClient */
  * Supabase 연동 시 사용
  */
 export const sendFCMPushToServer = async (
-  type: NotificationType,
-  data: Record<string, unknown>
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _type: NotificationType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _data: Record<string, unknown>
   /* supabase: SupabaseClient */
 ): Promise<void> => {
   console.log('[FCM Push] 서버를 통한 푸시 전송 준비됨 (Supabase 연동 필요)')

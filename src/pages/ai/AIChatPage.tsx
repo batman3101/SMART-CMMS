@@ -74,7 +74,7 @@ export default function AIChatPage() {
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, aiResponse])
-    } catch (err) {
+    } catch {
       const errorMessage: Message = {
         id: Date.now() + 1,
         role: 'assistant',

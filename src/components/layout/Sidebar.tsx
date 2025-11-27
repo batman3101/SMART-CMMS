@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Server,
   Shield,
-  Bell,
+  CalendarClock,
 } from 'lucide-react'
 
 interface NavItem {
@@ -51,6 +51,19 @@ const navItems: NavItem[] = [
       { path: '/maintenance/history', labelKey: 'nav.maintenanceHistory' },
       { path: '/maintenance/monitor', labelKey: 'nav.maintenanceMonitor' },
       { path: '/maintenance/notifications', labelKey: 'nav.notifications' },
+    ],
+  },
+  {
+    path: '/pm',
+    icon: <CalendarClock className="h-5 w-5" />,
+    labelKey: 'nav.pm',
+    children: [
+      { path: '/pm', labelKey: 'nav.pmDashboard' },
+      { path: '/pm/calendar', labelKey: 'nav.pmCalendar' },
+      { path: '/pm/schedules', labelKey: 'nav.pmSchedules' },
+      { path: '/pm/execution', labelKey: 'nav.pmExecution' },
+      { path: '/pm/templates', labelKey: 'nav.pmTemplates' },
+      { path: '/pm/analytics', labelKey: 'nav.pmAnalytics' },
     ],
   },
   {

@@ -1,0 +1,531 @@
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  CheckCircle,
+  AlertTriangle,
+  Play,
+  Save,
+  ArrowLeft,
+  Clock,
+  Wrench,
+  Loader2,
+} from 'lucide-react'
+import { mockPMApi } from '@/mock/api'
+import { useAuthStore } from '@/stores/authStore'
+import type { PMSchedule, PMExecution, PMChecklistResult } from '@/types'
+
+export default function PMExecutionPage() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const scheduleId = searchParams.get('schedule')
+  const { user } = useAuthStore()
+
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [schedule, setSchedule] = useState<PMSchedule | null>(null)
+  const [execution, setExecution] = useState<PMExecution | null>(null)
+  const [checklistResults, setChecklistResults] = useState<PMChecklistResult[]>([])
+  const [findings, setFindings] = useState('')
+  const [findingsSeverity, setFindingsSeverity] = useState<'none' | 'minor' | 'major' | 'critical'>('none')
+  const [notes, setNotes] = useState('')
+  const [rating, setRating] = useState<number>(8)
+
+  useEffect(() => {
+    if (scheduleId) {
+      fetchData()
+    }
+  }, [scheduleId])
+
+  const fetchData = async () => {
+    if (!scheduleId) return
+    setLoading(true)
+    try {
+      const { data: scheduleData } = await mockPMApi.getScheduleById(scheduleId)
+      if (scheduleData) {
+        setSchedule(scheduleData)
+
+        // Initialize checklist results from template
+        if (scheduleData.template?.checklist_items) {
+          setChecklistResults(
+            scheduleData.template.checklist_items.map((item) => ({
+              item_id: item.id,
+              is_checked: false,
+              has_issue: false,
+            }))
+          )
+        }
+
+        // Check if execution already exists
+        const { data: existingExecution } = await mockPMApi.getExecutionBySchedule(scheduleId)
+        if (existingExecution) {
+          setExecution(existingExecution)
+          setChecklistResults(existingExecution.checklist_results)
+          if (existingExecution.findings) setFindings(existingExecution.findings)
+          if (existingExecution.findings_severity) setFindingsSeverity(existingExecution.findings_severity)
+          if (existingExecution.notes) setNotes(existingExecution.notes)
+          if (existingExecution.rating) setRating(existingExecution.rating)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStartPM = async () => {
+    if (!scheduleId || !user) return
+    setSaving(true)
+    try {
+      const { data, error } = await mockPMApi.startExecution(scheduleId, user.id)
+      if (error) {
+        alert(error)
+        return
+      }
+      if (data) {
+        setExecution(data)
+        // Refresh schedule
+        const { data: updatedSchedule } = await mockPMApi.getScheduleById(scheduleId)
+        if (updatedSchedule) setSchedule(updatedSchedule)
+      }
+    } catch (error) {
+      console.error('Failed to start PM:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleChecklistChange = (itemId: string, checked: boolean) => {
+    setChecklistResults((prev) =>
+      prev.map((result) =>
+        result.item_id === itemId ? { ...result, is_checked: checked } : result
+      )
+    )
+  }
+
+  const handleIssueChange = (itemId: string, hasIssue: boolean) => {
+    setChecklistResults((prev) =>
+      prev.map((result) =>
+        result.item_id === itemId ? { ...result, has_issue: hasIssue } : result
+      )
+    )
+  }
+
+  const handleSaveProgress = async () => {
+    if (!execution) return
+    setSaving(true)
+    try {
+      await mockPMApi.updateExecution(execution.id, {
+        checklist_results: checklistResults,
+        findings,
+        findings_severity: findingsSeverity,
+        notes,
+      })
+      alert(t('common.success'))
+    } catch (error) {
+      console.error('Failed to save progress:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCompletePM = async () => {
+    if (!execution) return
+
+    // Check if all required items are checked
+    const requiredItems = schedule?.template?.checklist_items.filter((item) => item.is_required) || []
+    const uncheckedRequired = requiredItems.filter(
+      (item) => !checklistResults.find((r) => r.item_id === item.id)?.is_checked
+    )
+
+    if (uncheckedRequired.length > 0) {
+      alert(t('pm.checklist') + ': ' + uncheckedRequired.map(i => i.description).join(', '))
+      return
+    }
+
+    setSaving(true)
+    try {
+      const { data, error } = await mockPMApi.completeExecution(execution.id, {
+        checklist_results: checklistResults,
+        used_parts: schedule?.template?.required_parts || [],
+        findings,
+        findings_severity: findingsSeverity,
+        rating,
+        notes,
+      })
+
+      if (error) {
+        alert(error)
+        return
+      }
+
+      if (data) {
+        alert(t('pm.completePM') + ' - ' + t('common.success'))
+        navigate('/pm')
+      }
+    } catch (error) {
+      console.error('Failed to complete PM:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const hasIssues = checklistResults.some((r) => r.has_issue)
+  const completedItems = checklistResults.filter((r) => r.is_checked).length
+  const totalItems = checklistResults.length
+  const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (!schedule) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <AlertTriangle className="mb-4 h-12 w-12 text-muted-foreground" />
+        <p className="text-muted-foreground">PM 일정을 찾을 수 없습니다.</p>
+        <Button className="mt-4" onClick={() => navigate('/pm')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          {t('pm.dashboard')}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{t('pm.execution')}</h1>
+            <p className="text-sm text-muted-foreground">
+              {schedule.equipment?.equipment_code} - {schedule.equipment?.equipment_name}
+            </p>
+          </div>
+        </div>
+        <Badge
+          variant={
+            schedule.status === 'in_progress'
+              ? 'warning'
+              : schedule.status === 'overdue'
+              ? 'destructive'
+              : 'outline'
+          }
+          className="text-base"
+        >
+          {schedule.status === 'in_progress'
+            ? t('pm.statusInProgress')
+            : schedule.status === 'overdue'
+            ? t('pm.statusOverdue')
+            : t('pm.statusScheduled')}
+        </Badge>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Content */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* PM Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{schedule.template?.name}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">{t('pm.scheduledDate')}:</span>
+                  <span className="ml-2 font-medium">{schedule.scheduled_date}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">{t('pm.estimatedDuration')}:</span>
+                  <span className="ml-2 font-medium">{schedule.template?.estimated_duration} {t('pm.minutes')}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">{t('pm.assignedTechnician')}:</span>
+                  <span className="ml-2 font-medium">{schedule.assigned_technician?.name || user?.name}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">{t('pm.priority')}:</span>
+                  <Badge
+                    variant={
+                      schedule.priority === 'high'
+                        ? 'destructive'
+                        : schedule.priority === 'medium'
+                        ? 'warning'
+                        : 'secondary'
+                    }
+                    className="ml-2"
+                  >
+                    {t(`pm.priority${schedule.priority.charAt(0).toUpperCase() + schedule.priority.slice(1)}`)}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Start Button */}
+              {!execution && (
+                <Button className="w-full" size="lg" onClick={handleStartPM} disabled={saving}>
+                  {saving ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <Play className="mr-2 h-5 w-5" />
+                  )}
+                  {t('pm.startPM')}
+                </Button>
+              )}
+
+              {/* Progress */}
+              {execution && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>{t('pm.checklistExecution')}</span>
+                    <span className="font-medium">{progressPercent}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted">
+                    <div
+                      className="h-2 rounded-full bg-primary transition-all"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Checklist */}
+          {execution && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  {t('pm.checklist')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {schedule.template?.checklist_items.map((item, index) => {
+                    const result = checklistResults.find((r) => r.item_id === item.id)
+                    return (
+                      <div
+                        key={item.id}
+                        className={`rounded-lg border p-4 ${
+                          result?.has_issue ? 'border-red-300 bg-red-50' : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <Checkbox
+                            id={item.id}
+                            checked={result?.is_checked || false}
+                            onCheckedChange={(checked: boolean | 'indeterminate') =>
+                              handleChecklistChange(item.id, checked === true)
+                            }
+                          />
+                          <div className="flex-1">
+                            <Label
+                              htmlFor={item.id}
+                              className={`cursor-pointer ${
+                                result?.is_checked ? 'text-muted-foreground line-through' : ''
+                              }`}
+                            >
+                              {index + 1}. {item.description}
+                              {item.is_required && (
+                                <span className="ml-1 text-destructive">*</span>
+                              )}
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-sm text-muted-foreground">
+                              {t('pm.hasIssue')}
+                            </Label>
+                            <Checkbox
+                              checked={result?.has_issue || false}
+                              onCheckedChange={(checked: boolean | 'indeterminate') =>
+                                handleIssueChange(item.id, checked === true)
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Findings & Notes */}
+          {execution && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  {t('pm.findings')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>{t('pm.findings')}</Label>
+                  <textarea
+                    className="w-full rounded-md border p-3 text-sm"
+                    rows={3}
+                    value={findings}
+                    onChange={(e) => setFindings(e.target.value)}
+                    placeholder={t('pm.findings') + '...'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('pm.findingsSeverity')}</Label>
+                  <div className="flex gap-2">
+                    {(['none', 'minor', 'major', 'critical'] as const).map((severity) => (
+                      <Button
+                        key={severity}
+                        variant={findingsSeverity === severity ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFindingsSeverity(severity)}
+                      >
+                        {t(`pm.severity${severity.charAt(0).toUpperCase() + severity.slice(1)}`)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('pm.pmNotes')}</Label>
+                  <textarea
+                    className="w-full rounded-md border p-3 text-sm"
+                    rows={2}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('pm.rating')} (1-10)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={rating}
+                    onChange={(e) => setRating(Number(e.target.value))}
+                    className="w-24"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Required Parts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Wrench className="h-5 w-5" />
+                {t('pm.requiredParts')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {schedule.template?.required_parts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('maintenance.noUsedParts')}</p>
+              ) : (
+                <div className="space-y-2">
+                  {schedule.template?.required_parts.map((part, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between rounded border p-2 text-sm"
+                    >
+                      <span>{part.part_name}</span>
+                      <Badge variant="outline">{part.quantity}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Execution Timer */}
+          {execution && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="h-5 w-5" />
+                  {t('pm.duration')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-primary">
+                  {execution.started_at
+                    ? `${Math.floor(
+                        (Date.now() - new Date(execution.started_at).getTime()) / 60000
+                      )} ${t('pm.minutes')}`
+                    : '-'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t('pm.estimatedDuration')}: {schedule.template?.estimated_duration} {t('pm.minutes')}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Action Buttons */}
+          {execution && (
+            <div className="space-y-2">
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handleSaveProgress}
+                disabled={saving}
+              >
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {t('common.save')}
+              </Button>
+              <Button
+                className="w-full"
+                onClick={handleCompletePM}
+                disabled={saving || progressPercent < 100}
+              >
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                )}
+                {t('pm.completePM')}
+              </Button>
+
+              {hasIssues && (
+                <Button
+                  className="w-full"
+                  variant="destructive"
+                  onClick={() => {
+                    // Navigate to maintenance input with PM context
+                    navigate(`/maintenance?from_pm=${schedule.id}&equipment=${schedule.equipment_id}`)
+                  }}
+                >
+                  <Wrench className="mr-2 h-4 w-4" />
+                  {t('pm.createRepairFromPM')}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

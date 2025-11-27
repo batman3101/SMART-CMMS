@@ -213,7 +213,7 @@ export default function EquipmentBulkUploadPage() {
       setUploadResult({
         success: 0,
         failed: validRows.length,
-        errors: ['업로드 중 오류가 발생했습니다.'],
+        errors: [t('equipment.uploadError')],
       })
     } finally {
       setIsUploading(false)
@@ -246,7 +246,7 @@ export default function EquipmentBulkUploadPage() {
         {uploadedData.length > 0 && (
           <Button variant="outline" onClick={handleReset}>
             <RefreshCw className="mr-2 h-4 w-4" />
-            초기화
+            {t('common.reset')}
           </Button>
         )}
       </div>
@@ -262,29 +262,20 @@ export default function EquipmentBulkUploadPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              설비 일괄 등록을 위한 엑셀 템플릿을 다운로드하세요. 템플릿에는 필수 필드와 예시
-              데이터가 포함되어 있습니다.
+              {t('equipment.templateDescription')}
             </p>
             <div className="rounded-lg bg-muted p-4">
-              <p className="mb-2 text-sm font-medium">필수 필드:</p>
+              <p className="mb-2 text-sm font-medium">{t('equipment.requiredFields')}</p>
               <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>
-                  • <strong>설비코드</strong>: 고유 식별 코드 (예: CNC-801)
-                </li>
-                <li>
-                  • <strong>설비명</strong>: 설비 이름
-                </li>
-                <li>
-                  • <strong>설비유형코드</strong>: CNC, CL, DBR, TRI 등
-                </li>
-                <li>
-                  • <strong>동</strong>: 설비가 위치한 동 (예: A동, B동)
-                </li>
+                <li>• {t('equipment.requiredFieldCode')}</li>
+                <li>• {t('equipment.requiredFieldName')}</li>
+                <li>• {t('equipment.requiredFieldType')}</li>
+                <li>• {t('equipment.requiredFieldBuilding')}</li>
               </ul>
             </div>
             <Button variant="outline" onClick={handleDownloadTemplate}>
               <Download className="mr-2 h-4 w-4" />
-              템플릿 다운로드 (CSV)
+              {t('equipment.templateDownload')}
             </Button>
           </CardContent>
         </Card>
@@ -318,18 +309,18 @@ export default function EquipmentBulkUploadPage() {
                   {isValidating ? (
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      검증 중...
+                      {t('common.validating')}
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-4">
-                      <Badge variant="success">{validCount}건 유효</Badge>
-                      {errorCount > 0 && <Badge variant="destructive">{errorCount}건 오류</Badge>}
+                      <Badge variant="success">{t('common.validCount', { count: validCount })}</Badge>
+                      {errorCount > 0 && <Badge variant="destructive">{t('common.errorCount', { count: errorCount })}</Badge>}
                     </div>
                   )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  CSV 또는 Excel 파일을 드래그하거나 클릭하여 업로드하세요.
+                  {t('equipment.uploadArea')}
                 </p>
               )}
             </div>
@@ -348,9 +339,9 @@ export default function EquipmentBulkUploadPage() {
                 <AlertTriangle className="h-8 w-8 text-yellow-500" />
               )}
               <div>
-                <h3 className="mb-2 text-lg font-semibold">업로드 완료</h3>
+                <h3 className="mb-2 text-lg font-semibold">{t('equipment.uploadComplete')}</h3>
                 <p className="text-muted-foreground">
-                  성공: {uploadResult.success}건, 실패: {uploadResult.failed}건
+                  {t('equipment.uploadResult', { success: uploadResult.success, failed: uploadResult.failed })}
                 </p>
                 {uploadResult.errors.length > 0 && (
                   <ul className="mt-2 space-y-1 text-sm text-red-500">
@@ -369,17 +360,17 @@ export default function EquipmentBulkUploadPage() {
       {uploadedData.length > 0 && !uploadResult && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>업로드 미리보기</CardTitle>
+            <CardTitle>{t('equipment.uploadPreview')}</CardTitle>
             <Button onClick={handleUpload} disabled={validCount === 0 || isUploading}>
               {isUploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  업로드 중...
+                  {t('common.uploading')}
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  {validCount}건 업로드
+                  {t('equipment.uploadCount', { count: validCount })}
                 </>
               )}
             </Button>
@@ -395,7 +386,7 @@ export default function EquipmentBulkUploadPage() {
                       onSort={requestSort}
                       className="w-[60px]"
                     >
-                      행
+                      {t('common.row')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="status"
@@ -403,49 +394,49 @@ export default function EquipmentBulkUploadPage() {
                       onSort={requestSort}
                       className="w-[60px]"
                     >
-                      상태
+                      {t('equipment.status')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="equipment_code"
                       sortDirection={getSortDirection('equipment_code')}
                       onSort={requestSort}
                     >
-                      설비코드
+                      {t('equipment.equipmentCode')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="equipment_name"
                       sortDirection={getSortDirection('equipment_name')}
                       onSort={requestSort}
                     >
-                      설비명
+                      {t('equipment.equipmentName')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="equipment_type_code"
                       sortDirection={getSortDirection('equipment_type_code')}
                       onSort={requestSort}
                     >
-                      설비유형
+                      {t('equipment.equipmentType')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="building"
                       sortDirection={getSortDirection('building')}
                       onSort={requestSort}
                     >
-                      동
+                      {t('equipment.building')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="manufacturer"
                       sortDirection={getSortDirection('manufacturer')}
                       onSort={requestSort}
                     >
-                      제조사
+                      {t('equipment.manufacturer')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="errors"
                       sortDirection={getSortDirection('errors')}
                       onSort={requestSort}
                     >
-                      오류
+                      {t('common.error')}
                     </SortableTableHead>
                   </TableRow>
                 </TableHeader>
@@ -485,7 +476,7 @@ export default function EquipmentBulkUploadPage() {
       {/* 설비 유형 참조 */}
       <Card>
         <CardHeader>
-          <CardTitle>설비 유형 코드 참조</CardTitle>
+          <CardTitle>{t('equipment.typeReference')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -496,7 +487,7 @@ export default function EquipmentBulkUploadPage() {
                   <p className="text-sm text-muted-foreground">{type.name}</p>
                 </div>
                 <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'}>
-                  {type.category === 'MAIN' ? '주' : '부'}
+                  {type.category === 'MAIN' ? t('equipment.categoryMainShort') : t('equipment.categorySubShort')}
                 </Badge>
               </div>
             ))}

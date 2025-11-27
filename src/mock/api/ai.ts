@@ -81,7 +81,7 @@ export const mockAIApi = {
     const summary = {
       total_insights: mockAIInsights.length,
       high_priority: mockAIInsights.filter(
-        (i) => (i.data as any)?.urgency === 'high'
+        (i) => (i.data as Record<string, unknown>)?.urgency === 'high'
       ).length,
       anomalies: mockAIInsights.filter((i) => i.insight_type === 'anomaly')
         .length,

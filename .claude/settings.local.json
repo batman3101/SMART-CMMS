@@ -14,7 +14,8 @@
       "Bash(ipconfig)",
       "Bash(findstr /i \"IPv4\")",
       "Bash(npm install:*)",
-      "Bash(if exist node_modules.vite rmdir /s /q node_modules.vite)"
+      "Bash(if exist node_modules.vite rmdir /s /q node_modules.vite)",
+      "Bash(npm run lint)"
     ],
     "deny": [],
     "ask": []

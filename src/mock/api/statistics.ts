@@ -72,26 +72,29 @@ export const mockStatisticsApi = {
 
     // 필터가 지정된 경우 필터링된 데이터 반환
     if (filterType) {
-      let filter: StatisticsFilter = {}
+      const filter: StatisticsFilter = {}
       const today = new Date()
 
       switch (filterType) {
-        case 'today':
+        case 'today': {
           filter.startDate = today.toISOString().split('T')[0]
           filter.endDate = today.toISOString().split('T')[0]
           break
-        case '7days':
+        }
+        case '7days': {
           const sevenDaysAgo = new Date(today)
           sevenDaysAgo.setDate(today.getDate() - 7)
           filter.startDate = sevenDaysAgo.toISOString().split('T')[0]
           filter.endDate = today.toISOString().split('T')[0]
           break
-        case '30days':
+        }
+        case '30days': {
           const thirtyDaysAgo = new Date(today)
           thirtyDaysAgo.setDate(today.getDate() - 30)
           filter.startDate = thirtyDaysAgo.toISOString().split('T')[0]
           filter.endDate = today.toISOString().split('T')[0]
           break
+        }
         case 'custom':
           if (startDate && endDate) {
             filter.startDate = startDate

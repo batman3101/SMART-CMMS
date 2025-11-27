@@ -18,6 +18,12 @@ import UserManagementPage from '@/pages/admin/UserManagementPage'
 import RolePermissionPage from '@/pages/admin/RolePermissionPage'
 import SettingsPage from '@/pages/admin/SettingsPage'
 import ProfilePage from '@/pages/ProfilePage'
+import PMDashboardPage from '@/pages/pm/PMDashboardPage'
+import PMScheduleListPage from '@/pages/pm/PMScheduleListPage'
+import PMCalendarPage from '@/pages/pm/PMCalendarPage'
+import PMExecutionPage from '@/pages/pm/PMExecutionPage'
+import PMTemplatesPage from '@/pages/pm/PMTemplatesPage'
+import PMAnalyticsPage from '@/pages/pm/PMAnalyticsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
@@ -58,6 +64,16 @@ function App() {
           <Route path="history" element={<MaintenanceHistoryPage />} />
           <Route path="monitor" element={<MaintenanceMonitorPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
+        </Route>
+
+        {/* PM (Preventive Maintenance) */}
+        <Route path="pm">
+          <Route index element={<PMDashboardPage />} />
+          <Route path="calendar" element={<PMCalendarPage />} />
+          <Route path="schedules" element={<PMScheduleListPage />} />
+          <Route path="execution" element={<PMExecutionPage />} />
+          <Route path="templates" element={<PMTemplatesPage />} />
+          <Route path="analytics" element={<PMAnalyticsPage />} />
         </Route>
 
         {/* Analytics */}

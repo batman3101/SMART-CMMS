@@ -43,13 +43,7 @@ const statusColors: Record<EquipmentStatus, string> = {
   standby: 'secondary',
 }
 
-const statusOptions: { value: EquipmentStatus; label: string }[] = [
-  { value: 'normal', label: '정상' },
-  { value: 'pm', label: 'PM 중' },
-  { value: 'repair', label: '수리 중' },
-  { value: 'emergency', label: '긴급수리' },
-  { value: 'standby', label: '대기' },
-]
+// statusOptions will be created inside component using t() function
 
 interface EquipmentFormData {
   equipment_code: string
@@ -73,6 +67,15 @@ const defaultFormData: EquipmentFormData = {
 
 export default function EquipmentMasterPage() {
   const { t } = useTranslation()
+
+  const statusOptions: { value: EquipmentStatus; label: string }[] = [
+    { value: 'normal', label: t('equipment.statusNormal') },
+    { value: 'pm', label: t('equipment.statusPM') },
+    { value: 'repair', label: t('equipment.statusRepair') },
+    { value: 'emergency', label: t('equipment.statusEmergency') },
+    { value: 'standby', label: t('equipment.statusStandby') },
+  ]
+
   const [activeTab, setActiveTab] = useState('equipments')
   const [loading, setLoading] = useState(true)
   const [equipments, setEquipments] = useState<Equipment[]>([])
@@ -209,16 +212,16 @@ export default function EquipmentMasterPage() {
     const errors: Record<string, string> = {}
 
     if (!formData.equipment_code.trim()) {
-      errors.equipment_code = '설비 코드를 입력해주세요.'
+      errors.equipment_code = t('equipment.codeRequired')
     }
     if (!formData.equipment_name.trim()) {
-      errors.equipment_name = '설비명을 입력해주세요.'
+      errors.equipment_name = t('equipment.nameRequired')
     }
     if (!formData.equipment_type_id) {
-      errors.equipment_type_id = '설비 유형을 선택해주세요.'
+      errors.equipment_type_id = t('equipment.typeRequired')
     }
     if (!formData.building.trim()) {
-      errors.building = '동을 선택해주세요.'
+      errors.building = t('equipment.buildingRequired')
     }
 
     setFormErrors(errors)
@@ -262,7 +265,7 @@ export default function EquipmentMasterPage() {
       setIsModalOpen(false)
     } catch (error) {
       console.error('Failed to save:', error)
-      setFormErrors({ submit: '저장 중 오류가 발생했습니다.' })
+      setFormErrors({ submit: t('equipment.saveError') })
     } finally {
       setSaving(false)
     }
@@ -329,8 +332,8 @@ export default function EquipmentMasterPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="equipments">설비 관리</TabsTrigger>
-          <TabsTrigger value="types">설비 유형 관리</TabsTrigger>
+          <TabsTrigger value="equipments">{t('equipment.management')}</TabsTrigger>
+          <TabsTrigger value="types">{t('equipment.typeManagement')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="equipments" className="space-y-4">
@@ -342,7 +345,7 @@ export default function EquipmentMasterPage() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="설비 코드 또는 설비명 검색"
+                      placeholder={t('equipment.searchPlaceholder')}
                       value={search}
                       onChange={(e) => {
                         setSearch(e.target.value)
@@ -360,7 +363,7 @@ export default function EquipmentMasterPage() {
                     setCurrentPage(1)
                   }}
                 >
-                  <option value="">설비 유형 전체</option>
+                  <option value="">{t('equipment.equipmentTypeAll')}</option>
                   {equipmentTypes.map((type) => (
                     <option key={type.id} value={type.id}>
                       {type.name}
@@ -383,14 +386,14 @@ export default function EquipmentMasterPage() {
                       onSort={requestEquipmentSort}
                       className="w-[120px]"
                     >
-                      설비 코드
+                      {t('equipment.equipmentCode')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="equipment_name"
                       sortDirection={getEquipmentSortDirection('equipment_name')}
                       onSort={requestEquipmentSort}
                     >
-                      설비명
+                      {t('equipment.equipmentName')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="equipment_type.name"
@@ -398,7 +401,7 @@ export default function EquipmentMasterPage() {
                       onSort={requestEquipmentSort}
                       className="w-[120px]"
                     >
-                      설비 유형
+                      {t('equipment.equipmentType')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="building"
@@ -406,7 +409,7 @@ export default function EquipmentMasterPage() {
                       onSort={requestEquipmentSort}
                       className="w-[80px]"
                     >
-                      동
+                      {t('equipment.building')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="status"
@@ -414,7 +417,7 @@ export default function EquipmentMasterPage() {
                       onSort={requestEquipmentSort}
                       className="w-[100px]"
                     >
-                      상태
+                      {t('equipment.status')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="manufacturer"
@@ -422,9 +425,9 @@ export default function EquipmentMasterPage() {
                       onSort={requestEquipmentSort}
                       className="w-[100px]"
                     >
-                      제조사
+                      {t('equipment.manufacturer')}
                     </SortableTableHead>
-                    <TableHead className="w-[100px] text-center">작업</TableHead>
+                    <TableHead className="w-[100px] text-center">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -435,7 +438,7 @@ export default function EquipmentMasterPage() {
                       <TableCell>{equipment.equipment_type?.name || '-'}</TableCell>
                       <TableCell>{equipment.building}</TableCell>
                       <TableCell>
-                        <Badge variant={statusColors[equipment.status] as any}>
+                        <Badge variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
                           {getStatusLabel(equipment.status)}
                         </Badge>
                       </TableCell>
@@ -460,7 +463,7 @@ export default function EquipmentMasterPage() {
                   {paginatedEquipments.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                        검색 결과가 없습니다.
+                        {t('common.noSearchResults')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -507,7 +510,7 @@ export default function EquipmentMasterPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings2 className="h-5 w-5" />
-                설비 유형 목록
+                {t('equipment.typeList')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -520,14 +523,14 @@ export default function EquipmentMasterPage() {
                       onSort={requestTypeSort}
                       className="w-[100px]"
                     >
-                      코드
+                      {t('equipment.typeCode')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="name"
                       sortDirection={getTypeSortDirection('name')}
                       onSort={requestTypeSort}
                     >
-                      유형명
+                      {t('equipment.typeName')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="category"
@@ -535,7 +538,7 @@ export default function EquipmentMasterPage() {
                       onSort={requestTypeSort}
                       className="w-[100px]"
                     >
-                      카테고리
+                      {t('equipment.typeCategory')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="is_active"
@@ -543,7 +546,7 @@ export default function EquipmentMasterPage() {
                       onSort={requestTypeSort}
                       className="w-[100px]"
                     >
-                      상태
+                      {t('equipment.typeStatus')}
                     </SortableTableHead>
                     <SortableTableHead
                       sortKey="equipment_count"
@@ -551,7 +554,7 @@ export default function EquipmentMasterPage() {
                       onSort={requestTypeSort}
                       className="w-[100px]"
                     >
-                      설비 수
+                      {t('equipment.equipmentCount')}
                     </SortableTableHead>
                   </TableRow>
                 </TableHeader>
@@ -562,12 +565,12 @@ export default function EquipmentMasterPage() {
                       <TableCell>{type.name}</TableCell>
                       <TableCell>
                         <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'}>
-                          {type.category === 'MAIN' ? '주설비' : '부대설비'}
+                          {type.category === 'MAIN' ? t('equipment.mainEquipment') : t('equipment.subEquipment')}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={type.is_active ? 'success' : 'secondary'}>
-                          {type.is_active ? '활성' : '비활성'}
+                          {type.is_active ? t('equipment.active') : t('equipment.inactive')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">{type.equipment_count}</TableCell>
@@ -576,7 +579,7 @@ export default function EquipmentMasterPage() {
                 </TableBody>
               </Table>
               <p className="mt-4 text-sm text-muted-foreground">
-                * 설비 유형 추가/수정은 시스템 관리자에게 문의하세요.
+                {t('equipment.typeNote')}
               </p>
             </CardContent>
           </Card>
@@ -588,7 +591,7 @@ export default function EquipmentMasterPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{editingEquipment ? '설비 수정' : '설비 등록'}</CardTitle>
+              <CardTitle>{editingEquipment ? t('equipment.editEquipment') : t('equipment.register')}</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setIsModalOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
@@ -597,7 +600,7 @@ export default function EquipmentMasterPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="equipment_code">
-                    설비 코드 <span className="text-destructive">*</span>
+                    {t('equipment.equipmentCode')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="equipment_code"
@@ -605,7 +608,7 @@ export default function EquipmentMasterPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, equipment_code: e.target.value }))
                     }
-                    placeholder="예: CNC-801"
+                    placeholder={t('equipment.codePlaceholder')}
                     disabled={!!editingEquipment}
                   />
                   {formErrors.equipment_code && (
@@ -615,7 +618,7 @@ export default function EquipmentMasterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="equipment_name">
-                    설비명 <span className="text-destructive">*</span>
+                    {t('equipment.equipmentName')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="equipment_name"
@@ -623,7 +626,7 @@ export default function EquipmentMasterPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, equipment_name: e.target.value }))
                     }
-                    placeholder="예: CNC 밀링 머신 #801"
+                    placeholder={t('equipment.namePlaceholder')}
                   />
                   {formErrors.equipment_name && (
                     <p className="text-sm text-destructive">{formErrors.equipment_name}</p>
@@ -632,7 +635,7 @@ export default function EquipmentMasterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="equipment_type_id">
-                    설비 유형 <span className="text-destructive">*</span>
+                    {t('equipment.equipmentType')} <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     id="equipment_type_id"
@@ -641,7 +644,7 @@ export default function EquipmentMasterPage() {
                       setFormData((prev) => ({ ...prev, equipment_type_id: e.target.value }))
                     }
                   >
-                    <option value="">선택하세요</option>
+                    <option value="">{t('common.select')}</option>
                     {equipmentTypes.map((type) => (
                       <option key={type.id} value={type.id}>
                         {type.name}
@@ -654,7 +657,7 @@ export default function EquipmentMasterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="status">상태</Label>
+                  <Label htmlFor="status">{t('equipment.status')}</Label>
                   <Select
                     id="status"
                     value={formData.status}
@@ -675,14 +678,14 @@ export default function EquipmentMasterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="building">
-                    동 <span className="text-destructive">*</span>
+                    {t('equipment.building')} <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     id="building"
                     value={formData.building}
                     onChange={(e) => setFormData((prev) => ({ ...prev, building: e.target.value }))}
                   >
-                    <option value="">선택하세요</option>
+                    <option value="">{t('common.select')}</option>
                     {buildings.map((building) => (
                       <option key={building} value={building}>
                         {building}
@@ -693,7 +696,7 @@ export default function EquipmentMasterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="install_date">설치일</Label>
+                  <Label htmlFor="install_date">{t('equipment.installDate')}</Label>
                   <Input
                     id="install_date"
                     type="date"
@@ -705,14 +708,14 @@ export default function EquipmentMasterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="manufacturer">제조사</Label>
+                  <Label htmlFor="manufacturer">{t('equipment.manufacturer')}</Label>
                   <Input
                     id="manufacturer"
                     value={formData.manufacturer}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, manufacturer: e.target.value }))
                     }
-                    placeholder="예: FANUC"
+                    placeholder={t('equipment.manufacturerPlaceholder')}
                   />
                 </div>
 
@@ -724,18 +727,18 @@ export default function EquipmentMasterPage() {
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                  취소
+                  {t('common.cancel')}
                 </Button>
                 <Button onClick={handleSave} disabled={saving}>
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      저장 중...
+                      {t('common.saving')}
                     </>
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      저장
+                      {t('common.save')}
                     </>
                   )}
                 </Button>
@@ -750,30 +753,29 @@ export default function EquipmentMasterPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>설비 삭제</CardTitle>
+              <CardTitle>{t('equipment.deleteEquipment')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                <strong>{editingEquipment.equipment_code}</strong> ({editingEquipment.equipment_name}
-                ) 설비를 삭제하시겠습니까?
+                {t('equipment.deleteConfirm', { code: editingEquipment.equipment_code, name: editingEquipment.equipment_name })}
               </p>
               <p className="text-sm text-muted-foreground">
-                이 작업은 되돌릴 수 없습니다. 해당 설비와 관련된 수리 이력은 유지됩니다.
+                {t('equipment.deleteWarning')}
               </p>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
-                  취소
+                  {t('common.cancel')}
                 </Button>
                 <Button variant="destructive" onClick={handleDelete} disabled={saving}>
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      삭제 중...
+                      {t('common.deleting')}
                     </>
                   ) : (
                     <>
                       <Trash2 className="mr-2 h-4 w-4" />
-                      삭제
+                      {t('common.delete')}
                     </>
                   )}
                 </Button>

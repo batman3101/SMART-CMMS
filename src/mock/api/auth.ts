@@ -67,7 +67,9 @@ export const mockAuthApi = {
 
   async changePassword(
     userId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _currentPassword: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _newPassword: string
   ): Promise<{ error: string | null }> {
     await delay(300)

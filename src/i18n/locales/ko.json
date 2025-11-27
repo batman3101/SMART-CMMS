@@ -496,7 +496,15 @@
     "enablePush": "푸시 알림 활성화",
     "enablePushDesc": "브라우저 및 모바일 푸시 알림을 받습니다",
     "notificationTypes": "알림 유형별 설정",
-    "subscribed": "푸시 알림이 구독되어 있습니다"
+    "subscribed": "푸시 알림이 구독되어 있습니다",
+    "emergencyTitle": "긴급수리 발생",
+    "emergencyMessage": "{{equipment}} 설비에서 긴급수리가 요청되었습니다. 즉시 확인이 필요합니다.",
+    "longRepairTitle": "장시간 수리 경고",
+    "longRepairMessage": "{{equipment}} 수리가 2시간을 초과했습니다. 진행 상황을 확인해주세요.",
+    "completedTitle": "수리 완료",
+    "completedMessage": "{{equipment}} 설비 수리가 완료되었습니다. 평점: {{rating}}/10",
+    "pmScheduleTitle": "PM 일정 알림",
+    "pmScheduleMessage": "{{equipment}} 설비의 PM 예정일입니다."
   },
   "pm": {
     "title": "PM 관리",

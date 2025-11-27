@@ -96,6 +96,37 @@ export default function NotificationsPage() {
     }
   }
 
+  // 알림 제목/메시지 번역 헬퍼
+  const getNotificationTitle = (type: NotificationType) => {
+    switch (type) {
+      case 'emergency':
+        return t('notification.emergencyTitle')
+      case 'long_repair':
+        return t('notification.longRepairTitle')
+      case 'completed':
+        return t('notification.completedTitle')
+      case 'pm_schedule':
+        return t('notification.pmScheduleTitle')
+      default:
+        return t('notification.info')
+    }
+  }
+
+  const getNotificationMessage = (type: NotificationType, equipmentCode?: string, rating?: number) => {
+    switch (type) {
+      case 'emergency':
+        return t('notification.emergencyMessage', { equipment: equipmentCode || '' })
+      case 'long_repair':
+        return t('notification.longRepairMessage', { equipment: equipmentCode || '' })
+      case 'completed':
+        return t('notification.completedMessage', { equipment: equipmentCode || '', rating: rating || 9 })
+      case 'pm_schedule':
+        return t('notification.pmScheduleMessage', { equipment: equipmentCode || '' })
+      default:
+        return ''
+    }
+  }
+
   const handleRequestPermission = async () => {
     const permission = await pushNotificationService.requestPermission()
     setPermissionStatus(permission)
@@ -406,7 +437,7 @@ export default function NotificationsPage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <p className={`font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                  {notification.title}
+                                  {getNotificationTitle(notification.type)}
                                 </p>
                                 {getTypeBadge(notification.type)}
                                 {!notification.read && (
@@ -414,7 +445,7 @@ export default function NotificationsPage() {
                                 )}
                               </div>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                {notification.message}
+                                {getNotificationMessage(notification.type, notification.equipment_code)}
                               </p>
                               {notification.equipment_code && (
                                 <p className="mt-2 text-xs">

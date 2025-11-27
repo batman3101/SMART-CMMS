@@ -381,3 +381,34 @@ export interface PMAutoGenerateConfig {
   start_date: string                  // 시작일
   months_ahead: number                // 몇 개월 앞까지 생성 (기본 6개월)
 }
+
+// ========================================
+// Parts (External Database - Read Only)
+// ========================================
+
+// 부품 정보 (외부 부품관리 앱에서 가져옴)
+export interface Part {
+  id: string
+  code: string                        // 부품 코드
+  name: string                        // 부품명
+  name_ko?: string                    // 한국어 이름
+  name_vi?: string                    // 베트남어 이름
+  category?: string                   // 부품 카테고리
+  unit?: string                       // 단위
+  current_stock?: number              // 현재 재고 (참고용)
+}
+
+// 수리 시 사용된 부품
+export interface UsedPart {
+  part_id: string
+  part_code: string
+  part_name: string
+  quantity: number
+}
+
+// 부품 검색 필터
+export interface PartSearchFilter {
+  keyword?: string
+  category?: string
+  limit?: number
+}

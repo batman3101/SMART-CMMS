@@ -82,6 +82,37 @@ export default function Header() {
     }
   }
 
+  // 알림 제목/메시지 번역 헬퍼
+  const getNotificationTitle = (type: NotificationType) => {
+    switch (type) {
+      case 'emergency':
+        return t('notification.emergencyTitle')
+      case 'long_repair':
+        return t('notification.longRepairTitle')
+      case 'completed':
+        return t('notification.completedTitle')
+      case 'pm_schedule':
+        return t('notification.pmScheduleTitle')
+      default:
+        return t('notification.info')
+    }
+  }
+
+  const getNotificationMessage = (type: NotificationType, equipmentCode?: string, rating?: number) => {
+    switch (type) {
+      case 'emergency':
+        return t('notification.emergencyMessage', { equipment: equipmentCode || '' })
+      case 'long_repair':
+        return t('notification.longRepairMessage', { equipment: equipmentCode || '' })
+      case 'completed':
+        return t('notification.completedMessage', { equipment: equipmentCode || '', rating: rating || 9 })
+      case 'pm_schedule':
+        return t('notification.pmScheduleMessage', { equipment: equipmentCode || '' })
+      default:
+        return ''
+    }
+  }
+
   const handleNotificationClick = (notificationId: string, type: NotificationType) => {
     markAsRead(notificationId)
     // 알림 유형에 따라 해당 페이지로 이동
@@ -175,10 +206,10 @@ export default function Header() {
                         </div>
                         <div className="flex-1 pr-6">
                           <p className={`text-sm ${!notification.read ? 'font-semibold' : ''}`}>
-                            {notification.title}
+                            {getNotificationTitle(notification.type)}
                           </p>
                           <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-                            {notification.message}
+                            {getNotificationMessage(notification.type, notification.equipment_code)}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {getRelativeTime(notification.created_at)}

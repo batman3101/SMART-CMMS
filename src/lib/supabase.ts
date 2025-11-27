@@ -1,9 +1,26 @@
 import { createClient } from '@supabase/supabase-js'
 
+// ========================================
+// SMART-CMMS Main Database
+// ========================================
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// ========================================
+// Parts Management App Database (External - Read Only)
+// ========================================
+const partsSupabaseUrl = import.meta.env.VITE_PARTS_SUPABASE_URL || ''
+const partsSupabaseAnonKey = import.meta.env.VITE_PARTS_SUPABASE_ANON_KEY || ''
+
+// 부품 관리 앱 연결 (읽기 전용)
+export const partsSupabase = partsSupabaseUrl && partsSupabaseAnonKey
+  ? createClient(partsSupabaseUrl, partsSupabaseAnonKey)
+  : null
+
+// 부품 Supabase 연결 여부 확인
+export const isPartsSupabaseConnected = () => partsSupabase !== null
 
 // Auth helpers
 export async function signIn(email: string, password: string) {

@@ -496,7 +496,15 @@
     "enablePush": "Kích hoạt thông báo đẩy",
     "enablePushDesc": "Nhận thông báo đẩy trên trình duyệt và điện thoại",
     "notificationTypes": "Cài đặt theo loại thông báo",
-    "subscribed": "Đã đăng ký nhận thông báo đẩy"
+    "subscribed": "Đã đăng ký nhận thông báo đẩy",
+    "emergencyTitle": "Sửa chữa khẩn cấp",
+    "emergencyMessage": "Thiết bị {{equipment}} yêu cầu sửa chữa khẩn cấp. Cần kiểm tra ngay.",
+    "longRepairTitle": "Cảnh báo sửa chữa lâu",
+    "longRepairMessage": "Sửa chữa {{equipment}} đã vượt quá 2 giờ. Vui lòng kiểm tra tiến độ.",
+    "completedTitle": "Sửa chữa hoàn thành",
+    "completedMessage": "Thiết bị {{equipment}} đã sửa chữa xong. Đánh giá: {{rating}}/10",
+    "pmScheduleTitle": "Thông báo lịch PM",
+    "pmScheduleMessage": "Đến lịch PM cho thiết bị {{equipment}}."
   },
   "pm": {
     "title": "Quản lý PM",

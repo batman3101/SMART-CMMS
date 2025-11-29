@@ -24,6 +24,9 @@ import PMCalendarPage from '@/pages/pm/PMCalendarPage'
 import PMExecutionPage from '@/pages/pm/PMExecutionPage'
 import PMTemplatesPage from '@/pages/pm/PMTemplatesPage'
 import PMAnalyticsPage from '@/pages/pm/PMAnalyticsPage'
+import PMScheduleDetailPage from '@/pages/pm/PMScheduleDetailPage'
+import PMScheduleCreatePage from '@/pages/pm/PMScheduleCreatePage'
+import PartsPage from '@/pages/parts/PartsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
@@ -71,6 +74,8 @@ function App() {
           <Route index element={<PMDashboardPage />} />
           <Route path="calendar" element={<PMCalendarPage />} />
           <Route path="schedules" element={<PMScheduleListPage />} />
+          <Route path="schedules/new" element={<PMScheduleCreatePage />} />
+          <Route path="schedules/:id" element={<PMScheduleDetailPage />} />
           <Route path="execution" element={<PMExecutionPage />} />
           <Route path="templates" element={<PMTemplatesPage />} />
           <Route path="analytics" element={<PMAnalyticsPage />} />
@@ -87,6 +92,9 @@ function App() {
           <Route index element={<AIInsightPage />} />
           <Route path="chat" element={<AIChatPage />} />
         </Route>
+
+        {/* Parts Information */}
+        <Route path="parts" element={<PartsPage />} />
 
         {/* Admin */}
         <Route path="admin">

@@ -465,10 +465,15 @@ export default function PMExecutionPage() {
                   {schedule.template?.required_parts.map((part, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between rounded border p-2 text-sm"
+                      className="flex items-center justify-between gap-2 rounded border p-2"
                     >
-                      <span>{part.part_name}</span>
-                      <Badge variant="outline">{part.quantity}</Badge>
+                      <div className="flex-1 min-w-0">
+                        {part.part_code && (
+                          <p className="font-mono text-xs text-muted-foreground">{part.part_code}</p>
+                        )}
+                        <p className="text-sm truncate">{part.part_name}</p>
+                      </div>
+                      <Badge variant="outline" className="shrink-0">{part.quantity}</Badge>
                     </div>
                   ))}
                 </div>

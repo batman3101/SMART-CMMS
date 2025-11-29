@@ -8,6 +8,21 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Buffer polyfill for ExcelJS
+      buffer: 'buffer/',
+    },
+  },
+  // ExcelJS requires Buffer polyfill for browser
+  define: {
+    'process.env': {},
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    include: ['exceljs', 'buffer'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
     },
   },
 })

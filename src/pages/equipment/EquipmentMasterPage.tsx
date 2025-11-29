@@ -377,14 +377,14 @@ export default function EquipmentMasterPage() {
           {/* 테이블 */}
           <Card>
             <CardContent className="pt-6">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
                     <SortableTableHead
                       sortKey="equipment_code"
                       sortDirection={getEquipmentSortDirection('equipment_code')}
                       onSort={requestEquipmentSort}
-                      className="w-[120px]"
+                      className="w-[100px]"
                     >
                       {t('equipment.equipmentCode')}
                     </SortableTableHead>
@@ -392,6 +392,7 @@ export default function EquipmentMasterPage() {
                       sortKey="equipment_name"
                       sortDirection={getEquipmentSortDirection('equipment_name')}
                       onSort={requestEquipmentSort}
+                      className="w-[200px]"
                     >
                       {t('equipment.equipmentName')}
                     </SortableTableHead>
@@ -407,7 +408,7 @@ export default function EquipmentMasterPage() {
                       sortKey="building"
                       sortDirection={getEquipmentSortDirection('building')}
                       onSort={requestEquipmentSort}
-                      className="w-[80px]"
+                      className="w-[60px]"
                     >
                       {t('equipment.building')}
                     </SortableTableHead>
@@ -415,7 +416,7 @@ export default function EquipmentMasterPage() {
                       sortKey="status"
                       sortDirection={getEquipmentSortDirection('status')}
                       onSort={requestEquipmentSort}
-                      className="w-[100px]"
+                      className="w-[80px]"
                     >
                       {t('equipment.status')}
                     </SortableTableHead>
@@ -423,26 +424,26 @@ export default function EquipmentMasterPage() {
                       sortKey="manufacturer"
                       sortDirection={getEquipmentSortDirection('manufacturer')}
                       onSort={requestEquipmentSort}
-                      className="w-[100px]"
+                      className="w-[120px]"
                     >
                       {t('equipment.manufacturer')}
                     </SortableTableHead>
-                    <TableHead className="w-[100px] text-center">{t('common.actions')}</TableHead>
+                    <TableHead className="w-[80px] text-center">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedEquipments.map((equipment) => (
                     <TableRow key={equipment.id}>
                       <TableCell className="font-medium">{equipment.equipment_code}</TableCell>
-                      <TableCell>{equipment.equipment_name}</TableCell>
-                      <TableCell>{equipment.equipment_type?.name || '-'}</TableCell>
-                      <TableCell>{equipment.building}</TableCell>
-                      <TableCell>
+                      <TableCell className="truncate" title={equipment.equipment_name}>{equipment.equipment_name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{equipment.equipment_type?.name || '-'}</TableCell>
+                      <TableCell className="whitespace-nowrap">{equipment.building}</TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Badge variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
                           {getStatusLabel(equipment.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{equipment.manufacturer || '-'}</TableCell>
+                      <TableCell className="whitespace-nowrap">{equipment.manufacturer || '-'}</TableCell>
                       <TableCell>
                         <div className="flex justify-center gap-1">
                           <Button variant="ghost" size="sm" onClick={() => handleEdit(equipment)}>
@@ -514,14 +515,14 @@ export default function EquipmentMasterPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
                     <SortableTableHead
                       sortKey="code"
                       sortDirection={getTypeSortDirection('code')}
                       onSort={requestTypeSort}
-                      className="w-[100px]"
+                      className="w-[120px]"
                     >
                       {t('equipment.typeCode')}
                     </SortableTableHead>
@@ -529,6 +530,7 @@ export default function EquipmentMasterPage() {
                       sortKey="name"
                       sortDirection={getTypeSortDirection('name')}
                       onSort={requestTypeSort}
+                      className="w-[200px]"
                     >
                       {t('equipment.typeName')}
                     </SortableTableHead>
@@ -544,7 +546,7 @@ export default function EquipmentMasterPage() {
                       sortKey="is_active"
                       sortDirection={getTypeSortDirection('is_active')}
                       onSort={requestTypeSort}
-                      className="w-[100px]"
+                      className="w-[80px]"
                     >
                       {t('equipment.typeStatus')}
                     </SortableTableHead>
@@ -562,13 +564,13 @@ export default function EquipmentMasterPage() {
                   {sortedEquipmentTypes.map((type) => (
                     <TableRow key={type.id}>
                       <TableCell className="font-medium">{type.code}</TableCell>
-                      <TableCell>{type.name}</TableCell>
-                      <TableCell>
+                      <TableCell className="truncate" title={type.name}>{type.name}</TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'}>
                           {type.category === 'MAIN' ? t('equipment.mainEquipment') : t('equipment.subEquipment')}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Badge variant={type.is_active ? 'success' : 'secondary'}>
                           {type.is_active ? t('equipment.active') : t('equipment.inactive')}
                         </Badge>

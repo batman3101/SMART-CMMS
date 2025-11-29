@@ -1,3 +1,7 @@
+// Buffer polyfill for ExcelJS
+import { Buffer } from 'buffer'
+;(window as unknown as { Buffer: typeof Buffer }).Buffer = Buffer
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'

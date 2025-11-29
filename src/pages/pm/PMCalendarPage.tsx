@@ -257,7 +257,7 @@ export default function PMCalendarPage() {
                             : 'outline'
                         }
                       >
-                        {t(`pm.status${schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1).replace('_', '')}`)}
+                        {t(`pm.status${schedule.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('')}`)}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">

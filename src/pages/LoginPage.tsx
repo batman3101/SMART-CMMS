@@ -1,23 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
+import { useThemeStore } from '@/stores/themeStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Globe, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Globe, Eye, EyeOff, Loader2, Sun, Moon } from 'lucide-react'
 import { mockAuthApi } from '@/mock/api'
 
 export default function LoginPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { login, language, setLanguage } = useAuthStore()
+  const { theme, toggleTheme } = useThemeStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Apply theme on mount (for login page which is outside MainLayout)
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }, [theme])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,15 +62,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary">
-            <span className="text-2xl font-bold text-white">A</span>
+          {/* Logo Image */}
+          <div className="mx-auto mb-4">
+            <img
+              src="/ALMUS TECH BLUE.png"
+              alt="ALMUS TECH Logo"
+              className="h-16 w-auto object-contain"
+            />
           </div>
-          <CardTitle className="text-2xl">AMMS</CardTitle>
+          {/* Title with Inter Bold */}
+          <CardTitle className="text-2xl" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+            SMART CMMS SYSTEM
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
-            ALMUS Maintenance Management System
+            {language === 'ko'
+              ? 'ALMUS TECH 설비 유지보수 시스템'
+              : 'ALMUS TECH Maintenance Management System'}
           </p>
         </CardHeader>
         <CardContent>
@@ -125,15 +147,32 @@ export default function LoginPage() {
               >
                 {t('auth.forgotPassword')}
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={toggleLanguage}
-              >
-                <Globe className="mr-2 h-4 w-4" />
-                {language === 'ko' ? 'Tiếng Việt' : '한국어'}
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Theme Toggle */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                >
+                  {theme === 'light' ? (
+                    <Moon className="h-4 w-4" />
+                  ) : (
+                    <Sun className="h-4 w-4" />
+                  )}
+                </Button>
+                {/* Language Toggle */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleLanguage}
+                >
+                  <Globe className="mr-2 h-4 w-4" />
+                  {language === 'ko' ? 'Tiếng Việt' : '한국어'}
+                </Button>
+              </div>
             </div>
           </form>
 

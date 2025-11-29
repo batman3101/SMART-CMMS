@@ -332,16 +332,16 @@ export default function PMScheduleListPage() {
                       <TableCell>{getStatusBadge(schedule.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
-                          {(schedule.status === 'scheduled' || schedule.status === 'overdue') && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => navigate(`/pm/execution?schedule=${schedule.id}`)}
-                              title={t('pm.startPM')}
-                            >
-                              <Play className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            size="icon"
+                            variant={schedule.status === 'scheduled' || schedule.status === 'overdue' ? 'default' : 'ghost'}
+                            onClick={() => navigate(`/pm/execution?schedule=${schedule.id}`)}
+                            title={t('pm.startPM')}
+                            disabled={schedule.status === 'completed' || schedule.status === 'cancelled'}
+                            className={schedule.status === 'in_progress' ? 'bg-amber-500 hover:bg-amber-600' : ''}
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
                           <Button
                             size="icon"
                             variant="ghost"

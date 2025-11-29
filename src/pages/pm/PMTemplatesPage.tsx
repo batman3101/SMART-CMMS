@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,9 +31,23 @@ import {
   Copy,
   CheckCircle,
   XCircle,
+  Upload,
+  Download,
+  FileSpreadsheet,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 import { mockPMApi } from '@/mock/api'
 import { mockEquipmentTypes } from '@/mock/data'
+import { useToast } from '@/components/ui/toast'
+import {
+  downloadPMTemplateExcel,
+  uploadPMTemplateExcel,
+  exportPMTemplatesToExcel,
+  type ParsedTemplate,
+  type ValidationError,
+  type ExcelLanguage,
+} from '@/lib/pmTemplateExcel'
 import type { PMTemplate, PMIntervalType } from '@/types'
 
 interface ChecklistItem {
@@ -43,7 +57,9 @@ interface ChecklistItem {
 }
 
 export default function PMTemplatesPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const { addToast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
   const [templates, setTemplates] = useState<PMTemplate[]>([])
@@ -55,6 +71,35 @@ export default function PMTemplatesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<PMTemplate | null>(null)
   const [templateToDelete, setTemplateToDelete] = useState<PMTemplate | null>(null)
+
+  // Bulk upload states
+  const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false)
+  const [uploadProcessing, setUploadProcessing] = useState(false)
+  const [uploadResult, setUploadResult] = useState<{
+    templates: ParsedTemplate[]
+    errors: ValidationError[]
+  } | null>(null)
+  const [selectedLanguage, setSelectedLanguage] = useState<ExcelLanguage>(
+    (i18n.language?.startsWith('vi') ? 'vi' : 'ko') as ExcelLanguage
+  )
+
+  // 현재 UI 언어에 맞는 템플릿명 반환
+  const getLocalizedTemplateName = (template: PMTemplate) => {
+    const lang = i18n.language
+    if (lang?.startsWith('vi')) {
+      return template.name_vi || template.name
+    }
+    return template.name_ko || template.name
+  }
+
+  // 현재 UI 언어에 맞는 템플릿 설명 반환
+  const getLocalizedDescription = (template: PMTemplate) => {
+    const lang = i18n.language
+    if (lang?.startsWith('vi')) {
+      return template.description || ''
+    }
+    return template.description || ''
+  }
 
   // Form state
   const [formData, setFormData] = useState({
@@ -244,6 +289,154 @@ export default function PMTemplatesPage() {
     }
   }
 
+  // Excel 양식 다운로드
+  const handleDownloadTemplate = async () => {
+    try {
+      await downloadPMTemplateExcel(mockEquipmentTypes, selectedLanguage)
+      addToast({
+        type: 'success',
+        title: t('common.success'),
+        message: t('pm.excelTemplateDownloaded'),
+      })
+    } catch (error) {
+      console.error('Failed to download template:', error)
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('pm.excelDownloadFailed'),
+      })
+    }
+  }
+
+  // 기존 템플릿 내보내기
+  const handleExportTemplates = async () => {
+    try {
+      await exportPMTemplatesToExcel(templates, mockEquipmentTypes, selectedLanguage)
+      addToast({
+        type: 'success',
+        title: t('common.success'),
+        message: t('pm.excelExportSuccess'),
+      })
+    } catch (error) {
+      console.error('Failed to export templates:', error)
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('pm.excelExportFailed'),
+      })
+    }
+  }
+
+  // Excel 파일 선택
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadProcessing(true)
+    setUploadResult(null)
+
+    try {
+      const result = await uploadPMTemplateExcel(file, mockEquipmentTypes, selectedLanguage)
+      setUploadResult({
+        templates: result.templates,
+        errors: result.errors,
+      })
+
+      if (result.errors.length === 0 && result.templates.length > 0) {
+        addToast({
+          type: 'success',
+          title: t('pm.excelValidationSuccess'),
+          message: t('pm.excelValidationSuccessDesc', { count: result.templates.length }),
+        })
+      }
+    } catch (error) {
+      console.error('Failed to process file:', error)
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('pm.excelProcessFailed'),
+      })
+    } finally {
+      setUploadProcessing(false)
+      // 파일 입력 초기화
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  // 일괄 등록 실행
+  const handleBulkUpload = async () => {
+    if (!uploadResult || uploadResult.templates.length === 0) return
+
+    setUploadProcessing(true)
+    try {
+      let successCount = 0
+      let failCount = 0
+
+      for (const template of uploadResult.templates) {
+        try {
+          await mockPMApi.createTemplate({
+            name: template.name,
+            name_ko: template.name_ko,
+            name_vi: template.name_vi,
+            description: template.description,
+            equipment_type_id: template.equipment_type_id,
+            interval_type: template.interval_type,
+            interval_value: template.interval_value,
+            estimated_duration: template.estimated_duration,
+            checklist_items: template.checklist_items.map((item, idx) => ({
+              id: `item-${Date.now()}-${idx}`,
+              order: item.order,
+              description: item.description,
+              description_ko: item.description_ko,
+              description_vi: item.description_vi,
+              is_required: item.is_required,
+            })),
+            required_parts: template.required_parts,
+            is_active: true,
+          })
+          successCount++
+        } catch (error) {
+          console.error('Failed to create template:', template.name, error)
+          failCount++
+        }
+      }
+
+      if (successCount > 0) {
+        addToast({
+          type: 'success',
+          title: t('pm.bulkUploadComplete'),
+          message: t('pm.bulkUploadCompleteDesc', { success: successCount, fail: failCount }),
+        })
+        fetchTemplates()
+      }
+
+      if (failCount === 0) {
+        setIsBulkUploadDialogOpen(false)
+        setUploadResult(null)
+      }
+    } catch (error) {
+      console.error('Bulk upload failed:', error)
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('pm.bulkUploadFailed'),
+      })
+    } finally {
+      setUploadProcessing(false)
+    }
+  }
+
+  // 일괄 업로드 다이얼로그 닫기
+  const closeBulkUploadDialog = () => {
+    setIsBulkUploadDialogOpen(false)
+    setUploadResult(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -258,6 +451,10 @@ export default function PMTemplatesPage() {
           <Button variant="outline" size="sm" onClick={fetchTemplates}>
             <RefreshCw className="mr-2 h-4 w-4" />
             {t('common.refresh')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            {t('pm.bulkUpload')}
           </Button>
           <Button size="sm" onClick={openCreateDialog}>
             <Plus className="mr-2 h-4 w-4" />
@@ -322,10 +519,10 @@ export default function PMTemplatesPage() {
                   <TableRow key={template.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{template.name}</p>
-                        {template.description && (
+                        <p className="font-medium">{getLocalizedTemplateName(template)}</p>
+                        {getLocalizedDescription(template) && (
                           <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                            {template.description}
+                            {getLocalizedDescription(template)}
                           </p>
                         )}
                       </div>
@@ -578,6 +775,188 @@ export default function PMTemplatesPage() {
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
               {t('common.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Upload Dialog */}
+      <Dialog open={isBulkUploadDialogOpen} onOpenChange={closeBulkUploadDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              {t('pm.bulkUpload')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('pm.bulkUploadDesc')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Language Selection */}
+            <div className="space-y-3">
+              <h3 className="font-medium">{t('pm.selectLanguage')}</h3>
+              <div className="flex gap-2">
+                <Button
+                  variant={selectedLanguage === 'ko' ? 'default' : 'outline'}
+                  onClick={() => setSelectedLanguage('ko')}
+                  className="flex-1"
+                >
+                  🇰🇷 한국어
+                </Button>
+                <Button
+                  variant={selectedLanguage === 'vi' ? 'default' : 'outline'}
+                  onClick={() => setSelectedLanguage('vi')}
+                  className="flex-1"
+                >
+                  🇻🇳 Tiếng Việt
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {t('pm.selectLanguageHint')}
+              </p>
+            </div>
+
+            {/* Step 1: Download Template */}
+            <div className="space-y-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">1</span>
+                {t('pm.downloadExcelTemplate')}
+              </h3>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleDownloadTemplate}>
+                  <Download className="mr-2 h-4 w-4" />
+                  {t('pm.downloadTemplate')} ({selectedLanguage === 'ko' ? '한국어' : 'Tiếng Việt'})
+                </Button>
+                {templates.length > 0 && (
+                  <Button variant="outline" onClick={handleExportTemplates}>
+                    <Download className="mr-2 h-4 w-4" />
+                    {t('pm.exportExisting')} ({templates.length})
+                  </Button>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {t('pm.downloadTemplateHint')}
+              </p>
+            </div>
+
+            {/* Step 2: Upload File */}
+            <div className="space-y-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">2</span>
+                {t('pm.uploadExcelFile')}
+              </h3>
+              <div className="flex items-center gap-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="excel-upload"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadProcessing}
+                >
+                  {uploadProcessing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  {t('pm.selectFile')}
+                </Button>
+              </div>
+            </div>
+
+            {/* Step 3: Validation Results */}
+            {uploadResult && (
+              <div className="space-y-3">
+                <h3 className="font-medium flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">3</span>
+                  {t('pm.validationResults')}
+                </h3>
+
+                {/* Errors */}
+                {uploadResult.errors.length > 0 && (
+                  <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+                    <div className="flex items-center gap-2 text-destructive mb-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      <span className="font-medium">
+                        {t('pm.validationErrors', { count: uploadResult.errors.length })}
+                      </span>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                      {uploadResult.errors.map((error, idx) => (
+                        <div key={idx} className="text-sm">
+                          <span className="text-muted-foreground">[{error.sheet}]</span>{' '}
+                          {error.row > 0 && <span className="text-muted-foreground">{t('pm.row')} {error.row}</span>}{' '}
+                          {error.column !== '-' && <span className="text-muted-foreground">{t('pm.column')} {error.column}:</span>}{' '}
+                          <span className="text-destructive">{error.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Success Preview */}
+                {uploadResult.templates.length > 0 && (
+                  <div className="rounded-lg border border-green-500 bg-green-50 dark:bg-green-950/20 p-4">
+                    <div className="flex items-center gap-2 text-green-600 mb-2">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-medium">
+                        {t('pm.validTemplates', { count: uploadResult.templates.length })}
+                      </span>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-1">{t('pm.templateName')}</th>
+                            <th className="text-left py-1">{t('equipment.equipmentType')}</th>
+                            <th className="text-center py-1">{t('pm.checklistItems')}</th>
+                            <th className="text-center py-1">{t('pm.requiredParts')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {uploadResult.templates.map((template, idx) => (
+                            <tr key={idx} className="border-b last:border-0">
+                              <td className="py-1">{template.name}</td>
+                              <td className="py-1">{template.equipment_type_code}</td>
+                              <td className="text-center py-1">{template.checklist_items.length}</td>
+                              <td className="text-center py-1">{template.required_parts.length}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeBulkUploadDialog}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleBulkUpload}
+              disabled={
+                uploadProcessing ||
+                !uploadResult ||
+                uploadResult.templates.length === 0 ||
+                uploadResult.errors.length > 0
+              }
+            >
+              {uploadProcessing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-4 w-4" />
+              )}
+              {t('pm.uploadAndCreate', { count: uploadResult?.templates.length || 0 })}
             </Button>
           </DialogFooter>
         </DialogContent>

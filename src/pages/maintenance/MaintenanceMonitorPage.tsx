@@ -132,6 +132,18 @@ export default function MaintenanceMonitorPage() {
     return elapsed.isLong
   }).length
 
+  // Repair type translation helper
+  const getRepairTypeLabel = (code: string): string => {
+    const codeMap: Record<string, string> = {
+      PM: t('maintenance.typePM'),
+      BR: t('maintenance.typeBR'),
+      PD: t('maintenance.typePD'),
+      QA: t('maintenance.typeQA'),
+      EM: t('maintenance.typeEM'),
+    }
+    return codeMap[code] || code
+  }
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -238,7 +250,7 @@ export default function MaintenanceMonitorPage() {
                               color: 'white',
                             }}
                           >
-                            {record.repair_type?.name}
+                            {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : ''}
                           </Badge>
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
@@ -300,7 +312,7 @@ export default function MaintenanceMonitorPage() {
                     <div>
                       <p className="font-medium">{record.equipment?.equipment_code}</p>
                       <p className="text-sm text-muted-foreground">
-                        {record.repair_type?.name} - {record.technician?.name}
+                        {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : ''} - {record.technician?.name}
                       </p>
                     </div>
                   </div>
@@ -337,7 +349,7 @@ export default function MaintenanceMonitorPage() {
               <div className="rounded-lg bg-muted p-4">
                 <p className="font-medium">{selectedRecord.equipment?.equipment_code}</p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedRecord.repair_type?.name} - {selectedRecord.technician?.name}
+                  {selectedRecord.repair_type?.code ? getRepairTypeLabel(selectedRecord.repair_type.code) : ''} - {selectedRecord.technician?.name}
                 </p>
                 <p className="mt-1 text-sm">
                   시작:{' '}

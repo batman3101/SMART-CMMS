@@ -47,16 +47,54 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [statusDistribution, setStatusDistribution] = useState<
-    { name: string; value: number; color: string }[]
+    { status: string; value: number; color: string }[]
   >([])
   const [repairTypeData, setRepairTypeData] = useState<RepairTypeDistribution[]>([])
-  const [weeklyTrend, setWeeklyTrend] = useState<{ day: string; count: number }[]>([])
+  const [weeklyTrend, setWeeklyTrend] = useState<{ dayIndex: number; count: number }[]>([])
   const [failureRank, setFailureRank] = useState<EquipmentFailureRank[]>([])
   const [techPerformance, setTechPerformance] = useState<TechnicianPerformance[]>([])
   const [inProgressRecords, setInProgressRecords] = useState<MaintenanceRecord[]>([])
   const [kpis, setKpis] = useState<{ mtbf: number; mttr: number; availability: number } | null>(
     null
   )
+
+  // Status translation helper
+  const getStatusLabel = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      normal: t('equipment.statusNormal'),
+      pm: t('equipment.statusPM'),
+      repair: t('equipment.statusRepair'),
+      emergency: t('equipment.statusEmergency'),
+      standby: t('equipment.statusStandby'),
+    }
+    return statusMap[status] || status
+  }
+
+  // Weekday translation helper
+  const getDayLabel = (dayIndex: number): string => {
+    const dayKeys = [
+      'common.weekdaySun',
+      'common.weekdayMon',
+      'common.weekdayTue',
+      'common.weekdayWed',
+      'common.weekdayThu',
+      'common.weekdayFri',
+      'common.weekdaySat',
+    ]
+    return t(dayKeys[dayIndex])
+  }
+
+  // Repair type translation helper
+  const getRepairTypeLabel = (code: string): string => {
+    const codeMap: Record<string, string> = {
+      PM: t('maintenance.typePM'),
+      BR: t('maintenance.typeBR'),
+      PD: t('maintenance.typePD'),
+      QA: t('maintenance.typeQA'),
+      EM: t('maintenance.typeEM'),
+    }
+    return codeMap[code] || code
+  }
 
   // 수리 유형별 현황 기간 필터
   type DateFilterType = 'today' | '7days' | '30days' | 'custom'
@@ -273,7 +311,10 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={statusDistribution}
+                  data={statusDistribution.map(item => ({
+                    ...item,
+                    name: getStatusLabel(item.status)
+                  }))}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -368,9 +409,17 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={repairTypeData}>
+              <BarChart data={repairTypeData.map(item => ({
+                ...item,
+                name: getRepairTypeLabel(item.code)
+              }))}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis
+                  dataKey="name"
+                  interval={0}
+                  tick={{ fontSize: 11 }}
+                  tickMargin={5}
+                />
                 <YAxis />
                 <Tooltip />
                 <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
@@ -389,7 +438,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={weeklyTrend}>
+              <LineChart data={weeklyTrend.map(item => ({
+                ...item,
+                day: getDayLabel(item.dayIndex)
+              }))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="day" />
                 <YAxis />
@@ -424,7 +476,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="font-medium">{record.equipment?.equipment_code}</p>
                     <p className="text-sm text-muted-foreground">
-                      {record.repair_type?.name} - {record.technician?.name}
+                      {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : ''} - {record.technician?.name}
                     </p>
                   </div>
                   <Badge

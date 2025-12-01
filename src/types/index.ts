@@ -1,12 +1,50 @@
 // User types
-export type UserRole = 1 | 2 | 3 | 4 // 1: Admin, 2: Supervisor, 3: Technician, 4: Viewer
+export type UserRole = 1 | 2 | 3 | 4
+// 1: 시스템 관리자 (System Admin)
+// 2: 설비 관리자 (Facility Manager)
+// 3: 수리 직원 (Repair Staff)
+// 4: 뷰어 (Viewer)
+
+// 부서 (Department)
+export const DEPARTMENTS = {
+  GENERAL_MANAGEMENT: 'general_management',  // 종합 관리실
+  FACILITY_MANAGEMENT: 'facility_management', // 설비 관리팀
+} as const
+
+export type DepartmentCode = typeof DEPARTMENTS[keyof typeof DEPARTMENTS]
+
+// 직책 (Position) - 권한과 연동
+export const POSITIONS = {
+  SYSTEM_ADMIN: 'system_admin',       // 시스템 관리자 (Role 1)
+  FACILITY_MANAGER: 'facility_manager', // 설비 관리자 (Role 2)
+  REPAIR_STAFF: 'repair_staff',       // 수리 직원 (Role 3)
+  VIEWER: 'viewer',                   // 뷰어 (Role 4)
+} as const
+
+export type PositionCode = typeof POSITIONS[keyof typeof POSITIONS]
+
+// 직책과 권한 매핑
+export const POSITION_ROLE_MAP: Record<PositionCode, UserRole> = {
+  [POSITIONS.SYSTEM_ADMIN]: 1,
+  [POSITIONS.FACILITY_MANAGER]: 2,
+  [POSITIONS.REPAIR_STAFF]: 3,
+  [POSITIONS.VIEWER]: 4,
+}
+
+// 권한과 직책 역매핑
+export const ROLE_POSITION_MAP: Record<UserRole, PositionCode> = {
+  1: POSITIONS.SYSTEM_ADMIN,
+  2: POSITIONS.FACILITY_MANAGER,
+  3: POSITIONS.REPAIR_STAFF,
+  4: POSITIONS.VIEWER,
+}
 
 export interface User {
   id: string
   email: string
   name: string
-  department: string
-  position: string
+  department: DepartmentCode | string
+  position: PositionCode | string
   role: UserRole
   is_active: boolean
   created_at: string

@@ -15,9 +15,17 @@
       "Bash(findstr /i \"IPv4\")",
       "Bash(npm install:*)",
       "Bash(if exist node_modules.vite rmdir /s /q node_modules.vite)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "mcp__supabase-smart-cmms__apply_migration",
+      "Bash(dir \"%APPDATA%\\Claude\\claude_desktop_config.json\")",
+      "mcp__supabase-smart-cmms__list_tables",
+      "mcp__supabase-smart-cmms__execute_sql",
+      "mcp__supabase-smart-cmms__deploy_edge_function",
+      "mcp__supabase-smart-cmms__list_migrations",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true
 }

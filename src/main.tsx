@@ -10,6 +10,18 @@ import { ToastProvider } from './components/ui/toast'
 import './index.css'
 import './i18n'
 
+// Firebase Messaging Service Worker 등록
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .register('/firebase-messaging-sw.js')
+    .then((registration) => {
+      console.log('[Main] Firebase SW 등록 성공:', registration.scope)
+    })
+    .catch((error) => {
+      console.error('[Main] Firebase SW 등록 실패:', error)
+    })
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>

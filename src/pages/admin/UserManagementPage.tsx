@@ -30,7 +30,8 @@ import {
 } from 'lucide-react'
 import { mockUsersApi } from '@/mock/api'
 import { useTableSort } from '@/hooks'
-import type { User, UserRole } from '@/types'
+import type { User, UserRole, DepartmentCode, PositionCode } from '@/types'
+import { DEPARTMENTS, POSITIONS, POSITION_ROLE_MAP } from '@/types'
 
 export default function UserManagementPage() {
   const { t } = useTranslation()
@@ -54,18 +55,50 @@ export default function UserManagementPage() {
     email: '',
     password: '',
     name: '',
-    department: '',
-    position: '',
+    department: DEPARTMENTS.FACILITY_MANAGEMENT as DepartmentCode,
+    position: POSITIONS.REPAIR_STAFF as PositionCode,
     role: 3 as UserRole,
   })
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // 부서 목록 (번역 키 매핑)
+  const departmentOptions = [
+    { value: DEPARTMENTS.GENERAL_MANAGEMENT, labelKey: 'admin.departmentGeneralManagement' },
+    { value: DEPARTMENTS.FACILITY_MANAGEMENT, labelKey: 'admin.departmentFacilityManagement' },
+  ]
+
+  // 직책 목록 (번역 키 매핑)
+  const positionOptions = [
+    { value: POSITIONS.SYSTEM_ADMIN, labelKey: 'admin.positionSystemAdmin' },
+    { value: POSITIONS.FACILITY_MANAGER, labelKey: 'admin.positionFacilityManager' },
+    { value: POSITIONS.REPAIR_STAFF, labelKey: 'admin.positionRepairStaff' },
+    { value: POSITIONS.VIEWER, labelKey: 'admin.positionViewer' },
+  ]
 
   const roleLabels: Record<number, string> = {
     1: t('admin.roleAdmin'),
     2: t('admin.roleSupervisor'),
     3: t('admin.roleTechnician'),
     4: t('admin.roleViewer'),
+  }
+
+  // 부서명 표시 함수
+  const getDepartmentLabel = (dept: string) => {
+    const option = departmentOptions.find((o) => o.value === dept)
+    return option ? t(option.labelKey) : dept
+  }
+
+  // 직책명 표시 함수
+  const getPositionLabel = (pos: string) => {
+    const option = positionOptions.find((o) => o.value === pos)
+    return option ? t(option.labelKey) : pos
+  }
+
+  // 직책 변경시 권한 자동 설정
+  const handlePositionChange = (position: PositionCode) => {
+    const role = POSITION_ROLE_MAP[position]
+    setFormData({ ...formData, position, role })
   }
 
   useEffect(() => {
@@ -152,8 +185,8 @@ export default function UserManagementPage() {
       email: '',
       password: '',
       name: '',
-      department: '',
-      position: '',
+      department: DEPARTMENTS.FACILITY_MANAGEMENT,
+      position: POSITIONS.REPAIR_STAFF,
       role: 3,
     })
     setFormErrors({})
@@ -167,8 +200,8 @@ export default function UserManagementPage() {
       email: user.email,
       password: '',
       name: user.name,
-      department: user.department,
-      position: user.position,
+      department: (user.department as DepartmentCode) || DEPARTMENTS.FACILITY_MANAGEMENT,
+      position: (user.position as PositionCode) || POSITIONS.REPAIR_STAFF,
       role: user.role,
     })
     setFormErrors({})
@@ -364,8 +397,8 @@ export default function UserManagementPage() {
                   <TableCell>
                     <p className="font-medium">{user.name}</p>
                   </TableCell>
-                  <TableCell>{user.department}</TableCell>
-                  <TableCell>{user.position}</TableCell>
+                  <TableCell>{getDepartmentLabel(user.department)}</TableCell>
+                  <TableCell>{getPositionLabel(user.position)}</TableCell>
                   <TableCell>
                     <Badge
                       variant={user.role === 1 ? 'default' : 'outline'}
@@ -535,44 +568,50 @@ export default function UserManagementPage() {
                 {/* Department */}
                 <div className="space-y-2">
                   <Label>{t('admin.department')} *</Label>
-                  <Input
+                  <Select
                     value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    placeholder={t('admin.enterDepartment')}
-                  />
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value as DepartmentCode })}
+                  >
+                    {departmentOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {t(opt.labelKey)}
+                      </option>
+                    ))}
+                  </Select>
                   {formErrors.department && (
                     <p className="text-sm text-destructive">{formErrors.department}</p>
                   )}
                 </div>
 
-                {/* Position */}
+                {/* Position - 직책 선택시 권한 자동 설정 */}
                 <div className="space-y-2">
                   <Label>{t('admin.position')} *</Label>
-                  <Input
+                  <Select
                     value={formData.position}
-                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    placeholder={t('admin.enterPosition')}
-                  />
+                    onChange={(e) => handlePositionChange(e.target.value as PositionCode)}
+                  >
+                    {positionOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {t(opt.labelKey)}
+                      </option>
+                    ))}
+                  </Select>
                   {formErrors.position && (
                     <p className="text-sm text-destructive">{formErrors.position}</p>
                   )}
                 </div>
               </div>
 
-              {/* Role */}
+              {/* Role - 직책에 따라 자동 설정됨 (읽기 전용) */}
               <div className="space-y-2">
-                <Label>{t('admin.role')} *</Label>
-                <Select
-                  value={formData.role.toString()}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: parseInt(e.target.value) as UserRole })
-                  }
-                >
-                  <option value="1">{t('admin.roleAdmin')}</option>
-                  <option value="2">{t('admin.roleSupervisor')}</option>
-                  <option value="3">{t('admin.roleTechnician')}</option>
-                  <option value="4">{t('admin.roleViewer')}</option>
-                </Select>
+                <Label>{t('admin.role')}</Label>
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{roleLabels[formData.role]}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    ({t('admin.position')}에 따라 자동 설정)
+                  </span>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-4">

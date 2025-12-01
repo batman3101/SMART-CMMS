@@ -7,8 +7,9 @@
 | 항목 | 내용 |
 |------|------|
 | 프로젝트명 | AMMS (ALMUS Maintenance Management System) |
-| 버전 | 1.0 |
+| 버전 | 2.0 |
 | 작성일 | 2025년 1월 |
+| 최종 수정일 | 2025년 11월 29일 |
 | 대상 공장 | 베트남 박닌 공장 |
 | 대상 사용자 | 유지보수 담당자 (한국인/베트남인) |
 
@@ -576,6 +577,88 @@ ai_insights (AI 인사이트)
 | details | JSONB | 상세 정보 |
 | created_at | TIMESTAMP | 생성일 |
 
+#### user_fcm_tokens (FCM 토큰) ✅ 구현완료
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | UUID | PK |
+| user_id | UUID | FK -> auth.users |
+| fcm_token | TEXT | FCM 토큰 문자열 |
+| device_type | VARCHAR | 디바이스 유형 (web/android/ios) |
+| device_info | JSONB | 디바이스 상세 정보 |
+| is_active | BOOLEAN | 활성 상태 |
+| created_at | TIMESTAMP | 생성일 |
+| updated_at | TIMESTAMP | 수정일 |
+| last_used_at | TIMESTAMP | 마지막 사용일 |
+
+#### role_permissions (역할 권한)
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | UUID | PK |
+| role | INTEGER | 역할 레벨 (1-4) |
+| page_key | VARCHAR | 페이지 키 |
+| page_name | VARCHAR | 페이지 이름 |
+| can_access | BOOLEAN | 접근 권한 |
+| created_at | TIMESTAMP | 생성일 |
+| updated_at | TIMESTAMP | 수정일 |
+
+### 6.3 PM (예방정비) 관련 테이블
+
+#### pm_templates (PM 템플릿)
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | UUID | PK |
+| name | VARCHAR | 템플릿명 |
+| name_ko | VARCHAR | 한국어명 |
+| name_vi | VARCHAR | 베트남어명 |
+| description | TEXT | 설명 |
+| equipment_type_id | UUID | FK -> equipment_types |
+| interval_type | VARCHAR | 주기 유형 (daily/weekly/monthly/quarterly/yearly) |
+| interval_value | INTEGER | 주기 값 |
+| estimated_duration | INTEGER | 예상 소요시간 (분) |
+| checklist_items | JSONB | 체크리스트 항목 |
+| required_parts | JSONB | 필요 부품 |
+| is_active | BOOLEAN | 활성 상태 |
+| created_at | TIMESTAMP | 생성일 |
+| updated_at | TIMESTAMP | 수정일 |
+
+#### pm_schedules (PM 일정)
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | UUID | PK |
+| template_id | UUID | FK -> pm_templates |
+| equipment_id | UUID | FK -> equipments |
+| scheduled_date | DATE | 예정일 |
+| assigned_technician_id | UUID | FK -> users |
+| status | VARCHAR | 상태 (scheduled/in_progress/completed/overdue/cancelled) |
+| priority | VARCHAR | 우선순위 (low/medium/high) |
+| notes | TEXT | 메모 |
+| notification_sent_3days | BOOLEAN | 3일전 알림 발송 여부 |
+| notification_sent_1day | BOOLEAN | 1일전 알림 발송 여부 |
+| notification_sent_today | BOOLEAN | 당일 알림 발송 여부 |
+| created_at | TIMESTAMP | 생성일 |
+| updated_at | TIMESTAMP | 수정일 |
+
+#### pm_executions (PM 실행 기록)
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| id | UUID | PK |
+| schedule_id | UUID | FK -> pm_schedules |
+| equipment_id | UUID | FK -> equipments |
+| technician_id | UUID | FK -> users |
+| started_at | TIMESTAMP | 시작 시간 |
+| completed_at | TIMESTAMP | 완료 시간 |
+| duration_minutes | INTEGER | 소요 시간 (분) |
+| checklist_results | JSONB | 체크리스트 수행 결과 |
+| used_parts | JSONB | 사용 부품 |
+| findings | TEXT | 발견 사항 |
+| findings_severity | VARCHAR | 심각도 (none/minor/major/critical) |
+| created_repair_id | UUID | FK -> maintenance_records |
+| rating | INTEGER | 평점 |
+| notes | TEXT | 메모 |
+| status | VARCHAR | 상태 (in_progress/completed) |
+| created_at | TIMESTAMP | 생성일 |
+| updated_at | TIMESTAMP | 수정일 |
+
 ---
 
 ## 7. API 설계
@@ -772,18 +855,29 @@ ai_insights (AI 인사이트)
 
 ## 10. 추가 권장 기능
 
-### 10.1 알림/푸시 기능
+### 10.1 알림/푸시 기능 ✅ (구현 완료)
 
 **알림 유형:**
 - 긴급수리 발생 알림
-- PM 예정일 사전 알림 (D-7, D-3, D-1)
+- PM 예정일 사전 알림 (D-3, D-1, 당일)
 - 장시간 수리 경고 (설정 시간 초과)
+- 수리 완료 알림
 - AI 인사이트 중요 발견 알림
 
 **구현 방법:**
-- 인앱 알림 (필수)
-- 이메일 알림 (선택)
-- 브라우저 푸시 알림 (선택)
+- 인앱 알림 (완료)
+- 브라우저 푸시 알림 - Firebase Cloud Messaging (완료)
+- 이메일 알림 (향후 구현)
+
+**기술 스택:**
+- Firebase Cloud Messaging (FCM) - 웹 푸시 알림
+- Supabase Edge Functions - 알림 발송 서버
+- Service Worker - 백그라운드 메시지 수신
+
+**FCM 토큰 관리:**
+- user_fcm_tokens 테이블에 사용자별 토큰 저장
+- 디바이스 정보 및 활성 상태 관리
+- 토큰 자동 갱신 및 비활성 토큰 정리
 
 ### 10.2 QR코드 기능
 
@@ -793,13 +887,32 @@ ai_insights (AI 인사이트)
 - 바로 수리 등록 화면으로 이동
 - 설비 이력 빠른 조회
 
-### 10.3 PM 일정 관리
+### 10.3 PM 일정 관리 ✅ (구현 완료)
 
 **기능:**
-- PM 주기 설정 (일/주/월 단위)
+- PM 템플릿 관리 (설비유형별 체크리스트, 필요부품 정의)
+- PM 주기 설정 (일간/주간/월간/분기/연간)
 - PM 캘린더 뷰
-- 자동 PM 알림
-- PM 체크리스트 관리
+- PM 일정 자동 생성 및 할당
+- PM 실행 기록 관리 (체크리스트 결과, 발견사항)
+- PM 준수율 통계 및 리포트
+- 자동 알림 (D-3, D-1, 당일, 지연)
+
+**PM 워크플로우:**
+```
+[PM 템플릿 생성] → [PM 일정 자동생성] → [알림 발송]
+                        ↓
+              [PM 실행 시작] → [체크리스트 수행]
+                        ↓
+              [PM 완료] ← [이상발견시 수리등록]
+```
+
+**PM 상태:**
+- scheduled: 예정됨
+- in_progress: 진행 중
+- completed: 완료
+- overdue: 지연
+- cancelled: 취소
 
 ### 10.4 대시보드 커스터마이징
 

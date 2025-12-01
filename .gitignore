@@ -27,6 +27,54 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+
+# MCP configuration (contains tokens)
+.mcp.json
+.claude/
 
 # TypeScript cache
 *.tsbuildinfo
+
+# ========================================
+# Security - NEVER commit these files
+# ========================================
+
+# Firebase Admin SDK / Service Account Keys
+*-firebase-adminsdk-*.json
+*-adminsdk-*.json
+firebase-adminsdk*.json
+serviceAccountKey.json
+service-account*.json
+*-service-account.json
+
+# Specific Firebase Admin SDK file
+almus-tech-cmms-firebase-adminsdk-fbsvc-*.json
+
+# Google Cloud credentials
+credentials.json
+client_secret*.json
+*-credentials.json
+
+# API Keys and Secrets
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+api-keys.json
+
+# Supabase
+supabase/.temp/
+
+# Windows specific
+nul
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*.old

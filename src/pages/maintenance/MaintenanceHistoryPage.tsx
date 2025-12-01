@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,10 @@ const ITEMS_PER_PAGE = 15
 
 export default function MaintenanceHistoryPage() {
   const { t } = useTranslation()
+  const location = useLocation()
+
+  // Get equipmentId from navigation state
+  const passedEquipmentId = (location.state as { equipmentId?: string })?.equipmentId
 
   const [loading, setLoading] = useState(true)
   const [records, setRecords] = useState<MaintenanceRecord[]>([])
@@ -45,6 +50,7 @@ export default function MaintenanceHistoryPage() {
   const [technicianFilter, setTechnicianFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<'in_progress' | 'completed' | ''>('')
   const [search, setSearch] = useState('')
+  const [equipmentIdFilter, setEquipmentIdFilter] = useState<string>('')
 
   // 페이지네이션
   const [currentPage, setCurrentPage] = useState(1)
@@ -63,7 +69,14 @@ export default function MaintenanceHistoryPage() {
           mockUsersApi.getTechnicians(),
         ])
 
-        if (recordsRes.data) setRecords(recordsRes.data)
+        if (recordsRes.data) {
+          setRecords(recordsRes.data)
+        }
+
+        // 전달된 설비 ID로 필터 설정
+        if (passedEquipmentId) {
+          setEquipmentIdFilter(passedEquipmentId)
+        }
         if (repairTypesRes.data) setRepairTypes(repairTypesRes.data)
         if (techRes.data) setTechnicians(techRes.data)
       } catch (error) {
@@ -73,11 +86,14 @@ export default function MaintenanceHistoryPage() {
       }
     }
     fetchData()
-  }, [])
+  }, [passedEquipmentId])
 
   // 필터링된 데이터
   const filteredRecords = useMemo(() => {
     return records.filter((record) => {
+      // 설비 ID 필터 (전달된 설비 ID로 필터링)
+      if (equipmentIdFilter && record.equipment_id !== equipmentIdFilter) return false
+
       // 날짜 필터
       if (startDate && record.date < startDate) return false
       if (endDate && record.date > endDate) return false
@@ -105,7 +121,7 @@ export default function MaintenanceHistoryPage() {
 
       return true
     })
-  }, [records, startDate, endDate, repairTypeFilter, technicianFilter, statusFilter, search])
+  }, [records, equipmentIdFilter, startDate, endDate, repairTypeFilter, technicianFilter, statusFilter, search])
 
   // Sorting
   const { sortedData, requestSort, getSortDirection } = useTableSort<MaintenanceRecord>(
@@ -113,7 +129,7 @@ export default function MaintenanceHistoryPage() {
     { key: 'date', direction: 'desc' },
     (item, key) => {
       if (key === 'equipment_code') return item.equipment?.equipment_code || ''
-      if (key === 'repair_type_name') return item.repair_type?.name || ''
+      if (key === 'repair_type_name') return item.repair_type?.code ? getRepairTypeLabel(item.repair_type.code) : ''
       if (key === 'technician_name') return item.technician?.name || ''
       return item[key as keyof MaintenanceRecord]
     }
@@ -144,6 +160,7 @@ export default function MaintenanceHistoryPage() {
     setTechnicianFilter('')
     setStatusFilter('')
     setSearch('')
+    setEquipmentIdFilter('')
     setCurrentPage(1)
   }
 
@@ -156,7 +173,7 @@ export default function MaintenanceHistoryPage() {
         [
           r.record_no,
           r.equipment?.equipment_code || '',
-          r.repair_type?.name || '',
+          r.repair_type?.code ? getRepairTypeLabel(r.repair_type.code) : '',
           r.technician?.name || '',
           r.start_time,
           r.end_time || '',
@@ -175,6 +192,18 @@ export default function MaintenanceHistoryPage() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  // Repair type translation helper
+  const getRepairTypeLabel = (code: string): string => {
+    const codeMap: Record<string, string> = {
+      PM: t('maintenance.typePM'),
+      BR: t('maintenance.typeBR'),
+      PD: t('maintenance.typePD'),
+      QA: t('maintenance.typeQA'),
+      EM: t('maintenance.typeEM'),
+    }
+    return codeMap[code] || code
   }
 
   const formatTime = (dateTimeString: string) => {
@@ -400,7 +429,7 @@ export default function MaintenanceHistoryPage() {
                         color: 'white',
                       }}
                     >
-                      {record.repair_type?.name || '-'}
+                      {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : '-'}
                     </Badge>
                   </TableCell>
                   <TableCell>{record.technician?.name || '-'}</TableCell>
@@ -532,7 +561,7 @@ export default function MaintenanceHistoryPage() {
                       color: 'white',
                     }}
                   >
-                    {selectedRecord.repair_type?.name}
+                    {selectedRecord.repair_type?.code ? getRepairTypeLabel(selectedRecord.repair_type.code) : ''}
                   </Badge>
                 </div>
                 <div>

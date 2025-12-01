@@ -10,28 +10,23 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js')
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js')
 
-// Firebase 설정 (환경변수 사용 불가, 하드코딩 또는 서버에서 가져오기)
-// TODO: 실제 배포 시 Firebase Console에서 발급받은 값으로 교체
+// Firebase 설정 (환경변수 사용 불가, 하드코딩 필요)
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_PROJECT.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: 'AIzaSyD-6M8rIr44f3YzoHepzuO7VFCL3j_oi9U',
+  authDomain: 'almus-tech-cmms.firebaseapp.com',
+  projectId: 'almus-tech-cmms',
+  storageBucket: 'almus-tech-cmms.firebasestorage.app',
+  messagingSenderId: '177755834626',
+  appId: '1:177755834626:web:a854857228f62fc476da1b',
 }
 
-// Firebase 초기화 (설정이 있을 때만)
+// Firebase 초기화
 let messaging = null
 
 try {
-  if (firebaseConfig.apiKey !== 'YOUR_API_KEY') {
-    firebase.initializeApp(firebaseConfig)
-    messaging = firebase.messaging()
-    console.log('[Firebase SW] 초기화됨')
-  } else {
-    console.log('[Firebase SW] Firebase 설정 필요 - firebase-messaging-sw.js 파일의 firebaseConfig 값을 업데이트하세요.')
-  }
+  firebase.initializeApp(firebaseConfig)
+  messaging = firebase.messaging()
+  console.log('[Firebase SW] 초기화됨')
 } catch (error) {
   console.error('[Firebase SW] 초기화 실패:', error)
 }
@@ -41,11 +36,11 @@ if (messaging) {
   messaging.onBackgroundMessage((payload) => {
     console.log('[Firebase SW] 백그라운드 메시지 수신:', payload)
 
-    const notificationTitle = payload.notification?.title || payload.data?.title || 'AMMS 알림'
+    const notificationTitle = payload.notification?.title || payload.data?.title || 'SMART CMMS 알림'
     const notificationOptions = {
       body: payload.notification?.body || payload.data?.body || '새로운 알림이 있습니다.',
-      icon: payload.notification?.icon || '/icon-192x192.png',
-      badge: '/icon-72x72.png',
+      icon: payload.notification?.icon || '/A symbol BLUE-02.png',
+      badge: '/A symbol BLUE-02.png',
       vibrate: [100, 50, 100],
       data: payload.data || {},
       tag: payload.data?.tag || `firebase-${Date.now()}`,
@@ -103,13 +98,13 @@ self.addEventListener('notificationclick', (event) => {
     switch (data.type) {
       case 'emergency':
       case 'long_repair':
-        urlToOpen = '/maintenance/monitoring'
+        urlToOpen = '/maintenance/monitor'
         break
       case 'completed':
         urlToOpen = '/maintenance/history'
         break
       case 'pm_schedule':
-        urlToOpen = '/maintenance'
+        urlToOpen = '/pm'
         break
       default:
         urlToOpen = '/maintenance/notifications'

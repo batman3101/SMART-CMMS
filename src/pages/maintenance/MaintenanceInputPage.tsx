@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,8 +41,12 @@ interface PartSearchResult {
 export default function MaintenanceInputPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const { user } = useAuthStore()
+
+  // Get equipmentId from navigation state
+  const passedEquipmentId = (location.state as { equipmentId?: string })?.equipmentId
   const { addToast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -105,6 +109,20 @@ export default function MaintenanceInputPage() {
             setFormData((prev) => ({ ...prev, repair_type_id: matchedType.id }))
           }
         }
+
+        // 전달된 설비 ID로 설비 자동 선택
+        if (passedEquipmentId && equipRes.data) {
+          const equipment = equipRes.data.find((eq) => eq.id === passedEquipmentId)
+          if (equipment) {
+            setSelectedEquipment(equipment)
+            setFormData((prev) => ({
+              ...prev,
+              equipment_id: equipment.id,
+              equipment_type_id: equipment.equipment_type_id,
+            }))
+            setEquipmentSearch(equipment.equipment_code)
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch data:', error)
       } finally {
@@ -112,7 +130,7 @@ export default function MaintenanceInputPage() {
       }
     }
     fetchData()
-  }, [searchParams])
+  }, [searchParams, passedEquipmentId])
 
   // 설비 검색
   useEffect(() => {

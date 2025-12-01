@@ -42,7 +42,6 @@ import { useTableSort } from '@/hooks'
 import type {
   EquipmentFailureRank,
   RepairTypeDistribution,
-  MonthlyRepairTrend,
   TechnicianPerformance,
   EquipmentType,
 } from '@/types'
@@ -68,7 +67,7 @@ export default function AnalyticsPage() {
   const [kpis, setKpis] = useState<FilteredKPIs | null>(null)
   const [failureRank, setFailureRank] = useState<EquipmentFailureRank[]>([])
   const [repairTypes, setRepairTypes] = useState<RepairTypeDistribution[]>([])
-  const [monthlyTrend, setMonthlyTrend] = useState<MonthlyRepairTrend[]>([])
+  const [monthlyTrend, setMonthlyTrend] = useState<{ monthIndex: number; count: number }[]>([])
   const [techPerformance, setTechPerformance] = useState<TechnicianPerformance[]>([])
   const [buildingStats, setBuildingStats] = useState<BuildingFailureStat[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
@@ -146,6 +145,23 @@ export default function AnalyticsPage() {
     setEquipmentTypeId('')
   }
 
+  // Month label helper
+  const getMonthLabel = (monthIndex: number): string => {
+    return `${monthIndex}${t('common.month')}`
+  }
+
+  // Repair type translation helper
+  const getRepairTypeLabel = (code: string): string => {
+    const codeMap: Record<string, string> = {
+      PM: t('maintenance.typePM'),
+      BR: t('maintenance.typeBR'),
+      PD: t('maintenance.typePD'),
+      QA: t('maintenance.typeQA'),
+      EM: t('maintenance.typeEM'),
+    }
+    return codeMap[code] || code
+  }
+
   const repairTypeColors: Record<string, string> = {
     PM: '#3B82F6',
     BR: '#F59E0B',
@@ -155,7 +171,7 @@ export default function AnalyticsPage() {
   }
 
   const pieData = repairTypes.map((rt) => ({
-    name: rt.name,
+    name: getRepairTypeLabel(rt.code),
     value: rt.count,
     color: repairTypeColors[rt.code] || '#6B7280',
   }))
@@ -392,7 +408,10 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyTrend}>
+              <LineChart data={monthlyTrend.map(item => ({
+                ...item,
+                month: getMonthLabel(item.monthIndex)
+              }))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />

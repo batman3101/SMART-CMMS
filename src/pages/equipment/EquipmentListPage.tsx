@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,7 @@ const ITEMS_PER_PAGE = 20
 
 export default function EquipmentListPage() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
 
   // Helper functions for multilingual display
@@ -522,11 +524,30 @@ export default function EquipmentListPage() {
               )}
 
               <div className="flex gap-2 pt-4">
-                <Button className="flex-1">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    const equipmentId = selectedEquipment.id
+                    setSelectedEquipment(null)
+                    navigate('/maintenance', {
+                      state: { equipmentId }
+                    })
+                  }}
+                >
                   <Wrench className="mr-2 h-4 w-4" />
                   {t('equipment.startRepair')}
                 </Button>
-                <Button variant="outline" className="flex-1">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    const equipmentId = selectedEquipment.id
+                    setSelectedEquipment(null)
+                    navigate('/maintenance/history', {
+                      state: { equipmentId }
+                    })
+                  }}
+                >
                   {t('equipment.viewHistory')}
                 </Button>
               </div>

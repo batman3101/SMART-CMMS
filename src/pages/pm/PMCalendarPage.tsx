@@ -95,9 +95,15 @@ export default function PMCalendarPage() {
     month: 'long',
   })
 
-  const weekDays = i18n.language === 'ko'
-    ? ['일', '월', '화', '수', '목', '금', '토']
-    : ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+  const weekDays = [
+    t('common.weekdaySun'),
+    t('common.weekdayMon'),
+    t('common.weekdayTue'),
+    t('common.weekdayWed'),
+    t('common.weekdayThu'),
+    t('common.weekdayFri'),
+    t('common.weekdaySat'),
+  ]
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -229,9 +235,7 @@ export default function PMCalendarPage() {
           <CardContent>
             {!selectedDate ? (
               <p className="text-sm text-muted-foreground">
-                {i18n.language === 'ko'
-                  ? '날짜를 선택하면 해당 날짜의 PM 일정을 볼 수 있습니다.'
-                  : 'Chọn ngày để xem lịch PM của ngày đó.'}
+                {t('pm.selectScheduleToStartDesc')}
               </p>
             ) : selectedDateSchedules.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('pm.noPMToday')}</p>

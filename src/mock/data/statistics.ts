@@ -1,4 +1,4 @@
-import type { DashboardStats, EquipmentFailureRank, RepairTypeDistribution, MonthlyRepairTrend, TechnicianPerformance } from '@/types'
+import type { DashboardStats, EquipmentFailureRank, RepairTypeDistribution, TechnicianPerformance } from '@/types'
 import { mockEquipments } from './equipments'
 import { mockMaintenanceRecords } from './maintenanceRecords'
 import { mockRepairTypes } from './repairTypes'
@@ -32,12 +32,13 @@ export const getEquipmentStatusDistribution = () => {
     {} as Record<string, number>
   )
 
+  // Return status keys for translation (equipment.statusNormal, equipment.statusPM, etc.)
   return [
-    { name: '정상', value: statusCounts.normal || 0, color: '#10B981' },
-    { name: 'PM 중', value: statusCounts.pm || 0, color: '#3B82F6' },
-    { name: '수리 중', value: statusCounts.repair || 0, color: '#F59E0B' },
-    { name: '긴급수리', value: statusCounts.emergency || 0, color: '#EF4444' },
-    { name: '대기', value: statusCounts.standby || 0, color: '#9CA3AF' },
+    { status: 'normal', value: statusCounts.normal || 0, color: '#10B981' },
+    { status: 'pm', value: statusCounts.pm || 0, color: '#3B82F6' },
+    { status: 'repair', value: statusCounts.repair || 0, color: '#F59E0B' },
+    { status: 'emergency', value: statusCounts.emergency || 0, color: '#EF4444' },
+    { status: 'standby', value: statusCounts.standby || 0, color: '#9CA3AF' },
   ]
 }
 
@@ -96,37 +97,38 @@ export const getRepairTypeDistribution = (): RepairTypeDistribution[] => {
 }
 
 // Monthly repair trend (last 6 months)
-export const getMonthlyRepairTrend = (): MonthlyRepairTrend[] => {
-  const trends: MonthlyRepairTrend[] = []
+// Returns monthIndex (1-12) for translation
+export const getMonthlyRepairTrend = () => {
+  const trends: { monthIndex: number; count: number }[] = []
   const now = new Date()
 
   for (let i = 5; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    const monthLabel = `${date.getMonth() + 1}월`
+    const monthIndex = date.getMonth() + 1 // 1-12
 
     const count = mockMaintenanceRecords.filter((r) => r.date.startsWith(month)).length
 
-    trends.push({ month: monthLabel, count })
+    trends.push({ monthIndex, count })
   }
 
   return trends
 }
 
 // Weekly repair trend (last 7 days)
+// Returns dayIndex (0=Sunday, 1=Monday, etc.) for translation
 export const getWeeklyRepairTrend = () => {
-  const trends: { day: string; count: number }[] = []
-  const dayNames = ['일', '월', '화', '수', '목', '금', '토']
+  const trends: { dayIndex: number; count: number }[] = []
   const now = new Date()
 
   for (let i = 6; i >= 0; i--) {
     const date = new Date(now)
     date.setDate(date.getDate() - i)
     const dateStr = date.toISOString().split('T')[0]
-    const dayName = dayNames[date.getDay()]
+    const dayIndex = date.getDay() // 0=Sunday, 1=Monday, ...
 
     const count = mockMaintenanceRecords.filter((r) => r.date === dateStr).length
-    trends.push({ day: dayName, count })
+    trends.push({ dayIndex, count })
   }
 
   return trends
@@ -202,6 +204,7 @@ export const getAvailabilityRate = (): number => {
 }
 
 // Hourly failure pattern
+// Returns hour (0-23) for translation
 export const getHourlyFailurePattern = () => {
   const hourCounts: Record<number, number> = {}
 
@@ -213,7 +216,7 @@ export const getHourlyFailurePattern = () => {
     })
 
   return Array.from({ length: 24 }, (_, hour) => ({
-    hour: `${hour}시`,
+    hour, // 0-23 for translation
     count: hourCounts[hour] || 0,
   }))
 }
@@ -410,19 +413,20 @@ export const getFilteredRepairTypeDistribution = (filter?: StatisticsFilter) => 
 }
 
 // Filtered monthly trend
+// Returns monthIndex (1-12) for translation
 export const getFilteredMonthlyRepairTrend = (filter?: StatisticsFilter) => {
   const records = getFilteredRecords(filter)
-  const trends: { month: string; count: number }[] = []
+  const trends: { monthIndex: number; count: number }[] = []
   const now = new Date()
 
   for (let i = 5; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    const monthLabel = `${date.getMonth() + 1}월`
+    const monthIndex = date.getMonth() + 1 // 1-12
 
     const count = records.filter((r) => r.date.startsWith(month)).length
 
-    trends.push({ month: monthLabel, count })
+    trends.push({ monthIndex, count })
   }
 
   return trends

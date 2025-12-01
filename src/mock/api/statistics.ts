@@ -28,7 +28,6 @@ import type {
   DashboardStats,
   EquipmentFailureRank,
   RepairTypeDistribution,
-  MonthlyRepairTrend,
   TechnicianPerformance,
 } from '@/types'
 
@@ -45,7 +44,7 @@ export const mockStatisticsApi = {
   },
 
   async getEquipmentStatusDistribution(): Promise<{
-    data: { name: string; value: number; color: string }[]
+    data: { status: string; value: number; color: string }[]
     error: string | null
   }> {
     await delay(200)
@@ -110,7 +109,7 @@ export const mockStatisticsApi = {
   },
 
   async getMonthlyRepairTrend(): Promise<{
-    data: MonthlyRepairTrend[]
+    data: { monthIndex: number; count: number }[]
     error: string | null
   }> {
     await delay(200)
@@ -118,7 +117,7 @@ export const mockStatisticsApi = {
   },
 
   async getWeeklyRepairTrend(): Promise<{
-    data: { day: string; count: number }[]
+    data: { dayIndex: number; count: number }[]
     error: string | null
   }> {
     await delay(200)
@@ -153,7 +152,7 @@ export const mockStatisticsApi = {
   },
 
   async getHourlyFailurePattern(): Promise<{
-    data: { hour: string; count: number }[]
+    data: { hour: number; count: number }[]
     error: string | null
   }> {
     await delay(200)
@@ -219,7 +218,7 @@ export const mockStatisticsApi = {
   },
 
   async getFilteredMonthlyRepairTrend(filter?: StatisticsFilter): Promise<{
-    data: MonthlyRepairTrend[]
+    data: { monthIndex: number; count: number }[]
     error: string | null
   }> {
     await delay(200)

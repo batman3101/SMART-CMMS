@@ -66,7 +66,19 @@ const defaultFormData: EquipmentFormData = {
 }
 
 export default function EquipmentMasterPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+
+  // Multilingual helpers
+  const getEquipmentName = (eq: Equipment) => {
+    if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
+    return eq.equipment_name_ko || eq.equipment_name
+  }
+
+  const getEquipmentTypeName = (type: EquipmentType | undefined) => {
+    if (!type) return '-'
+    if (i18n.language === 'vi') return type.name_vi || type.name
+    return type.name_ko || type.name
+  }
 
   const statusOptions: { value: EquipmentStatus; label: string }[] = [
     { value: 'normal', label: t('equipment.statusNormal') },
@@ -366,7 +378,7 @@ export default function EquipmentMasterPage() {
                   <option value="">{t('equipment.equipmentTypeAll')}</option>
                   {equipmentTypes.map((type) => (
                     <option key={type.id} value={type.id}>
-                      {type.name}
+                      {getEquipmentTypeName(type)}
                     </option>
                   ))}
                 </Select>
@@ -435,8 +447,8 @@ export default function EquipmentMasterPage() {
                   {paginatedEquipments.map((equipment) => (
                     <TableRow key={equipment.id}>
                       <TableCell className="font-medium">{equipment.equipment_code}</TableCell>
-                      <TableCell className="truncate" title={equipment.equipment_name}>{equipment.equipment_name}</TableCell>
-                      <TableCell className="whitespace-nowrap">{equipment.equipment_type?.name || '-'}</TableCell>
+                      <TableCell className="truncate" title={getEquipmentName(equipment)}>{getEquipmentName(equipment)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{getEquipmentTypeName(equipment.equipment_type)}</TableCell>
                       <TableCell className="whitespace-nowrap">{equipment.building}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         <Badge variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
@@ -564,7 +576,7 @@ export default function EquipmentMasterPage() {
                   {sortedEquipmentTypes.map((type) => (
                     <TableRow key={type.id}>
                       <TableCell className="font-medium">{type.code}</TableCell>
-                      <TableCell className="truncate" title={type.name}>{type.name}</TableCell>
+                      <TableCell className="truncate" title={getEquipmentTypeName(type)}>{getEquipmentTypeName(type)}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'}>
                           {type.category === 'MAIN' ? t('equipment.mainEquipment') : t('equipment.subEquipment')}
@@ -649,7 +661,7 @@ export default function EquipmentMasterPage() {
                     <option value="">{t('common.select')}</option>
                     {equipmentTypes.map((type) => (
                       <option key={type.id} value={type.id}>
-                        {type.name}
+                        {getEquipmentTypeName(type)}
                       </option>
                     ))}
                   </Select>

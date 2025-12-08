@@ -27,7 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
-import { mockEquipmentApi } from '@/mock/api'
+import { equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks/useTableSort'
 import type { Equipment, EquipmentStatus, EquipmentType } from '@/types'
 
@@ -62,6 +62,10 @@ export default function EquipmentListPage() {
     if (i18n.language === 'vi') return eq.building_vi || eq.building
     return eq.building
   }
+
+  const getLocale = () => {
+    return i18n.language === 'vi' ? 'vi-VN' : 'ko-KR'
+  }
   const [loading, setLoading] = useState(true)
   const [equipments, setEquipments] = useState<Equipment[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
@@ -84,8 +88,8 @@ export default function EquipmentListPage() {
       setLoading(true)
       try {
         const [equipRes, typesRes] = await Promise.all([
-          mockEquipmentApi.getEquipments(),
-          mockEquipmentApi.getEquipmentTypes(),
+          equipmentApi.getEquipments(),
+          equipmentApi.getEquipmentTypes(),
         ])
         if (equipRes.data) setEquipments(equipRes.data)
         if (typesRes.data) setEquipmentTypes(typesRes.data)
@@ -155,7 +159,7 @@ export default function EquipmentListPage() {
   const handleRefresh = async () => {
     setLoading(true)
     try {
-      const { data } = await mockEquipmentApi.getEquipments()
+      const { data } = await equipmentApi.getEquipments()
       if (data) setEquipments(data)
     } finally {
       setLoading(false)
@@ -510,7 +514,7 @@ export default function EquipmentListPage() {
                   <p className="text-sm text-muted-foreground">{t('equipment.installDate')}</p>
                   <p className="font-medium">
                     {selectedEquipment.install_date
-                      ? new Date(selectedEquipment.install_date).toLocaleDateString('ko-KR')
+                      ? new Date(selectedEquipment.install_date).toLocaleDateString(getLocale())
                       : '-'}
                   </p>
                 </div>

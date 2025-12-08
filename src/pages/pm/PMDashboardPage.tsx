@@ -16,12 +16,25 @@ import {
   Calendar,
   ListTodo,
 } from 'lucide-react'
-import { mockPMApi } from '@/mock/api'
-import type { PMSchedule, PMDashboardStats } from '@/types'
+import { pmApi } from '@/lib/api'
+import type { PMSchedule, PMDashboardStats, Equipment, PMTemplate } from '@/types'
 
 export default function PMDashboardPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+
+  // Multilingual helpers
+  const getEquipmentName = (eq: Equipment | undefined) => {
+    if (!eq) return '-'
+    if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
+    return eq.equipment_name_ko || eq.equipment_name
+  }
+
+  const getTemplateName = (template: PMTemplate | undefined) => {
+    if (!template) return '-'
+    if (i18n.language === 'vi') return template.name_vi || template.name
+    return template.name_ko || template.name
+  }
 
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<PMDashboardStats | null>(null)
@@ -37,10 +50,10 @@ export default function PMDashboardPage() {
     setLoading(true)
     try {
       const [statsRes, todayRes, upcomingRes, overdueRes] = await Promise.all([
-        mockPMApi.getDashboardStats(),
-        mockPMApi.getTodaySchedules(),
-        mockPMApi.getUpcomingSchedules(7),
-        mockPMApi.getOverdueSchedules(),
+        pmApi.getDashboardStats(),
+        pmApi.getTodaySchedules(),
+        pmApi.getUpcomingSchedules(7),
+        pmApi.getOverdueSchedules(),
       ])
 
       if (statsRes.data) setStats(statsRes.data)
@@ -206,10 +219,10 @@ export default function PMDashboardPage() {
                         {getPriorityBadge(schedule.priority)}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {schedule.equipment?.equipment_name}
+                        {getEquipmentName(schedule.equipment)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {schedule.template?.name}
+                        {getTemplateName(schedule.template)}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -267,7 +280,7 @@ export default function PMDashboardPage() {
                         <Badge variant="destructive">{t('pm.statusOverdue')}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {schedule.equipment?.equipment_name}
+                        {getEquipmentName(schedule.equipment)}
                       </p>
                       <p className="text-xs text-red-600">
                         {t('pm.scheduledDate')}: {schedule.scheduled_date}
@@ -334,7 +347,7 @@ export default function PMDashboardPage() {
                         {getPriorityBadge(schedule.priority)}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
-                        {schedule.equipment?.equipment_name}
+                        {getEquipmentName(schedule.equipment)}
                       </p>
                       <p className="text-xs text-primary">
                         {schedule.scheduled_date}

@@ -18,7 +18,7 @@ import {
   Clock,
   Package,
 } from 'lucide-react'
-import { mockEquipmentApi, mockMaintenanceApi, mockUsersApi } from '@/mock/api'
+import { equipmentApi, maintenanceApi, usersApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import { searchPartsByCode, getPartWithInventory, isPartsSupabaseConnected } from '@/lib/supabase'
 import type { Equipment, RepairType, User, EquipmentType } from '@/types'
@@ -39,7 +39,7 @@ interface PartSearchResult {
 }
 
 export default function MaintenanceInputPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -84,16 +84,28 @@ export default function MaintenanceInputPage() {
   const [partSearchLoading, setPartSearchLoading] = useState(false)
   const partsConnected = isPartsSupabaseConnected()
 
+  // Multilingual helpers
+  const getEquipmentName = (eq: Equipment) => {
+    if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
+    return eq.equipment_name_ko || eq.equipment_name
+  }
+
+  const getEquipmentTypeName = (type: EquipmentType | undefined) => {
+    if (!type) return '-'
+    if (i18n.language === 'vi') return type.name_vi || type.name
+    return type.name_ko || type.name
+  }
+
   // 데이터 로드
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
         const [equipRes, typesRes, repairRes, techRes] = await Promise.all([
-          mockEquipmentApi.getEquipments(),
-          mockEquipmentApi.getEquipmentTypes(),
-          mockMaintenanceApi.getRepairTypes(),
-          mockUsersApi.getTechnicians(),
+          equipmentApi.getEquipments(),
+          equipmentApi.getEquipmentTypes(),
+          maintenanceApi.getRepairTypes(),
+          usersApi.getTechnicians(),
         ])
 
         if (equipRes.data) setEquipments(equipRes.data)
@@ -138,7 +150,7 @@ export default function MaintenanceInputPage() {
       const filtered = equipments.filter(
         (eq) =>
           eq.equipment_code.toLowerCase().includes(equipmentSearch.toLowerCase()) ||
-          eq.equipment_name.toLowerCase().includes(equipmentSearch.toLowerCase())
+          getEquipmentName(eq).toLowerCase().includes(equipmentSearch.toLowerCase())
       )
       setFilteredEquipments(filtered.slice(0, 10))
       setShowEquipmentList(true)
@@ -273,16 +285,14 @@ export default function MaintenanceInputPage() {
 
     setSubmitting(true)
     try {
-      const { data, error } = await mockMaintenanceApi.startMaintenance(
-        {
-          date: formData.date,
-          equipment_id: formData.equipment_id,
-          repair_type_id: formData.repair_type_id,
-          start_time: formData.start_time,
-          symptom: formData.symptom || undefined,
-        },
-        formData.technician_id || user?.id || ''
-      )
+      const { data, error } = await maintenanceApi.createRecord({
+        date: formData.date,
+        equipment_id: formData.equipment_id,
+        repair_type_id: formData.repair_type_id,
+        technician_id: formData.technician_id || user?.id || '',
+        start_time: formData.start_time,
+        symptom: formData.symptom || undefined,
+      })
 
       if (error) {
         addToast({ type: 'error', title: t('common.error'), message: error })
@@ -319,7 +329,7 @@ export default function MaintenanceInputPage() {
           {isEmergency ? (
             <span className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-6 w-6" />
-              긴급 수리 시작
+              {t('maintenance.emergencyRepairStart')}
             </span>
           ) : (
             t('maintenance.startRepair')
@@ -356,7 +366,7 @@ export default function MaintenanceInputPage() {
                         setFormData((prev) => ({ ...prev, technician_id: e.target.value }))
                       }
                     >
-                      <option value="">담당자 선택</option>
+                      <option value="">{t('maintenance.technicianSelect')}</option>
                       {technicians.map((tech) => (
                         <option key={tech.id} value={tech.id}>
                           {tech.name} ({tech.department})
@@ -380,10 +390,10 @@ export default function MaintenanceInputPage() {
                         setEquipmentSearch('')
                       }}
                     >
-                      <option value="">설비유형 선택</option>
+                      <option value="">{t('maintenance.equipmentTypeSelect')}</option>
                       {equipmentTypes.map((type) => (
                         <option key={type.id} value={type.id}>
-                          {type.name}
+                          {getEquipmentTypeName(type)}
                         </option>
                       ))}
                     </Select>
@@ -395,7 +405,7 @@ export default function MaintenanceInputPage() {
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="equipment"
-                        placeholder="설비번호 검색..."
+                        placeholder={t('maintenance.equipmentSearch')}
                         value={equipmentSearch}
                         onChange={(e) => setEquipmentSearch(e.target.value)}
                         onFocus={() => equipmentSearch.length >= 2 && setShowEquipmentList(true)}
@@ -410,7 +420,7 @@ export default function MaintenanceInputPage() {
                               onClick={() => handleEquipmentSelect(eq)}
                             >
                               <p className="font-medium">{eq.equipment_code}</p>
-                              <p className="text-sm text-muted-foreground">{eq.equipment_name}</p>
+                              <p className="text-sm text-muted-foreground">{getEquipmentName(eq)}</p>
                             </div>
                           ))}
                         </div>
@@ -428,7 +438,7 @@ export default function MaintenanceInputPage() {
                       }
                       className={isEmergency ? 'border-red-500' : ''}
                     >
-                      <option value="">수리유형 선택</option>
+                      <option value="">{t('maintenance.repairTypeSelect')}</option>
                       {repairTypes.map((type) => (
                         <option key={type.id} value={type.id}>
                           {type.name} ({type.code})
@@ -455,7 +465,7 @@ export default function MaintenanceInputPage() {
                   <textarea
                     id="symptom"
                     className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder="증상을 입력하세요..."
+                    placeholder={t('maintenance.symptomPlaceholder')}
                     value={formData.symptom}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, symptom: e.target.value }))
@@ -471,7 +481,7 @@ export default function MaintenanceInputPage() {
                       {partsConnected && (
                         <Badge variant="outline" className="text-xs">
                           <Package className="mr-1 h-3 w-3" />
-                          부품 DB 연결됨
+                          {t('maintenance.partsDbConnected')}
                         </Badge>
                       )}
                     </div>
@@ -492,7 +502,7 @@ export default function MaintenanceInputPage() {
                           <Label className="text-xs">{t('parts.partCode')}</Label>
                           <div className="relative">
                             <Input
-                              placeholder="부품코드 검색"
+                              placeholder={t('parts.partCodeSearch')}
                               value={part.code}
                               onChange={(e) => handlePartCodeSearch(index, e.target.value)}
                               onBlur={() => setTimeout(() => handlePartCodeBlur(index), 200)}
@@ -528,7 +538,7 @@ export default function MaintenanceInputPage() {
                         <div className="flex-1 space-y-2">
                           <Label className="text-xs">{t('parts.partName')}</Label>
                           <Input
-                            placeholder="부품명"
+                            placeholder={t('parts.partName')}
                             value={part.name}
                             onChange={(e) => updatePart(index, 'name', e.target.value)}
                             readOnly={partsConnected && !!part.code}
@@ -537,7 +547,7 @@ export default function MaintenanceInputPage() {
                         </div>
                         {/* 수량 */}
                         <div className="w-20 space-y-2">
-                          <Label className="text-xs">수량</Label>
+                          <Label className="text-xs">{t('parts.quantity')}</Label>
                           <Input
                             type="number"
                             min={1}
@@ -548,7 +558,7 @@ export default function MaintenanceInputPage() {
                         {/* 현재 재고 */}
                         {partsConnected && (
                           <div className="w-24 space-y-2">
-                            <Label className="text-xs text-muted-foreground">현재 재고</Label>
+                            <Label className="text-xs text-muted-foreground">{t('parts.currentStock')}</Label>
                             <div className="flex h-9 items-center justify-center rounded-md border bg-muted px-2 text-sm">
                               {part.isLoading ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -588,7 +598,7 @@ export default function MaintenanceInputPage() {
                     {submitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        처리중...
+                        {t('common.processing')}
                       </>
                     ) : (
                       <>
@@ -608,7 +618,7 @@ export default function MaintenanceInputPage() {
           {selectedEquipment ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">선택된 설비</CardTitle>
+                <CardTitle className="text-lg">{t('maintenance.selectedEquipment')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -627,20 +637,20 @@ export default function MaintenanceInputPage() {
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">설비명</span>
-                    <span>{selectedEquipment.equipment_name}</span>
+                    <span className="text-muted-foreground">{t('equipment.equipmentName')}</span>
+                    <span>{getEquipmentName(selectedEquipment)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">유형</span>
-                    <span>{selectedEquipment.equipment_type?.name}</span>
+                    <span className="text-muted-foreground">{t('equipment.equipmentType')}</span>
+                    <span>{getEquipmentTypeName(selectedEquipment.equipment_type)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">동</span>
+                    <span className="text-muted-foreground">{t('equipment.building')}</span>
                     <span>{selectedEquipment.building}</span>
                   </div>
                   {selectedEquipment.manufacturer && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">제조사</span>
+                      <span className="text-muted-foreground">{t('equipment.manufacturer')}</span>
                       <span>{selectedEquipment.manufacturer}</span>
                     </div>
                   )}
@@ -651,7 +661,7 @@ export default function MaintenanceInputPage() {
             <Card>
               <CardContent className="py-8 text-center">
                 <Search className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-2 text-sm text-muted-foreground">설비를 검색하여 선택하세요</p>
+                <p className="mt-2 text-sm text-muted-foreground">{t('maintenance.equipmentSearchGuide')}</p>
               </CardContent>
             </Card>
           )}
@@ -660,7 +670,7 @@ export default function MaintenanceInputPage() {
           {selectedRepairType && (
             <Card className={isEmergency ? 'border-red-500' : ''}>
               <CardHeader>
-                <CardTitle className="text-lg">수리 유형</CardTitle>
+                <CardTitle className="text-lg">{t('maintenance.repairTypeLabel')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">
@@ -673,7 +683,7 @@ export default function MaintenanceInputPage() {
                   <div>
                     <p className="font-medium">{selectedRepairType.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      우선순위: {selectedRepairType.priority}
+                      {t('pm.priority')}: {selectedRepairType.priority}
                     </p>
                   </div>
                 </div>
@@ -684,25 +694,25 @@ export default function MaintenanceInputPage() {
           {/* 빠른 가이드 */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">수리 시작 가이드</CardTitle>
+              <CardTitle className="text-lg">{t('maintenance.startGuide')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ol className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="mt-0.5 h-4 w-4 text-green-500" />
-                  <span>설비 유형 또는 설비번호로 검색</span>
+                  <span>{t('maintenance.guideStep1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="mt-0.5 h-4 w-4 text-green-500" />
-                  <span>수리 유형 선택 (PM/BR/PD/QA/EM)</span>
+                  <span>{t('maintenance.guideStep2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="mt-0.5 h-4 w-4 text-green-500" />
-                  <span>증상 및 부품 사용 내역 입력</span>
+                  <span>{t('maintenance.guideStep3')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="mt-0.5 h-4 w-4 text-green-500" />
-                  <span>수리 시작 버튼 클릭</span>
+                  <span>{t('maintenance.guideStep4')}</span>
                 </li>
               </ol>
             </CardContent>

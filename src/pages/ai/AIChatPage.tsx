@@ -4,7 +4,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Send, Bot, User, Sparkles, Loader2, Trash2, Clock } from 'lucide-react'
-import { mockAIApi } from '@/mock/api'
+import { aiApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 
 const sampleQuestions = [
   '이번 주 가장 많이 고장난 설비는?',
@@ -23,7 +24,8 @@ interface Message {
 }
 
 export default function AIChatPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const { language } = useAuthStore()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -65,7 +67,8 @@ export default function AIChatPage() {
     setIsLoading(true)
 
     try {
-      const { data, error } = await mockAIApi.chat(input)
+      const currentLang = language || i18n.language || 'ko'
+      const { data, error } = await aiApi.chat(input, currentLang)
 
       const aiResponse: Message = {
         id: Date.now() + 1,

@@ -271,7 +271,16 @@
     "guideStep2": "수리 유형 선택 (PM/BR/PD/QA/EM)",
     "guideStep3": "증상 및 부품 사용 내역 입력",
     "guideStep4": "수리 시작 버튼 클릭",
-    "datePlaceholder": "연도-월-일"
+    "datePlaceholder": "연도-월-일",
+    "emergencyRepairStart": "긴급 수리 시작",
+    "partsDbConnected": "부품 DB 연결됨",
+    "selectedEquipment": "선택된 설비",
+    "repairTypeLabel": "수리 유형",
+    "durationLabel": "소요시간",
+    "startLabel": "시작",
+    "minuteUnit": "분",
+    "hourUnit": "시간",
+    "hourMinuteFormat": "{{hours}}시간 {{minutes}}분"
   },
   "analytics": {
     "title": "통계 분석",
@@ -582,7 +591,9 @@
     "stockStatus": "재고 상태",
     "pageInfo": "{{current}} / {{total}} 페이지 (총 {{count}}개)",
     "notConnected": "부품 데이터베이스 연결 안됨",
-    "notConnectedDesc": "부품 관리 시스템과의 연결이 설정되지 않았습니다. 관리자에게 문의하세요."
+    "notConnectedDesc": "부품 관리 시스템과의 연결이 설정되지 않았습니다. 관리자에게 문의하세요.",
+    "partCodeSearch": "부품코드 검색",
+    "quantity": "수량"
   },
   "pm": {
     "title": "PM 관리",

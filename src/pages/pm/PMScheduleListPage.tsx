@@ -27,21 +27,40 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
-import { mockPMApi } from '@/mock/api'
-import { mockEquipmentTypes } from '@/mock/data'
-import { mockTechnicians } from '@/mock/data/users'
+import { pmApi, equipmentApi, usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
-import type { PMSchedule, PMScheduleFilter, PMScheduleStatus, PMPriority } from '@/types'
+import type { PMSchedule, PMScheduleFilter, PMScheduleStatus, PMPriority, Equipment, EquipmentType, PMTemplate, User } from '@/types'
 
 const PAGE_SIZE = 15
 
 export default function PMScheduleListPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+
+  // Multilingual helpers
+  const getEquipmentName = (eq: Equipment | undefined) => {
+    if (!eq) return '-'
+    if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
+    return eq.equipment_name_ko || eq.equipment_name
+  }
+
+  const getEquipmentTypeName = (type: EquipmentType | undefined) => {
+    if (!type) return '-'
+    if (i18n.language === 'vi') return type.name_vi || type.name
+    return type.name_ko || type.name
+  }
+
+  const getTemplateName = (template: PMTemplate | undefined) => {
+    if (!template) return '-'
+    if (i18n.language === 'vi') return template.name_vi || template.name
+    return template.name_ko || template.name
+  }
   const [searchParams] = useSearchParams()
 
   const [loading, setLoading] = useState(true)
   const [schedules, setSchedules] = useState<PMSchedule[]>([])
+  const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
+  const [technicians, setTechnicians] = useState<User[]>([])
   const [currentPage, setCurrentPage] = useState(1)
 
   // Filters
@@ -59,6 +78,19 @@ export default function PMScheduleListPage() {
   )
 
   useEffect(() => {
+    // 초기 데이터 로드 (장비 유형, 기술자)
+    const loadInitialData = async () => {
+      const [typesRes, techRes] = await Promise.all([
+        equipmentApi.getEquipmentTypes(),
+        usersApi.getTechnicians(),
+      ])
+      if (typesRes.data) setEquipmentTypes(typesRes.data)
+      if (techRes.data) setTechnicians(techRes.data)
+    }
+    loadInitialData()
+  }, [])
+
+  useEffect(() => {
     fetchSchedules()
   }, [statusFilter, priorityFilter, technicianFilter, equipmentTypeFilter])
 
@@ -71,7 +103,7 @@ export default function PMScheduleListPage() {
       if (technicianFilter) filter.technician_id = technicianFilter
       if (equipmentTypeFilter) filter.equipment_type_id = equipmentTypeFilter
 
-      const { data } = await mockPMApi.getSchedules(filter)
+      const { data } = await pmApi.getSchedules(filter)
       if (data) setSchedules(data)
     } catch (error) {
       console.error('Failed to fetch schedules:', error)
@@ -85,8 +117,8 @@ export default function PMScheduleListPage() {
       const searchLower = search.toLowerCase()
       return (
         schedule.equipment?.equipment_code.toLowerCase().includes(searchLower) ||
-        schedule.equipment?.equipment_name.toLowerCase().includes(searchLower) ||
-        schedule.template?.name.toLowerCase().includes(searchLower)
+        getEquipmentName(schedule.equipment).toLowerCase().includes(searchLower) ||
+        getTemplateName(schedule.template).toLowerCase().includes(searchLower)
       )
     }
     return true
@@ -220,7 +252,7 @@ export default function PMScheduleListPage() {
               }}
             >
               <option value="">{t('pm.filterByTechnician')}</option>
-              {mockTechnicians.map((tech) => (
+              {technicians.map((tech) => (
                 <option key={tech.id} value={tech.id}>
                   {tech.name}
                 </option>
@@ -235,9 +267,9 @@ export default function PMScheduleListPage() {
               }}
             >
               <option value="">{t('pm.filterByEquipmentType')}</option>
-              {mockEquipmentTypes.map((type) => (
+              {equipmentTypes.map((type) => (
                 <option key={type.id} value={type.id}>
-                  {type.name}
+                  {getEquipmentTypeName(type)}
                 </option>
               ))}
             </Select>
@@ -325,8 +357,8 @@ export default function PMScheduleListPage() {
                     <TableRow key={schedule.id}>
                       <TableCell className="font-medium">{schedule.scheduled_date}</TableCell>
                       <TableCell>{schedule.equipment?.equipment_code}</TableCell>
-                      <TableCell>{schedule.equipment?.equipment_name}</TableCell>
-                      <TableCell>{schedule.template?.name}</TableCell>
+                      <TableCell>{getEquipmentName(schedule.equipment)}</TableCell>
+                      <TableCell>{getTemplateName(schedule.template)}</TableCell>
                       <TableCell>{schedule.assigned_technician?.name || '-'}</TableCell>
                       <TableCell>{getPriorityBadge(schedule.priority)}</TableCell>
                       <TableCell>{getStatusBadge(schedule.status)}</TableCell>

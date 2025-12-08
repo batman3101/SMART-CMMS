@@ -271,7 +271,16 @@
     "guideStep2": "Chọn loại sửa chữa (PM/BR/PD/QA/EM)",
     "guideStep3": "Nhập triệu chứng và phụ tùng sử dụng",
     "guideStep4": "Nhấn nút bắt đầu sửa chữa",
-    "datePlaceholder": "Năm-Tháng-Ngày"
+    "datePlaceholder": "Năm-Tháng-Ngày",
+    "emergencyRepairStart": "Bắt đầu sửa chữa khẩn cấp",
+    "partsDbConnected": "Đã kết nối cơ sở dữ liệu phụ tùng",
+    "selectedEquipment": "Thiết bị đã chọn",
+    "repairTypeLabel": "Loại sửa chữa",
+    "durationLabel": "Thời gian",
+    "startLabel": "Bắt đầu",
+    "minuteUnit": "phút",
+    "hourUnit": "giờ",
+    "hourMinuteFormat": "{{hours}} giờ {{minutes}} phút"
   },
   "analytics": {
     "title": "Phân tích thống kê",
@@ -582,7 +591,9 @@
     "stockStatus": "Trạng thái tồn kho",
     "pageInfo": "Trang {{current}} / {{total}} (Tổng {{count}})",
     "notConnected": "Chưa kết nối cơ sở dữ liệu phụ tùng",
-    "notConnectedDesc": "Kết nối với hệ thống quản lý phụ tùng chưa được thiết lập. Vui lòng liên hệ quản trị viên."
+    "notConnectedDesc": "Kết nối với hệ thống quản lý phụ tùng chưa được thiết lập. Vui lòng liên hệ quản trị viên.",
+    "partCodeSearch": "Tìm mã phụ tùng",
+    "quantity": "Số lượng"
   },
   "pm": {
     "title": "Quản lý PM",

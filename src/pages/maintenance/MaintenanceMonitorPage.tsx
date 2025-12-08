@@ -17,12 +17,23 @@ import {
   Star,
   Timer,
 } from 'lucide-react'
-import { mockMaintenanceApi } from '@/mock/api'
-import type { MaintenanceRecord } from '@/types'
+import { maintenanceApi } from '@/lib/api'
+import type { MaintenanceRecord, Equipment } from '@/types'
 
 export default function MaintenanceMonitorPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { addToast } = useToast()
+
+  const getLocale = () => {
+    return i18n.language === 'vi' ? 'vi-VN' : 'ko-KR'
+  }
+
+  // Multilingual helpers
+  const getEquipmentName = (eq: Equipment | undefined) => {
+    if (!eq) return '-'
+    if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
+    return eq.equipment_name_ko || eq.equipment_name
+  }
 
   const [loading, setLoading] = useState(true)
   const [inProgressRecords, setInProgressRecords] = useState<MaintenanceRecord[]>([])
@@ -43,8 +54,8 @@ export default function MaintenanceMonitorPage() {
     setLoading(true)
     try {
       const [inProgressRes, todayRes] = await Promise.all([
-        mockMaintenanceApi.getInProgressRecords(),
-        mockMaintenanceApi.getTodayRecords(),
+        maintenanceApi.getInProgressRecords(),
+        maintenanceApi.getTodayRecords(),
       ])
 
       if (inProgressRes.data) setInProgressRecords(inProgressRes.data)
@@ -75,13 +86,13 @@ export default function MaintenanceMonitorPage() {
     const diffMinutes = Math.floor(diffMs / (1000 * 60))
 
     if (diffMinutes < 60) {
-      return { text: `${diffMinutes}분`, isLong: false }
+      return { text: `${diffMinutes}${t('maintenance.minuteUnit')}`, isLong: false }
     }
 
     const hours = Math.floor(diffMinutes / 60)
     const minutes = diffMinutes % 60
     return {
-      text: `${hours}시간 ${minutes}분`,
+      text: t('maintenance.hourMinuteFormat', { hours, minutes }),
       isLong: hours >= 2,
     }
   }
@@ -102,10 +113,16 @@ export default function MaintenanceMonitorPage() {
 
     setSubmitting(true)
     try {
-      const { data, error } = await mockMaintenanceApi.completeMaintenance(selectedRecord.id, {
+      // Calculate duration
+      const startTime = new Date(selectedRecord.start_time)
+      const endTime = new Date(completeForm.end_time)
+      const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
+
+      const { data, error } = await maintenanceApi.completeRecord(selectedRecord.id, {
         repair_content: completeForm.repair_content,
         end_time: completeForm.end_time,
         rating: completeForm.rating,
+        duration_minutes: durationMinutes,
       })
 
       if (error) {
@@ -241,7 +258,7 @@ export default function MaintenanceMonitorPage() {
                       <div>
                         <p className="font-medium">{record.equipment?.equipment_code}</p>
                         <p className="text-sm text-muted-foreground">
-                          {record.equipment?.equipment_name}
+                          {getEquipmentName(record.equipment)}
                         </p>
                         <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                           <Badge
@@ -263,7 +280,7 @@ export default function MaintenanceMonitorPage() {
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground">{t('maintenance.startTime')}</p>
                         <p className="font-medium">
-                          {new Date(record.start_time).toLocaleTimeString('ko-KR', {
+                          {new Date(record.start_time).toLocaleTimeString(getLocale(), {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
@@ -318,8 +335,8 @@ export default function MaintenanceMonitorPage() {
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">소요시간: </span>
-                      <span className="font-medium">{record.duration_minutes}분</span>
+                      <span className="text-muted-foreground">{t('maintenance.durationLabel')}: </span>
+                      <span className="font-medium">{record.duration_minutes}{t('maintenance.minuteUnit')}</span>
                     </div>
                     {record.rating && (
                       <div className="flex items-center gap-1">
@@ -352,8 +369,8 @@ export default function MaintenanceMonitorPage() {
                   {selectedRecord.repair_type?.code ? getRepairTypeLabel(selectedRecord.repair_type.code) : ''} - {selectedRecord.technician?.name}
                 </p>
                 <p className="mt-1 text-sm">
-                  시작:{' '}
-                  {new Date(selectedRecord.start_time).toLocaleTimeString('ko-KR', {
+                  {t('maintenance.startLabel')}:{' '}
+                  {new Date(selectedRecord.start_time).toLocaleTimeString(getLocale(), {
                     hour: '2-digit',
                     minute: '2-digit',
                   })}

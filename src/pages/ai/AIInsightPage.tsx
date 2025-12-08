@@ -16,7 +16,7 @@ import {
   Clock,
   Filter,
 } from 'lucide-react'
-import { mockAIApi } from '@/mock/api'
+import { aiApi } from '@/lib/api'
 import type { AIInsight } from '@/types'
 
 const severityColors = {
@@ -78,8 +78,8 @@ export default function AIInsightPage() {
     setLoading(true)
     try {
       const [insightsRes, summaryRes] = await Promise.all([
-        mockAIApi.getInsights(),
-        mockAIApi.getInsightSummary(),
+        aiApi.getInsights(),
+        aiApi.getInsightSummary(),
       ])
 
       if (insightsRes.data) setInsights(insightsRes.data)
@@ -99,11 +99,11 @@ export default function AIInsightPage() {
   const handleRefresh = async () => {
     setRefreshing(true)
     try {
-      const { data } = await mockAIApi.refreshInsights()
+      const { data } = await aiApi.refreshInsights()
       if (data) {
         setInsights(data)
         // summary도 새로고침
-        const summaryRes = await mockAIApi.getInsightSummary()
+        const summaryRes = await aiApi.getInsightSummary()
         if (summaryRes.data) setSummary(summaryRes.data)
       }
     } catch (error) {

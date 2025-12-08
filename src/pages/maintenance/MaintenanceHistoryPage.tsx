@@ -25,9 +25,9 @@ import {
   Filter,
   Star,
 } from 'lucide-react'
-import { mockMaintenanceApi, mockUsersApi } from '@/mock/api'
+import { maintenanceApi, usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
-import type { MaintenanceRecord, RepairType, User } from '@/types'
+import type { MaintenanceRecord, RepairType, User, Equipment } from '@/types'
 
 const ITEMS_PER_PAGE = 15
 
@@ -64,9 +64,9 @@ export default function MaintenanceHistoryPage() {
       setLoading(true)
       try {
         const [recordsRes, repairTypesRes, techRes] = await Promise.all([
-          mockMaintenanceApi.getMaintenanceRecords(),
-          mockMaintenanceApi.getRepairTypes(),
-          mockUsersApi.getTechnicians(),
+          maintenanceApi.getRecords(),
+          maintenanceApi.getRepairTypes(),
+          usersApi.getTechnicians(),
         ])
 
         if (recordsRes.data) {
@@ -146,7 +146,7 @@ export default function MaintenanceHistoryPage() {
   const handleRefresh = async () => {
     setLoading(true)
     try {
-      const { data } = await mockMaintenanceApi.getMaintenanceRecords()
+      const { data } = await maintenanceApi.getRecords()
       if (data) setRecords(data)
     } finally {
       setLoading(false)
@@ -206,14 +206,27 @@ export default function MaintenanceHistoryPage() {
     return codeMap[code] || code
   }
 
+  const { i18n } = useTranslation()
+
+  const getLocale = () => {
+    return i18n.language === 'vi' ? 'vi-VN' : 'ko-KR'
+  }
+
   const formatTime = (dateTimeString: string) => {
     const date = new Date(dateTimeString)
-    return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+    return date.toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' })
   }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('ko-KR')
+    return date.toLocaleDateString(getLocale())
+  }
+
+  // Multilingual helpers
+  const getEquipmentName = (eq: Equipment | undefined) => {
+    if (!eq) return '-'
+    if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
+    return eq.equipment_name_ko || eq.equipment_name
   }
 
   if (loading) {
@@ -436,7 +449,7 @@ export default function MaintenanceHistoryPage() {
                   <TableCell>{formatTime(record.start_time)}</TableCell>
                   <TableCell>{record.end_time ? formatTime(record.end_time) : '-'}</TableCell>
                   <TableCell>
-                    {record.duration_minutes ? `${record.duration_minutes}분` : '-'}
+                    {record.duration_minutes ? `${record.duration_minutes}${t('maintenance.minuteUnit')}` : '-'}
                   </TableCell>
                   <TableCell>
                     <Badge variant={record.status === 'completed' ? 'success' : 'warning'}>
@@ -550,7 +563,7 @@ export default function MaintenanceHistoryPage() {
                   <p className="text-sm text-muted-foreground">{t('maintenance.equipmentInfo')}</p>
                   <p className="font-medium">
                     {selectedRecord.equipment?.equipment_code} -{' '}
-                    {selectedRecord.equipment?.equipment_name}
+                    {getEquipmentName(selectedRecord.equipment)}
                   </p>
                 </div>
                 <div>

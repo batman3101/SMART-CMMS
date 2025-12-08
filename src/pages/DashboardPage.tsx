@@ -31,7 +31,7 @@ import {
   LineChart,
   Line,
 } from 'recharts'
-import { mockStatisticsApi, mockMaintenanceApi } from '@/mock/api'
+import { statisticsApi, maintenanceApi } from '@/lib/api'
 import type {
   DashboardStats,
   EquipmentFailureRank,
@@ -41,8 +41,14 @@ import type {
 } from '@/types'
 
 export default function DashboardPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+
+  // Multilingual helper for equipment failure rank
+  const getEquipmentNameFromRank = (item: EquipmentFailureRank) => {
+    if (i18n.language === 'vi') return (item as unknown as { equipment_name_vi?: string }).equipment_name_vi || item.equipment_name
+    return (item as unknown as { equipment_name_ko?: string }).equipment_name_ko || item.equipment_name
+  }
 
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -144,7 +150,7 @@ export default function DashboardPage() {
     endDate?: string
   ) => {
     try {
-      const { data } = await mockStatisticsApi.getRepairTypeDistribution(filter, startDate, endDate)
+      const { data } = await statisticsApi.getRepairTypeDistribution(filter, startDate, endDate)
       if (data) setRepairTypeData(data)
     } catch (error) {
       console.error('Failed to fetch repair type data:', error)
@@ -165,14 +171,14 @@ export default function DashboardPage() {
         inProgressRes,
         kpisRes,
       ] = await Promise.all([
-        mockStatisticsApi.getDashboardStats(),
-        mockStatisticsApi.getEquipmentStatusDistribution(),
-        mockStatisticsApi.getRepairTypeDistribution('7days'),
-        mockStatisticsApi.getWeeklyRepairTrend(),
-        mockStatisticsApi.getEquipmentFailureRank(5),
-        mockStatisticsApi.getTechnicianPerformance(),
-        mockMaintenanceApi.getInProgressRecords(),
-        mockStatisticsApi.getKPIs(),
+        statisticsApi.getDashboardStats(),
+        statisticsApi.getEquipmentStatusDistribution(),
+        statisticsApi.getRepairTypeDistribution('7days'),
+        statisticsApi.getWeeklyRepairTrend(),
+        statisticsApi.getEquipmentFailureRank(5),
+        statisticsApi.getTechnicianPerformance(),
+        maintenanceApi.getInProgressRecords(),
+        statisticsApi.getKPIs(),
       ])
 
       if (statsRes.data) setStats(statsRes.data)
@@ -560,7 +566,7 @@ export default function DashboardPage() {
                     </span>
                     <div>
                       <p className="font-medium">{item.equipment_code}</p>
-                      <p className="text-xs text-muted-foreground">{item.equipment_name}</p>
+                      <p className="text-xs text-muted-foreground">{getEquipmentNameFromRank(item)}</p>
                     </div>
                   </div>
                   <div className="text-right">

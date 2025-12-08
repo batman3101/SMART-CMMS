@@ -15,10 +15,12 @@ import {
 import type {
   Equipment,
   EquipmentType,
+  EquipmentStatus,
   RepairType,
   MaintenanceRecord,
   User,
   PMSchedule,
+  PMScheduleStatus,
   PMTemplate,
   AIInsight,
   DashboardStats,
@@ -27,8 +29,50 @@ import type {
   TechnicianPerformance,
 } from '@/types'
 
-// Check if we should use Supabase
-const useSupabase = () => isMainSupabaseConnected()
+// Type for joined equipment data from Supabase
+interface EquipmentJoin {
+  equipment_code?: string
+  equipment_name?: string
+}
+
+// Type for joined repair type data from Supabase
+interface RepairTypeJoin {
+  id?: string
+  code?: string
+  name?: string
+  color?: string
+}
+
+// Type for joined technician data from Supabase
+interface TechnicianJoin {
+  id?: string
+  name?: string
+}
+
+// Type guard for EquipmentStatus
+function isEquipmentStatus(status: string): status is EquipmentStatus {
+  return ['normal', 'pm', 'repair', 'emergency', 'standby'].includes(status)
+}
+
+// Type guard for PMScheduleStatus
+function isPMScheduleStatus(status: string): status is PMScheduleStatus {
+  return ['scheduled', 'in_progress', 'completed', 'overdue', 'cancelled'].includes(status)
+}
+
+/**
+ * Check if we should use Supabase
+ * Returns true only if:
+ * 1. Supabase is connected (isMainSupabaseConnected())
+ * 2. Supabase client is not null
+ * When this returns true, supabase is guaranteed to be non-null
+ */
+const shouldUseSupabase = (): boolean => isMainSupabaseConnected() && supabase !== null
+
+/**
+ * Get non-null Supabase client
+ * Call only after shouldUseSupabase() returns true
+ */
+const getSupabase = () => supabase!
 
 // Get Supabase project URL for Edge Functions
 const getEdgeFunctionUrl = (functionName: string) => {
@@ -42,11 +86,11 @@ const getEdgeFunctionUrl = (functionName: string) => {
 // ========================================
 export const equipmentApi = {
   async getEquipments(): Promise<{ data: Equipment[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockEquipmentApi.getEquipments()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('equipments')
       .select(`
         *,
@@ -59,11 +103,11 @@ export const equipmentApi = {
   },
 
   async getEquipmentById(id: string): Promise<{ data: Equipment | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockEquipmentApi.getEquipmentById(id)
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('equipments')
       .select(`
         *,
@@ -76,11 +120,11 @@ export const equipmentApi = {
   },
 
   async getEquipmentTypes(): Promise<{ data: EquipmentType[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockEquipmentApi.getEquipmentTypes()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('equipment_types')
       .select('*')
       .eq('is_active', true)
@@ -90,11 +134,14 @@ export const equipmentApi = {
   },
 
   async updateEquipmentStatus(id: string, status: string): Promise<{ data: Equipment | null; error: string | null }> {
-    if (!useSupabase()) {
-      return mockEquipmentApi.updateEquipmentStatus(id, status as import('@/types').EquipmentStatus)
+    if (!shouldUseSupabase()) {
+      if (!isEquipmentStatus(status)) {
+        return { data: null, error: 'Invalid equipment status' }
+      }
+      return mockEquipmentApi.updateEquipmentStatus(id, status)
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('equipments')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -105,11 +152,11 @@ export const equipmentApi = {
   },
 
   async createEquipment(equipment: Partial<Equipment>): Promise<{ data: Equipment | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return { data: null, error: 'Mock API does not support create' }
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('equipments')
       .insert(equipment)
       .select()
@@ -119,11 +166,11 @@ export const equipmentApi = {
   },
 
   async updateEquipment(id: string, updates: Partial<Equipment>): Promise<{ data: Equipment | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return { data: null, error: 'Mock API does not support update' }
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('equipments')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -146,18 +193,19 @@ export const maintenanceApi = {
     status?: string
     equipmentId?: string
   }): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
+      const status = filter?.status
       return mockMaintenanceApi.getMaintenanceRecords({
         start_date: filter?.startDate,
         end_date: filter?.endDate,
         repair_type_id: filter?.repairTypeId,
         technician_id: filter?.technicianId,
-        status: filter?.status as 'in_progress' | 'completed' | undefined,
+        status: status === 'in_progress' || status === 'completed' ? status : undefined,
         equipment_id: filter?.equipmentId,
       })
     }
 
-    let query = supabase!
+    let query = getSupabase()
       .from('maintenance_records')
       .select(`
         *,
@@ -192,11 +240,11 @@ export const maintenanceApi = {
   },
 
   async getInProgressRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockMaintenanceApi.getInProgressRecords()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select(`
         *,
@@ -211,12 +259,12 @@ export const maintenanceApi = {
   },
 
   async getTodayRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockMaintenanceApi.getTodayRecords()
     }
 
     const today = new Date().toISOString().split('T')[0]
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select(`
         *,
@@ -231,7 +279,7 @@ export const maintenanceApi = {
   },
 
   async getTodayCompletedRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       const result = await mockMaintenanceApi.getTodayRecords()
       return {
         data: result.data?.filter(r => r.status === 'completed') || null,
@@ -240,7 +288,7 @@ export const maintenanceApi = {
     }
 
     const today = new Date().toISOString().split('T')[0]
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select(`
         *,
@@ -256,11 +304,11 @@ export const maintenanceApi = {
   },
 
   async getRepairTypes(): Promise<{ data: RepairType[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockMaintenanceApi.getRepairTypes()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('repair_types')
       .select('*')
       .eq('is_active', true)
@@ -277,7 +325,7 @@ export const maintenanceApi = {
     symptom?: string
     start_time: string
   }): Promise<{ data: MaintenanceRecord | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockMaintenanceApi.startMaintenance(
         {
           date: record.date,
@@ -295,7 +343,7 @@ export const maintenanceApi = {
     const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase()
     const record_no = `MR${today}-${randomSuffix}`
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('maintenance_records')
       .insert({
         ...record,
@@ -322,7 +370,7 @@ export const maintenanceApi = {
       duration_minutes: number
     }
   ): Promise<{ data: MaintenanceRecord | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockMaintenanceApi.completeMaintenance(id, {
         end_time: updates.end_time,
         repair_content: updates.repair_content,
@@ -330,7 +378,7 @@ export const maintenanceApi = {
       })
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('maintenance_records')
       .update({
         ...updates,
@@ -355,11 +403,11 @@ export const maintenanceApi = {
 // ========================================
 export const usersApi = {
   async getUsers(): Promise<{ data: User[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockUsersApi.getUsers()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('users')
       .select('*')
       .eq('is_active', true)
@@ -369,11 +417,11 @@ export const usersApi = {
   },
 
   async getTechnicians(): Promise<{ data: User[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockUsersApi.getTechnicians()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('users')
       .select('*')
       .eq('is_active', true)
@@ -384,11 +432,11 @@ export const usersApi = {
   },
 
   async getUserById(id: string): Promise<{ data: User | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockUsersApi.getUserById(id)
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('users')
       .select('*')
       .eq('id', id)
@@ -403,19 +451,19 @@ export const usersApi = {
 // ========================================
 export const statisticsApi = {
   async getDashboardStats(): Promise<{ data: DashboardStats | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockStatisticsApi.getDashboardStats()
     }
 
     // Get equipment counts
-    const { data: equipments } = await supabase!
+    const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('status')
       .eq('is_active', true)
 
     // Get today's records
     const today = new Date().toISOString().split('T')[0]
-    const { data: todayRecords } = await supabase!
+    const { data: todayRecords } = await getSupabase()
       .from('maintenance_records')
       .select('status, repair_type:repair_types(code)')
       .eq('date', today)
@@ -427,21 +475,21 @@ export const statisticsApi = {
       standby_equipment: equipments?.filter(e => e.status === 'standby').length || 0,
       today_repairs: todayRecords?.length || 0,
       completed_repairs: todayRecords?.filter(r => r.status === 'completed').length || 0,
-      emergency_count: todayRecords?.filter(r => (r.repair_type as { code?: string })?.code === 'EM').length || 0,
+      emergency_count: todayRecords?.filter(r => (r.repair_type as RepairTypeJoin)?.code === 'EM').length || 0,
     }
 
     return { data: stats, error: null }
   },
 
   async getEquipmentFailureRank(limit?: number): Promise<{ data: EquipmentFailureRank[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockStatisticsApi.getEquipmentFailureRank(limit)
     }
 
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select(`
         equipment_id,
@@ -458,7 +506,7 @@ export const statisticsApi = {
     const counts: Record<string, EquipmentFailureRank> = {}
     data.forEach(record => {
       const eqId = record.equipment_id
-      const eq = record.equipment as { equipment_code?: string; equipment_name?: string } | null
+      const eq = record.equipment as EquipmentJoin | null
       if (!counts[eqId]) {
         counts[eqId] = {
           equipment_id: eqId,
@@ -480,11 +528,11 @@ export const statisticsApi = {
   },
 
   async getEquipmentStatusDistribution(): Promise<{ data: { status: string; value: number; color: string }[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockStatisticsApi.getEquipmentStatusDistribution()
     }
 
-    const { data: equipments } = await supabase!
+    const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('status')
       .eq('is_active', true)
@@ -520,7 +568,7 @@ export const statisticsApi = {
     startDate?: string,
     endDate?: string
   ): Promise<{ data: RepairTypeDistribution[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockStatisticsApi.getRepairTypeDistribution(filterType, startDate, endDate)
     }
 
@@ -552,7 +600,7 @@ export const statisticsApi = {
       }
     }
 
-    let query = supabase!
+    let query = getSupabase()
       .from('maintenance_records')
       .select('repair_type:repair_types(id, code, name, color)')
 
@@ -572,7 +620,7 @@ export const statisticsApi = {
     // Aggregate by repair type
     const typeCounts: Record<string, RepairTypeDistribution> = {}
     data.forEach(record => {
-      const rt = record.repair_type as { id?: string; code?: string; name?: string; color?: string } | null
+      const rt = record.repair_type as RepairTypeJoin | null
       if (rt?.id && rt?.code) {
         if (!typeCounts[rt.code]) {
           typeCounts[rt.code] = {
@@ -590,14 +638,14 @@ export const statisticsApi = {
   },
 
   async getWeeklyRepairTrend(): Promise<{ data: { dayIndex: number; count: number }[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockStatisticsApi.getWeeklyRepairTrend()
     }
 
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select('date')
       .gte('date', sevenDaysAgo.toISOString().split('T')[0])
@@ -622,14 +670,14 @@ export const statisticsApi = {
   },
 
   async getTechnicianPerformance(): Promise<{ data: TechnicianPerformance[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockStatisticsApi.getTechnicianPerformance()
     }
 
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select('technician_id, duration_minutes, rating, technician:users(id, name)')
       .eq('status', 'completed')
@@ -650,7 +698,7 @@ export const statisticsApi = {
     }> = {}
 
     data.forEach(record => {
-      const tech = record.technician as { id?: string; name?: string } | null
+      const tech = record.technician as TechnicianJoin | null
       if (!tech?.id) return
 
       if (!techStats[tech.id]) {
@@ -683,7 +731,7 @@ export const statisticsApi = {
   },
 
   async getKPIs(): Promise<{ data: { mtbf: number; mttr: number; availability: number } | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockStatisticsApi.getKPIs()
     }
 
@@ -691,13 +739,13 @@ export const statisticsApi = {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const { data: records } = await supabase!
+    const { data: records } = await getSupabase()
       .from('maintenance_records')
       .select('duration_minutes, date')
       .eq('status', 'completed')
       .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
 
-    const { data: equipments } = await supabase!
+    const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('id')
       .eq('is_active', true)
@@ -738,9 +786,10 @@ export const pmApi = {
     startDate?: string
     endDate?: string
   }): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
+      const status = filter?.status
       return mockPMApi.getSchedules({
-        status: filter?.status as import('@/types').PMScheduleStatus | undefined,
+        status: status && isPMScheduleStatus(status) ? status : undefined,
         equipment_type_id: filter?.equipmentTypeId,
         technician_id: filter?.technicianId,
         start_date: filter?.startDate,
@@ -748,7 +797,7 @@ export const pmApi = {
       })
     }
 
-    let query = supabase!
+    let query = getSupabase()
       .from('pm_schedules')
       .select(`
         *,
@@ -777,11 +826,11 @@ export const pmApi = {
   },
 
   async getTemplates(): Promise<{ data: PMTemplate[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockPMApi.getTemplates()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('pm_templates')
       .select(`
         *,
@@ -794,12 +843,12 @@ export const pmApi = {
   },
 
   async getTodaySchedules(): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockPMApi.getTodaySchedules()
     }
 
     const today = new Date().toISOString().split('T')[0]
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
         *,
@@ -814,11 +863,11 @@ export const pmApi = {
   },
 
   async getOverdueSchedules(): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockPMApi.getOverdueSchedules()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
         *,
@@ -833,7 +882,7 @@ export const pmApi = {
   },
 
   async getUpcomingSchedules(days: number = 7): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockPMApi.getUpcomingSchedules(days)
     }
 
@@ -842,7 +891,7 @@ export const pmApi = {
     endDate.setDate(endDate.getDate() + days)
     const endDateStr = endDate.toISOString().split('T')[0]
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
         *,
@@ -859,7 +908,7 @@ export const pmApi = {
   },
 
   async getDashboardStats(): Promise<{ data: { total_scheduled: number; completed_this_month: number; overdue_count: number; upcoming_week: number; compliance_rate: number } | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockPMApi.getDashboardStats()
     }
 
@@ -868,7 +917,7 @@ export const pmApi = {
     weekLater.setDate(weekLater.getDate() + 7)
     const monthStart = today.slice(0, 8) + '01'
 
-    const { data: schedules } = await supabase!
+    const { data: schedules } = await getSupabase()
       .from('pm_schedules')
       .select('status, scheduled_date')
 
@@ -907,11 +956,11 @@ export const pmApi = {
 // ========================================
 export const aiApi = {
   async getInsights(): Promise<{ data: AIInsight[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockAI.getInsights()
     }
 
-    const { data, error } = await supabase!
+    const { data, error } = await getSupabase()
       .from('ai_insights')
       .select('*')
       .order('generated_at', { ascending: false })
@@ -930,11 +979,11 @@ export const aiApi = {
     } | null
     error: string | null
   }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockAI.getInsightSummary()
     }
 
-    const { data: insights, error } = await supabase!
+    const { data: insights, error } = await getSupabase()
       .from('ai_insights')
       .select('*')
       .order('generated_at', { ascending: false })
@@ -955,7 +1004,7 @@ export const aiApi = {
   },
 
   async refreshInsights(): Promise<{ data: AIInsight[] | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockAI.refreshInsights()
     }
 
@@ -965,7 +1014,7 @@ export const aiApi = {
     }
 
     try {
-      const { data: { session } } = await supabase!.auth.getSession()
+      const { data: { session } } = await getSupabase().auth.getSession()
 
       const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
@@ -988,7 +1037,7 @@ export const aiApi = {
   },
 
   async chat(message: string, language: string = 'ko'): Promise<{ data: { response: string } | null; error: string | null }> {
-    if (!useSupabase()) {
+    if (!shouldUseSupabase()) {
       return mockAI.chat(message)
     }
 
@@ -998,7 +1047,7 @@ export const aiApi = {
     }
 
     try {
-      const { data: { session } } = await supabase!.auth.getSession()
+      const { data: { session } } = await getSupabase().auth.getSession()
 
       const response = await fetch(edgeFunctionUrl, {
         method: 'POST',

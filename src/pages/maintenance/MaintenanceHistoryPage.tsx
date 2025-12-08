@@ -164,27 +164,43 @@ export default function MaintenanceHistoryPage() {
     setCurrentPage(1)
   }
 
+  // CSV 값 이스케이프 함수 (CSV Injection 방어)
+  const escapeCsvValue = (value: string | number | undefined | null): string => {
+    if (value === undefined || value === null) return ''
+    const str = String(value)
+    // CSV injection 방어: =, +, -, @, \t, \r로 시작하는 값 처리
+    if (/^[=+\-@\t\r]/.test(str)) {
+      return `"'${str.replace(/"/g, '""')}"`
+    }
+    // 쉼표, 따옴표, 줄바꿈이 있으면 따옴표로 감싸기
+    if (/[",\n\r]/.test(str)) {
+      return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+  }
+
   const handleExport = () => {
-    // CSV 내보내기 기능 (실제로는 더 복잡한 처리 필요)
     const headers = ['기록번호', '설비코드', '수리유형', '담당자', '시작시간', '종료시간', '소요시간', '상태', '평점']
     const csvContent = [
-      headers.join(','),
+      headers.map(escapeCsvValue).join(','),
       ...filteredRecords.map((r) =>
         [
-          r.record_no,
-          r.equipment?.equipment_code || '',
-          r.repair_type?.code ? getRepairTypeLabel(r.repair_type.code) : '',
-          r.technician?.name || '',
-          r.start_time,
-          r.end_time || '',
-          r.duration_minutes || '',
-          r.status,
-          r.rating || '',
+          escapeCsvValue(r.record_no),
+          escapeCsvValue(r.equipment?.equipment_code),
+          escapeCsvValue(r.repair_type?.code ? getRepairTypeLabel(r.repair_type.code) : ''),
+          escapeCsvValue(r.technician?.name),
+          escapeCsvValue(r.start_time),
+          escapeCsvValue(r.end_time),
+          escapeCsvValue(r.duration_minutes),
+          escapeCsvValue(r.status),
+          escapeCsvValue(r.rating),
         ].join(',')
       ),
     ].join('\n')
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    // BOM 추가하여 Excel에서 UTF-8 인식하도록 함
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -192,6 +208,7 @@ export default function MaintenanceHistoryPage() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url) // 메모리 누수 방지
   }
 
   // Repair type translation helper

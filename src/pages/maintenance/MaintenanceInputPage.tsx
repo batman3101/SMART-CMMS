@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { equipmentApi, maintenanceApi, usersApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
+import { hasPermission } from '@/lib/permissions'
 import { searchPartsByCode, getPartWithInventory, isPartsSupabaseConnected } from '@/lib/supabase'
 import type { Equipment, RepairType, User, EquipmentType } from '@/types'
 
@@ -44,10 +45,22 @@ export default function MaintenanceInputPage() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const { user } = useAuthStore()
+  const { addToast } = useToast()
+
+  // Permission check
+  useEffect(() => {
+    if (!hasPermission(user, 'maintenance:create')) {
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('auth.noPermission')
+      })
+      navigate('/dashboard')
+    }
+  }, [user, navigate, addToast, t])
 
   // Get equipmentId from navigation state
   const passedEquipmentId = (location.state as { equipmentId?: string })?.equipmentId
-  const { addToast } = useToast()
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -85,16 +98,16 @@ export default function MaintenanceInputPage() {
   const partsConnected = isPartsSupabaseConnected()
 
   // Multilingual helpers
-  const getEquipmentName = (eq: Equipment) => {
+  const getEquipmentName = useCallback((eq: Equipment) => {
     if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
     return eq.equipment_name_ko || eq.equipment_name
-  }
+  }, [i18n.language])
 
-  const getEquipmentTypeName = (type: EquipmentType | undefined) => {
+  const getEquipmentTypeName = useCallback((type: EquipmentType | undefined) => {
     if (!type) return '-'
     if (i18n.language === 'vi') return type.name_vi || type.name
     return type.name_ko || type.name
-  }
+  }, [i18n.language])
 
   // 데이터 로드
   useEffect(() => {
@@ -158,7 +171,7 @@ export default function MaintenanceInputPage() {
       setFilteredEquipments([])
       setShowEquipmentList(false)
     }
-  }, [equipmentSearch, equipments])
+  }, [equipmentSearch, equipments, getEquipmentName])
 
   // 설비 유형 변경 시 필터링
   useEffect(() => {
@@ -185,11 +198,13 @@ export default function MaintenanceInputPage() {
     setParts([...parts, { code: '', name: '', qty: 1, currentStock: undefined, isLoading: false }])
   }
 
-  const updatePart = (index: number, field: keyof PartUsage, value: string | number | boolean | undefined) => {
-    const newParts = [...parts]
-    newParts[index] = { ...newParts[index], [field]: value }
-    setParts(newParts)
-  }
+  const updatePart = useCallback((index: number, field: keyof PartUsage, value: string | number | boolean | undefined) => {
+    setParts((prevParts) => {
+      const newParts = [...prevParts]
+      newParts[index] = { ...newParts[index], [field]: value }
+      return newParts
+    })
+  }, [])
 
   const removePart = (index: number) => {
     setParts(parts.filter((_, i) => i !== index))
@@ -199,9 +214,16 @@ export default function MaintenanceInputPage() {
     }
   }
 
-  // 부품 코드 검색
-  const handlePartCodeSearch = useCallback(async (index: number, searchTerm: string) => {
+  // 부품 코드 검색 (디바운스 적용)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handlePartCodeSearch = useCallback((index: number, searchTerm: string) => {
     updatePart(index, 'code', searchTerm)
+
+    // 이전 검색 타이머 취소
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
 
     if (!partsConnected || searchTerm.length < 2) {
       setPartSearchResults([])
@@ -212,14 +234,32 @@ export default function MaintenanceInputPage() {
     setActivePartIndex(index)
     setPartSearchLoading(true)
 
-    const { data } = await searchPartsByCode(searchTerm, 10)
-    if (data) {
-      setPartSearchResults(data as PartSearchResult[])
-    } else {
-      setPartSearchResults([])
+    // 300ms 디바운스 적용
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const { data } = await searchPartsByCode(searchTerm, 10)
+        if (data) {
+          setPartSearchResults(data as PartSearchResult[])
+        } else {
+          setPartSearchResults([])
+        }
+      } catch (error) {
+        console.error('Part search error:', error)
+        setPartSearchResults([])
+      } finally {
+        setPartSearchLoading(false)
+      }
+    }, 300)
+  }, [partsConnected, updatePart])
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
     }
-    setPartSearchLoading(false)
-  }, [partsConnected])
+  }, [])
 
   // 부품 선택
   const handlePartSelect = async (index: number, part: PartSearchResult) => {

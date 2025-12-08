@@ -131,9 +131,12 @@ export function useMultiTableRealtime(
   useEffect(() => {
     if (!supabase || !enabled) return
 
+    // supabase is guaranteed non-null after the above check
+    const client = supabase
+
     // 기존 채널들 정리
     channelsRef.current.forEach((channel) => {
-      supabase!.removeChannel(channel)
+      client.removeChannel(channel)
     })
     channelsRef.current = []
 
@@ -163,7 +166,7 @@ export function useMultiTableRealtime(
         channelConfig.filter = filter
       }
 
-      const channel = supabase!
+      const channel = client
         .channel(channelName)
         .on('postgres_changes', channelConfig, (payload) => {
           console.log(`[Realtime] ${table} - ${payload.eventType}:`, payload)

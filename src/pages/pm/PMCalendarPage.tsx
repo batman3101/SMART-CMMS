@@ -33,6 +33,7 @@ export default function PMCalendarPage() {
 
   useEffect(() => {
     fetchSchedules()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate])
 
   const fetchSchedules = async () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/components/ui/toast'
 import {
   Table,
   TableBody,
@@ -44,13 +45,14 @@ const ITEMS_PER_PAGE = 20
 export default function EquipmentListPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { addToast } = useToast()
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
 
   // Helper functions for multilingual display
-  const getEquipmentName = (eq: Equipment) => {
+  const getEquipmentName = useCallback((eq: Equipment) => {
     if (i18n.language === 'vi') return eq.equipment_name_vi || eq.equipment_name
     return eq.equipment_name_ko || eq.equipment_name
-  }
+  }, [i18n.language])
 
   const getEquipmentTypeName = (type: EquipmentType | undefined) => {
     if (!type) return '-'
@@ -91,15 +93,28 @@ export default function EquipmentListPage() {
           equipmentApi.getEquipments(),
           equipmentApi.getEquipmentTypes(),
         ])
+        if (equipRes.error) {
+          addToast({ type: 'error', title: t('common.error'), message: t('equipment.fetchError') })
+          console.error('Equipment fetch error:', equipRes.error)
+        }
+        if (typesRes.error) {
+          console.error('Equipment types fetch error:', typesRes.error)
+        }
         if (equipRes.data) setEquipments(equipRes.data)
         if (typesRes.data) setEquipmentTypes(typesRes.data)
       } catch (error) {
         console.error('Failed to fetch equipment data:', error)
+        addToast({
+          type: 'error',
+          title: t('common.error'),
+          message: error instanceof Error ? error.message : t('equipment.fetchError')
+        })
       } finally {
         setLoading(false)
       }
     }
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 필터링된 데이터
@@ -117,7 +132,7 @@ export default function EquipmentListPage() {
 
       return matchSearch && matchType && matchStatus && matchBuilding
     })
-  }, [equipments, search, typeFilter, statusFilter, buildingFilter])
+  }, [equipments, search, typeFilter, statusFilter, buildingFilter, getEquipmentName])
 
   // 정렬
   const { sortedData, requestSort, getSortDirection } = useTableSort<Equipment>(
@@ -159,8 +174,21 @@ export default function EquipmentListPage() {
   const handleRefresh = async () => {
     setLoading(true)
     try {
-      const { data } = await equipmentApi.getEquipments()
+      const { data, error } = await equipmentApi.getEquipments()
+      if (error) {
+        addToast({ type: 'error', title: t('common.error'), message: t('equipment.fetchError') })
+        console.error('Refresh error:', error)
+        return
+      }
       if (data) setEquipments(data)
+      addToast({ type: 'success', title: t('common.success'), message: t('common.refreshSuccess') })
+    } catch (error) {
+      console.error('Failed to refresh:', error)
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: error instanceof Error ? error.message : t('equipment.fetchError')
+      })
     } finally {
       setLoading(false)
     }

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,11 +19,27 @@ import {
   Timer,
 } from 'lucide-react'
 import { maintenanceApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
+import { hasPermission } from '@/lib/permissions'
 import type { MaintenanceRecord, Equipment } from '@/types'
 
 export default function MaintenanceMonitorPage() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
   const { addToast } = useToast()
+
+  // Permission check
+  useEffect(() => {
+    if (!hasPermission(user, 'maintenance:complete')) {
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('auth.noPermission')
+      })
+      navigate('/dashboard')
+    }
+  }, [user, navigate, addToast, t])
 
   const getLocale = () => {
     return i18n.language === 'vi' ? 'vi-VN' : 'ko-KR'
@@ -49,8 +66,12 @@ export default function MaintenanceMonitorPage() {
   })
   const [submitting, setSubmitting] = useState(false)
 
-  // 데이터 로드
-  const fetchData = async () => {
+  // 컴포넌트 마운트 상태 추적
+  const isMountedRef = useRef(true)
+
+  // 데이터 로드 함수
+  const fetchData = useCallback(async () => {
+    if (!isMountedRef.current) return
     setLoading(true)
     try {
       const [inProgressRes, todayRes] = await Promise.all([
@@ -58,25 +79,34 @@ export default function MaintenanceMonitorPage() {
         maintenanceApi.getTodayRecords(),
       ])
 
+      // 언마운트된 경우 상태 업데이트 중단
+      if (!isMountedRef.current) return
+
       if (inProgressRes.data) setInProgressRecords(inProgressRes.data)
       if (todayRes.data) {
         // 완료된 것만 필터링
         setTodayCompletedRecords(todayRes.data.filter((r) => r.status === 'completed'))
       }
     } catch (error) {
+      if (!isMountedRef.current) return
       console.error('Failed to fetch data:', error)
     } finally {
-      setLoading(false)
+      if (isMountedRef.current) setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
+    isMountedRef.current = true
     fetchData()
 
     // 30초마다 자동 새로고침
     const interval = setInterval(fetchData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+
+    return () => {
+      isMountedRef.current = false
+      clearInterval(interval)
+    }
+  }, [fetchData])
 
   // 경과 시간 계산
   const getElapsedTime = (startTime: string): { text: string; isLong: boolean } => {

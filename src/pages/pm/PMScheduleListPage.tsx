@@ -92,6 +92,7 @@ export default function PMScheduleListPage() {
 
   useEffect(() => {
     fetchSchedules()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, priorityFilter, technicianFilter, equipmentTypeFilter])
 
   const fetchSchedules = async () => {

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging'
+import { getMessaging, getToken, onMessage, Messaging, MessagePayload } from 'firebase/messaging'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -55,7 +55,7 @@ export async function requestNotificationPermission(): Promise<string | null> {
 }
 
 // 포그라운드 메시지 리스너
-export function onForegroundMessage(callback: (payload: any) => void) {
+export function onForegroundMessage(callback: (payload: MessagePayload) => void) {
   if (!messaging) return
 
   return onMessage(messaging, (payload) => {
@@ -63,5 +63,8 @@ export function onForegroundMessage(callback: (payload: any) => void) {
     callback(payload)
   })
 }
+
+// Export MessagePayload type for consumers
+export type { MessagePayload }
 
 export { app, messaging }

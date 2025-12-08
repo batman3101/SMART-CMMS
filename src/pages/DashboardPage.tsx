@@ -160,38 +160,36 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     setLoading(true)
     try {
-      // 모든 데이터를 병렬로 가져오기
-      const [
-        statsRes,
-        statusRes,
-        repairTypeRes,
-        weeklyRes,
-        failureRes,
-        techRes,
-        inProgressRes,
-        kpisRes,
-      ] = await Promise.all([
+      // 1단계: 핵심 데이터 먼저 로드 (stats, inProgress, kpis)
+      const [statsRes, inProgressRes, kpisRes] = await Promise.all([
         statisticsApi.getDashboardStats(),
-        statisticsApi.getEquipmentStatusDistribution(),
-        statisticsApi.getRepairTypeDistribution('7days'),
-        statisticsApi.getWeeklyRepairTrend(),
-        statisticsApi.getEquipmentFailureRank(5),
-        statisticsApi.getTechnicianPerformance(),
         maintenanceApi.getInProgressRecords(),
         statisticsApi.getKPIs(),
       ])
 
       if (statsRes.data) setStats(statsRes.data)
+      if (inProgressRes.data) setInProgressRecords(inProgressRes.data)
+      if (kpisRes.data) setKpis(kpisRes.data)
+
+      // 핵심 데이터 로드 후 로딩 해제 (UI 빠르게 표시)
+      setLoading(false)
+
+      // 2단계: 차트 및 보조 데이터 백그라운드 로드
+      const [statusRes, repairTypeRes, weeklyRes, failureRes, techRes] = await Promise.all([
+        statisticsApi.getEquipmentStatusDistribution(),
+        statisticsApi.getRepairTypeDistribution('7days'),
+        statisticsApi.getWeeklyRepairTrend(),
+        statisticsApi.getEquipmentFailureRank(5),
+        statisticsApi.getTechnicianPerformance(),
+      ])
+
       if (statusRes.data) setStatusDistribution(statusRes.data)
       if (repairTypeRes.data) setRepairTypeData(repairTypeRes.data)
       if (weeklyRes.data) setWeeklyTrend(weeklyRes.data)
       if (failureRes.data) setFailureRank(failureRes.data)
       if (techRes.data) setTechPerformance(techRes.data)
-      if (inProgressRes.data) setInProgressRecords(inProgressRes.data)
-      if (kpisRes.data) setKpis(kpisRes.data)
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
-    } finally {
       setLoading(false)
     }
   }

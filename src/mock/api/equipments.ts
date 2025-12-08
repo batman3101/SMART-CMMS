@@ -13,16 +13,25 @@ import type { Equipment, EquipmentType, EquipmentStatus, EquipmentFilter } from 
 // Simulate API delay for mock
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-// Check if Supabase should be used
-const useSupabase = () => isMainSupabaseConnected()
+/**
+ * Check if Supabase should be used (includes null check)
+ * When this returns true, supabase is guaranteed to be non-null
+ */
+const shouldUseSupabase = (): boolean => isMainSupabaseConnected() && supabase !== null
+
+/**
+ * Get non-null Supabase client
+ * Call only after shouldUseSupabase() returns true
+ */
+const getSupabase = () => supabase!
 
 export const mockEquipmentApi = {
   async getEquipments(filter?: EquipmentFilter): Promise<{
     data: Equipment[]
     error: string | null
   }> {
-    if (useSupabase()) {
-      let query = supabase!
+    if (shouldUseSupabase()) {
+      let query = getSupabase()
         .from('equipments')
         .select(`
           *,
@@ -77,8 +86,8 @@ export const mockEquipmentApi = {
     data: Equipment | null
     error: string | null
   }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipments')
         .select(`
           *,
@@ -102,8 +111,8 @@ export const mockEquipmentApi = {
     data: Equipment | null
     error: string | null
   }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipments')
         .select(`
           *,
@@ -127,8 +136,8 @@ export const mockEquipmentApi = {
     data: EquipmentType[]
     error: string | null
   }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipment_types')
         .select('*')
         .eq('is_active', true)
@@ -145,8 +154,8 @@ export const mockEquipmentApi = {
     data: Equipment[]
     error: string | null
   }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipments')
         .select(`
           *,
@@ -167,8 +176,8 @@ export const mockEquipmentApi = {
     data: Equipment[]
     error: string | null
   }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipments')
         .select(`
           *,
@@ -188,8 +197,8 @@ export const mockEquipmentApi = {
   async createEquipment(
     equipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>
   ): Promise<{ data: Equipment | null; error: string | null }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipments')
         .insert(equipment)
         .select(`
@@ -221,8 +230,8 @@ export const mockEquipmentApi = {
     id: string,
     updates: Partial<Equipment>
   ): Promise<{ data: Equipment | null; error: string | null }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipments')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -258,8 +267,8 @@ export const mockEquipmentApi = {
   },
 
   async deleteEquipment(id: string): Promise<{ error: string | null }> {
-    if (useSupabase()) {
-      const { error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { error } = await getSupabase()
         .from('equipments')
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -281,13 +290,13 @@ export const mockEquipmentApi = {
     data: { success: number; failed: number; errors: string[] }
     error: string | null
   }> {
-    if (useSupabase()) {
+    if (shouldUseSupabase()) {
       const errors: string[] = []
       let success = 0
       let failed = 0
 
       for (const eq of equipments) {
-        const { error } = await supabase!
+        const { error } = await getSupabase()
           .from('equipments')
           .insert(eq)
 
@@ -320,8 +329,8 @@ export const mockEquipmentApi = {
   },
 
   async getBuildings(): Promise<{ data: string[]; error: string | null }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipments')
         .select('building')
         .eq('is_active', true)
@@ -344,8 +353,8 @@ export const mockEquipmentApi = {
   async createEquipmentType(
     type: Omit<EquipmentType, 'id' | 'created_at' | 'updated_at'>
   ): Promise<{ data: EquipmentType | null; error: string | null }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipment_types')
         .insert(type)
         .select()
@@ -366,8 +375,8 @@ export const mockEquipmentApi = {
     id: string,
     updates: Partial<EquipmentType>
   ): Promise<{ data: EquipmentType | null; error: string | null }> {
-    if (useSupabase()) {
-      const { data, error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { data, error } = await getSupabase()
         .from('equipment_types')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -386,8 +395,8 @@ export const mockEquipmentApi = {
   },
 
   async deleteEquipmentType(id: string): Promise<{ error: string | null }> {
-    if (useSupabase()) {
-      const { error } = await supabase!
+    if (shouldUseSupabase()) {
+      const { error } = await getSupabase()
         .from('equipment_types')
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq('id', id)

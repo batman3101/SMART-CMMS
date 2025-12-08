@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { requestNotificationPermission, onForegroundMessage } from '@/lib/firebase'
 import { useAuthStore } from '@/stores/authStore'
-import { useNotificationStore } from '@/stores/notificationStore'
+import { useNotificationStore, type NotificationType } from '@/stores/notificationStore'
 import { supabase } from '@/lib/supabase'
 
 interface UseFcmReturn {
@@ -184,7 +184,7 @@ export function useFirebaseMessaging(): UseFcmReturn {
 
       // 알림 스토어에 추가
       if (payload.notification) {
-        const notificationType = payload.data?.type || 'info'
+        const notificationType = (payload.data?.type || 'info') as NotificationType
         const now = new Date()
 
         addNotification({

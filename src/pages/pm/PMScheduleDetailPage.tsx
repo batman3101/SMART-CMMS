@@ -29,6 +29,7 @@ export default function PMScheduleDetailPage() {
     if (id) {
       fetchSchedule()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const fetchSchedule = async () => {

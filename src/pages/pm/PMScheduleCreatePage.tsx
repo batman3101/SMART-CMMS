@@ -29,16 +29,15 @@ import {
   Loader2,
   Calendar,
   Wrench,
-  User,
+  User as UserIcon,
   Upload,
   Download,
   FileSpreadsheet,
   CheckCircle,
   AlertTriangle,
 } from 'lucide-react'
-import { mockPMApi } from '@/mock/api'
-import { mockEquipments } from '@/mock/data'
-import { mockTechnicians } from '@/mock/data/users'
+import { pmApi, equipmentApi, usersApi } from '@/lib/api'
+import type { Equipment, User } from '@/types'
 import { useToast } from '@/components/ui/toast'
 import {
   downloadPMScheduleExcel,
@@ -60,6 +59,8 @@ export default function PMScheduleCreatePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [templates, setTemplates] = useState<PMTemplate[]>([])
+  const [allEquipments, setAllEquipments] = useState<Equipment[]>([])
+  const [technicians, setTechnicians] = useState<User[]>([])
   const [createMode, setCreateMode] = useState<CreateMode>('single')
 
   // Single create form state
@@ -81,17 +82,23 @@ export default function PMScheduleCreatePage() {
   const [validationErrors, setValidationErrors] = useState<ScheduleValidationError[]>([])
 
   useEffect(() => {
-    fetchTemplates()
+    fetchData()
     setScheduledDate(new Date().toISOString().split('T')[0])
   }, [])
 
-  const fetchTemplates = async () => {
+  const fetchData = async () => {
     setLoading(true)
     try {
-      const { data } = await mockPMApi.getTemplates()
-      if (data) setTemplates(data)
+      const [templatesRes, equipmentsRes, techniciansRes] = await Promise.all([
+        pmApi.getTemplates(),
+        equipmentApi.getEquipments(),
+        usersApi.getTechnicians(),
+      ])
+      if (templatesRes.data) setTemplates(templatesRes.data)
+      if (equipmentsRes.data) setAllEquipments(equipmentsRes.data)
+      if (techniciansRes.data) setTechnicians(techniciansRes.data)
     } catch (error) {
-      console.error('Failed to fetch templates:', error)
+      console.error('Failed to fetch data:', error)
     } finally {
       setLoading(false)
     }
@@ -99,8 +106,8 @@ export default function PMScheduleCreatePage() {
 
   const selectedTemplate = templates.find(t => t.id === templateId)
   const filteredEquipments = selectedTemplate
-    ? mockEquipments.filter(e => e.equipment_type_id === selectedTemplate.equipment_type_id)
-    : mockEquipments
+    ? allEquipments.filter(e => e.equipment_type_id === selectedTemplate.equipment_type_id)
+    : allEquipments
 
   // Single create validation
   const validate = (): boolean => {
@@ -125,7 +132,7 @@ export default function PMScheduleCreatePage() {
         priority,
         notes: notes || undefined,
       }
-      const { data, error } = await mockPMApi.createSchedule(form)
+      const { data, error } = await pmApi.createSchedule(form)
       if (error) {
         addToast({ type: 'error', title: t('common.error'), message: error })
         return
@@ -154,8 +161,8 @@ export default function PMScheduleCreatePage() {
         return
       }
 
-      const technicians = mockTechnicians.map(tech => ({ id: tech.id, name: tech.name }))
-      await downloadPMScheduleExcel(templates, mockEquipments, technicians, selectedLanguage)
+      const techList = technicians.map(tech => ({ id: tech.id, name: tech.name }))
+      await downloadPMScheduleExcel(templates, allEquipments, techList, selectedLanguage)
       addToast({
         type: 'success',
         title: t('common.success'),
@@ -181,8 +188,8 @@ export default function PMScheduleCreatePage() {
     setValidationErrors([])
 
     try {
-      const technicians = mockTechnicians.map(tech => ({ id: tech.id, name: tech.name }))
-      const result = await uploadPMScheduleExcel(file, templates, mockEquipments, technicians, selectedLanguage)
+      const techList = technicians.map(tech => ({ id: tech.id, name: tech.name }))
+      const result = await uploadPMScheduleExcel(file, templates, allEquipments, techList, selectedLanguage)
 
       setParsedSchedules(result.schedules)
       setValidationErrors(result.errors)
@@ -227,7 +234,7 @@ export default function PMScheduleCreatePage() {
           priority: schedule.priority,
           notes: schedule.notes,
         }
-        const { error } = await mockPMApi.createSchedule(form)
+        const { error } = await pmApi.createSchedule(form)
         if (error) {
           failCount++
         } else {
@@ -416,7 +423,7 @@ export default function PMScheduleCreatePage() {
                   onChange={(e) => setTechnicianId(e.target.value)}
                 >
                   <option value="">{t('pm.filterByTechnician')}</option>
-                  {mockTechnicians.map((tech) => (
+                  {technicians.map((tech) => (
                     <option key={tech.id} value={tech.id}>
                       {tech.name}
                     </option>
@@ -483,13 +490,13 @@ export default function PMScheduleCreatePage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <User className="h-5 w-5" />
+                    <UserIcon className="h-5 w-5" />
                     {t('equipment.info')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    const equipment = mockEquipments.find(e => e.id === equipmentId)
+                    const equipment = allEquipments.find(e => e.id === equipmentId)
                     if (!equipment) return null
                     return (
                       <div className="space-y-3">

@@ -37,7 +37,8 @@ import {
   Filter,
   RefreshCw,
 } from 'lucide-react'
-import { mockStatisticsApi, mockEquipmentApi } from '@/mock/api'
+import { equipmentApi } from '@/lib/api'
+import { mockStatisticsApi } from '@/mock/api'
 import { useTableSort } from '@/hooks'
 import type {
   EquipmentFailureRank,
@@ -112,7 +113,7 @@ export default function AnalyticsPage() {
         mockStatisticsApi.getFilteredMonthlyRepairTrend(filter),
         mockStatisticsApi.getFilteredTechnicianPerformance(filter),
         mockStatisticsApi.getFilteredBuildingFailureStats(filter),
-        mockEquipmentApi.getEquipmentTypes(),
+        equipmentApi.getEquipmentTypes(),
       ])
 
       if (kpisRes.data) setKpis(kpisRes.data)

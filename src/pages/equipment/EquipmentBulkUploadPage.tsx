@@ -21,7 +21,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react'
-import { mockEquipmentApi } from '@/mock/api'
+import { equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
 import type { EquipmentType, Equipment } from '@/types'
 
@@ -57,7 +57,7 @@ export default function EquipmentBulkUploadPage() {
   // 설비 유형 로드
   useEffect(() => {
     const fetchTypes = async () => {
-      const { data } = await mockEquipmentApi.getEquipmentTypes()
+      const { data } = await equipmentApi.getEquipmentTypes()
       if (data) setEquipmentTypes(data)
     }
     fetchTypes()
@@ -204,9 +204,19 @@ export default function EquipmentBulkUploadPage() {
         }
       )
 
-      const { data } = await mockEquipmentApi.bulkCreateEquipments(equipments)
+      const { data, error } = await equipmentApi.bulkCreateEquipments(equipments)
       if (data) {
-        setUploadResult(data)
+        setUploadResult({
+          success: data.length,
+          failed: 0,
+          errors: [],
+        })
+      } else if (error) {
+        setUploadResult({
+          success: 0,
+          failed: equipments.length,
+          errors: [error],
+        })
       }
     } catch (error) {
       console.error('Upload failed:', error)

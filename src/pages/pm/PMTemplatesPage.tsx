@@ -37,8 +37,8 @@ import {
   AlertTriangle,
   Loader2,
 } from 'lucide-react'
-import { mockPMApi } from '@/mock/api'
-import { mockEquipmentTypes } from '@/mock/data'
+import { pmApi, equipmentApi } from '@/lib/api'
+import type { EquipmentType } from '@/types'
 import { useToast } from '@/components/ui/toast'
 import {
   downloadPMTemplateExcel,
@@ -63,6 +63,7 @@ export default function PMTemplatesPage() {
 
   const [loading, setLoading] = useState(true)
   const [templates, setTemplates] = useState<PMTemplate[]>([])
+  const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
   const [search, setSearch] = useState('')
   const [equipmentTypeFilter, setEquipmentTypeFilter] = useState('')
 
@@ -115,16 +116,30 @@ export default function PMTemplatesPage() {
   const [newItemDescription, setNewItemDescription] = useState('')
 
   useEffect(() => {
+    fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     fetchTemplates()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipmentTypeFilter])
 
+  const fetchData = async () => {
+    const { data } = await equipmentApi.getEquipmentTypes()
+    if (data) setEquipmentTypes(data)
+  }
+
   const fetchTemplates = async () => {
     setLoading(true)
     try {
-      const filter = equipmentTypeFilter ? { equipment_type_id: equipmentTypeFilter } : {}
-      const { data } = await mockPMApi.getTemplates(filter)
-      if (data) setTemplates(data)
+      const { data } = await pmApi.getTemplates()
+      if (data) {
+        const filtered = equipmentTypeFilter
+          ? data.filter(t => t.equipment_type_id === equipmentTypeFilter)
+          : data
+        setTemplates(filtered)
+      }
     } catch (error) {
       console.error('Failed to fetch templates:', error)
     } finally {
@@ -155,7 +170,7 @@ export default function PMTemplatesPage() {
   }
 
   const getEquipmentTypeName = (id: string) => {
-    const type = mockEquipmentTypes.find((t) => t.id === id)
+    const type = equipmentTypes.find((t) => t.id === id)
     return type?.name || '-'
   }
 
@@ -255,9 +270,9 @@ export default function PMTemplatesPage() {
       }
 
       if (editingTemplate) {
-        await mockPMApi.updateTemplate(editingTemplate.id, templateData)
+        await pmApi.updateTemplate(editingTemplate.id, templateData)
       } else {
-        await mockPMApi.createTemplate(templateData as Omit<PMTemplate, 'id' | 'created_at' | 'updated_at'>)
+        await pmApi.createTemplate(templateData)
       }
 
       setIsDialogOpen(false)
@@ -270,7 +285,7 @@ export default function PMTemplatesPage() {
   const handleDelete = async () => {
     if (!templateToDelete) return
     try {
-      await mockPMApi.deleteTemplate(templateToDelete.id)
+      await pmApi.deleteTemplate(templateToDelete.id)
       setIsDeleteDialogOpen(false)
       setTemplateToDelete(null)
       fetchTemplates()
@@ -281,7 +296,7 @@ export default function PMTemplatesPage() {
 
   const toggleTemplateActive = async (template: PMTemplate) => {
     try {
-      await mockPMApi.updateTemplate(template.id, {
+      await pmApi.updateTemplate(template.id, {
         is_active: !template.is_active,
       })
       fetchTemplates()
@@ -293,7 +308,7 @@ export default function PMTemplatesPage() {
   // Excel 양식 다운로드
   const handleDownloadTemplate = async () => {
     try {
-      await downloadPMTemplateExcel(mockEquipmentTypes, selectedLanguage)
+      await downloadPMTemplateExcel(equipmentTypes, selectedLanguage)
       addToast({
         type: 'success',
         title: t('common.success'),
@@ -312,7 +327,7 @@ export default function PMTemplatesPage() {
   // 기존 템플릿 내보내기
   const handleExportTemplates = async () => {
     try {
-      await exportPMTemplatesToExcel(templates, mockEquipmentTypes, selectedLanguage)
+      await exportPMTemplatesToExcel(templates, equipmentTypes, selectedLanguage)
       addToast({
         type: 'success',
         title: t('common.success'),
@@ -337,7 +352,7 @@ export default function PMTemplatesPage() {
     setUploadResult(null)
 
     try {
-      const result = await uploadPMTemplateExcel(file, mockEquipmentTypes, selectedLanguage)
+      const result = await uploadPMTemplateExcel(file, equipmentTypes, selectedLanguage)
       setUploadResult({
         templates: result.templates,
         errors: result.errors,
@@ -377,7 +392,7 @@ export default function PMTemplatesPage() {
 
       for (const template of uploadResult.templates) {
         try {
-          await mockPMApi.createTemplate({
+          await pmApi.createTemplate({
             name: template.name,
             name_ko: template.name_ko,
             name_vi: template.name_vi,
@@ -485,7 +500,7 @@ export default function PMTemplatesPage() {
               onChange={(e) => setEquipmentTypeFilter(e.target.value)}
             >
               <option value="">{t('pm.filterByEquipmentType')}</option>
-              {mockEquipmentTypes.map((type) => (
+              {equipmentTypes.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
                 </option>
@@ -625,7 +640,7 @@ export default function PMTemplatesPage() {
                   }
                 >
                   <option value="">{t('pm.selectEquipmentType')}</option>
-                  {mockEquipmentTypes.map((type) => (
+                  {equipmentTypes.map((type) => (
                     <option key={type.id} value={type.id}>
                       {type.name}
                     </option>

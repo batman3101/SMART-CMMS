@@ -11,7 +11,7 @@ import {
   ListTodo,
   Play,
 } from 'lucide-react'
-import { mockPMApi } from '@/mock/api'
+import { pmApi } from '@/lib/api'
 import type { PMSchedule } from '@/types'
 
 interface CalendarDay {
@@ -40,7 +40,7 @@ export default function PMCalendarPage() {
     setLoading(true)
     try {
       const yearMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-      const { data } = await mockPMApi.getSchedulesByMonth(yearMonth)
+      const { data } = await pmApi.getSchedulesByMonth(yearMonth)
       if (data) setSchedules(data)
     } catch (error) {
       console.error('Failed to fetch schedules:', error)

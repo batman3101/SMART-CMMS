@@ -17,7 +17,7 @@ import {
   Wrench,
   Loader2,
 } from 'lucide-react'
-import { mockPMApi } from '@/mock/api'
+import { pmApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import type { PMSchedule, PMExecution, PMChecklistResult } from '@/types'
 
@@ -51,7 +51,7 @@ export default function PMExecutionPage() {
     if (!scheduleId) return
     setLoading(true)
     try {
-      const { data: scheduleData } = await mockPMApi.getScheduleById(scheduleId)
+      const { data: scheduleData } = await pmApi.getScheduleById(scheduleId)
       if (scheduleData) {
         setSchedule(scheduleData)
 
@@ -67,14 +67,15 @@ export default function PMExecutionPage() {
         }
 
         // Check if execution already exists
-        const { data: existingExecution } = await mockPMApi.getExecutionBySchedule(scheduleId)
+        const { data: existingExecution } = await pmApi.getExecutionBySchedule(scheduleId)
         if (existingExecution) {
-          setExecution(existingExecution)
-          setChecklistResults(existingExecution.checklist_results)
-          if (existingExecution.findings) setFindings(existingExecution.findings)
-          if (existingExecution.findings_severity) setFindingsSeverity(existingExecution.findings_severity)
-          if (existingExecution.notes) setNotes(existingExecution.notes)
-          if (existingExecution.rating) setRating(existingExecution.rating)
+          const exec = existingExecution as PMExecution
+          setExecution(exec)
+          setChecklistResults(exec.checklist_results)
+          if (exec.findings) setFindings(exec.findings)
+          if (exec.findings_severity) setFindingsSeverity(exec.findings_severity)
+          if (exec.notes) setNotes(exec.notes)
+          if (exec.rating) setRating(exec.rating)
         }
       }
     } catch (error) {
@@ -88,15 +89,15 @@ export default function PMExecutionPage() {
     if (!scheduleId || !user) return
     setSaving(true)
     try {
-      const { data, error } = await mockPMApi.startExecution(scheduleId, user.id)
+      const { data, error } = await pmApi.startExecution(scheduleId, user.id)
       if (error) {
         alert(error)
         return
       }
       if (data) {
-        setExecution(data)
+        setExecution(data as PMExecution)
         // Refresh schedule
-        const { data: updatedSchedule } = await mockPMApi.getScheduleById(scheduleId)
+        const { data: updatedSchedule } = await pmApi.getScheduleById(scheduleId)
         if (updatedSchedule) setSchedule(updatedSchedule)
       }
     } catch (error) {
@@ -126,7 +127,7 @@ export default function PMExecutionPage() {
     if (!execution) return
     setSaving(true)
     try {
-      await mockPMApi.updateExecution(execution.id, {
+      await pmApi.updateExecution(execution.id, {
         checklist_results: checklistResults,
         findings,
         findings_severity: findingsSeverity,
@@ -156,7 +157,7 @@ export default function PMExecutionPage() {
 
     setSaving(true)
     try {
-      const { data, error } = await mockPMApi.completeExecution(execution.id, {
+      const { data, error } = await pmApi.completeExecution(execution.id, {
         checklist_results: checklistResults,
         used_parts: schedule?.template?.required_parts || [],
         findings,

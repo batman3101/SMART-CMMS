@@ -27,8 +27,8 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import { mockPMApi } from '@/mock/api'
-import { mockEquipmentTypes } from '@/mock/data'
+import { pmApi, equipmentApi } from '@/lib/api'
+import type { EquipmentType } from '@/types'
 
 interface PMAnalyticsData {
   complianceRate: number
@@ -50,19 +50,30 @@ export default function PMAnalyticsPage() {
   const [period, setPeriod] = useState('month')
   const [equipmentTypeFilter, setEquipmentTypeFilter] = useState('')
   const [analyticsData, setAnalyticsData] = useState<PMAnalyticsData | null>(null)
+  const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
+
+  useEffect(() => {
+    fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     fetchAnalytics()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, equipmentTypeFilter])
+  }, [period, equipmentTypeFilter, equipmentTypes])
+
+  const fetchData = async () => {
+    const { data } = await equipmentApi.getEquipmentTypes()
+    if (data) setEquipmentTypes(data)
+  }
 
   const fetchAnalytics = async () => {
     setLoading(true)
     try {
       // Fetch compliance stats and dashboard stats
       const [complianceRes, dashboardRes] = await Promise.all([
-        mockPMApi.getComplianceStats(),
-        mockPMApi.getDashboardStats(),
+        pmApi.getComplianceStats(),
+        pmApi.getDashboardStats(),
       ])
 
       // Generate mock analytics data
@@ -81,7 +92,7 @@ export default function PMAnalyticsPage() {
         })
       }
 
-      const byEquipmentType = mockEquipmentTypes.slice(0, 5).map((type) => ({
+      const byEquipmentType = equipmentTypes.slice(0, 5).map((type) => ({
         name: type.name,
         completed: Math.floor(Math.random() * 20) + 10,
         overdue: Math.floor(Math.random() * 5),
@@ -164,7 +175,7 @@ export default function PMAnalyticsPage() {
             onChange={(e) => setEquipmentTypeFilter(e.target.value)}
           >
             <option value="">{t('pm.allEquipmentTypes')}</option>
-            {mockEquipmentTypes.map((type) => (
+            {equipmentTypes.map((type) => (
               <option key={type.id} value={type.id}>
                 {type.name}
               </option>

@@ -14,7 +14,7 @@ import {
   AlertTriangle,
   Loader2,
 } from 'lucide-react'
-import { mockPMApi } from '@/mock/api'
+import { pmApi } from '@/lib/api'
 import type { PMSchedule, PMScheduleStatus, PMPriority } from '@/types'
 
 export default function PMScheduleDetailPage() {
@@ -36,7 +36,7 @@ export default function PMScheduleDetailPage() {
     if (!id) return
     setLoading(true)
     try {
-      const { data } = await mockPMApi.getScheduleById(id)
+      const { data } = await pmApi.getScheduleById(id)
       if (data) {
         setSchedule(data)
       }

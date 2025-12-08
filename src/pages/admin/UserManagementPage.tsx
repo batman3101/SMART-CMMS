@@ -28,7 +28,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react'
-import { mockUsersApi } from '@/mock/api'
+import { usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
 import type { User, UserRole, DepartmentCode, PositionCode } from '@/types'
 import { DEPARTMENTS, POSITIONS, POSITION_ROLE_MAP } from '@/types'
@@ -111,7 +111,7 @@ export default function UserManagementPage() {
 
   const fetchUsers = async () => {
     setIsLoading(true)
-    const { data } = await mockUsersApi.getUsers()
+    const { data } = await usersApi.getUsers()
     if (data) {
       setUsers(data)
     }
@@ -229,7 +229,7 @@ export default function UserManagementPage() {
           updateData.password = formData.password
         }
 
-        const { data, error } = await mockUsersApi.updateUser(editingUser.id, updateData)
+        const { data, error } = await usersApi.updateUser(editingUser.id, updateData)
         if (error) {
           addToast({ type: 'error', title: t('common.error'), message: error })
         } else if (data) {
@@ -238,15 +238,14 @@ export default function UserManagementPage() {
           setIsModalOpen(false)
         }
       } else {
-        const { data, error } = await mockUsersApi.createUser({
+        const { data, error } = await usersApi.createUser({
           email: formData.email,
-          password: formData.password,
           name: formData.name,
           department: formData.department,
           position: formData.position,
           role: formData.role,
           is_active: true,
-        })
+        } as Parameters<typeof usersApi.createUser>[0])
 
         if (error) {
           addToast({ type: 'error', title: t('common.error'), message: error })
@@ -265,15 +264,15 @@ export default function UserManagementPage() {
 
   const handleToggleStatus = async (user: User) => {
     if (user.is_active) {
-      await mockUsersApi.deactivateUser(user.id)
+      await usersApi.deactivateUser(user.id)
     } else {
-      await mockUsersApi.activateUser(user.id)
+      await usersApi.activateUser(user.id)
     }
     setUsers(users.map((u) => (u.id === user.id ? { ...u, is_active: !u.is_active } : u)))
   }
 
   const handleResetPassword = async (user: User) => {
-    await mockUsersApi.resetPassword(user.id)
+    await usersApi.resetPassword(user.id)
     addToast({ type: 'success', title: t('admin.passwordResetSuccess'), message: user.name })
   }
 

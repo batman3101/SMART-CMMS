@@ -29,7 +29,7 @@ import {
   ChevronRight,
   Settings2,
 } from 'lucide-react'
-import { mockEquipmentApi } from '@/mock/api'
+import { equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks/useTableSort'
 import type { Equipment, EquipmentType, EquipmentStatus } from '@/types'
 
@@ -120,8 +120,8 @@ export default function EquipmentMasterPage() {
       setLoading(true)
       try {
         const [equipRes, typesRes] = await Promise.all([
-          mockEquipmentApi.getEquipments(),
-          mockEquipmentApi.getEquipmentTypes(),
+          equipmentApi.getEquipments(),
+          equipmentApi.getEquipmentTypes(),
         ])
         if (equipRes.data) setEquipments(equipRes.data)
         if (typesRes.data) setEquipmentTypes(typesRes.data)
@@ -248,7 +248,7 @@ export default function EquipmentMasterPage() {
     try {
       if (editingEquipment) {
         // 수정
-        const { data, error } = await mockEquipmentApi.updateEquipment(editingEquipment.id, {
+        const { data, error } = await equipmentApi.updateEquipment(editingEquipment.id, {
           ...formData,
           equipment_type: equipmentTypes.find((t) => t.id === formData.equipment_type_id),
         })
@@ -261,7 +261,7 @@ export default function EquipmentMasterPage() {
         }
       } else {
         // 생성
-        const { data, error } = await mockEquipmentApi.createEquipment({
+        const { data, error } = await equipmentApi.createEquipment({
           ...formData,
           equipment_type: equipmentTypes.find((t) => t.id === formData.equipment_type_id),
           is_active: true,
@@ -289,7 +289,7 @@ export default function EquipmentMasterPage() {
 
     setSaving(true)
     try {
-      const { error } = await mockEquipmentApi.deleteEquipment(editingEquipment.id)
+      const { error } = await equipmentApi.deleteEquipment(editingEquipment.id)
       if (error) {
         console.error('Delete error:', error)
         return
@@ -307,7 +307,7 @@ export default function EquipmentMasterPage() {
   const handleRefresh = async () => {
     setLoading(true)
     try {
-      const { data } = await mockEquipmentApi.getEquipments()
+      const { data } = await equipmentApi.getEquipments()
       if (data) setEquipments(data)
     } finally {
       setLoading(false)

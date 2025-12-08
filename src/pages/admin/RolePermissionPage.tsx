@@ -22,7 +22,7 @@ import {
   Check,
   X,
 } from 'lucide-react'
-import { mockUsersApi } from '@/mock/api'
+import { usersApi } from '@/lib/api'
 import type { RolePermission, UserRole } from '@/types'
 
 export default function RolePermissionPage() {
@@ -47,9 +47,9 @@ export default function RolePermissionPage() {
 
   const fetchPermissions = async () => {
     setIsLoading(true)
-    const { data } = await mockUsersApi.getRolePermissions()
+    const { data } = await usersApi.getRolePermissions()
     if (data) {
-      setPermissions(data)
+      setPermissions(data as RolePermission[])
     }
     setIsLoading(false)
   }
@@ -88,7 +88,7 @@ export default function RolePermissionPage() {
       // 각 변경된 권한을 저장
       for (const rp of permissions) {
         for (const p of rp.permissions) {
-          await mockUsersApi.updateRolePermission(rp.role, p.page_key, p.can_access)
+          await usersApi.updateRolePermission(rp.role, p.page_key, p.can_access)
         }
       }
 

@@ -179,6 +179,32 @@ export const equipmentApi = {
 
     return { data, error: error?.message || null }
   },
+
+  async deleteEquipment(id: string): Promise<{ error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return { error: 'Mock API does not support delete' }
+    }
+
+    const { error } = await getSupabase()
+      .from('equipments')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
+
+  async bulkCreateEquipments(equipments: Partial<Equipment>[]): Promise<{ data: Equipment[] | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return { data: null, error: 'Mock API does not support bulk create' }
+    }
+
+    const { data, error } = await getSupabase()
+      .from('equipments')
+      .insert(equipments.map(eq => ({ ...eq, is_active: true })))
+      .select()
+
+    return { data, error: error?.message || null }
+  },
 }
 
 // ========================================
@@ -443,6 +469,86 @@ export const usersApi = {
       .single()
 
     return { data, error: error?.message || null }
+  },
+
+  async createUser(user: Partial<User>): Promise<{ data: User | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockUsersApi.createUser(user as Parameters<typeof mockUsersApi.createUser>[0])
+    }
+
+    const { data, error } = await getSupabase()
+      .from('users')
+      .insert({ ...user, is_active: true })
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async updateUser(id: string, updates: Partial<User>): Promise<{ data: User | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockUsersApi.updateUser(id, updates)
+    }
+
+    const { data, error } = await getSupabase()
+      .from('users')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async deactivateUser(id: string): Promise<{ error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockUsersApi.deactivateUser(id)
+    }
+
+    const { error } = await getSupabase()
+      .from('users')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
+
+  async activateUser(id: string): Promise<{ error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockUsersApi.activateUser(id)
+    }
+
+    const { error } = await getSupabase()
+      .from('users')
+      .update({ is_active: true, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
+
+  async resetPassword(_id: string): Promise<{ error: string | null }> {
+    // Password reset needs to be handled through Supabase Auth
+    return { error: 'Password reset should be handled through auth flow' }
+  },
+
+  async getRolePermissions(): Promise<{ data: unknown[] | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockUsersApi.getRolePermissions()
+    }
+
+    // Role permissions are typically stored in settings or a separate table
+    // For now, return from mock
+    return mockUsersApi.getRolePermissions()
+  },
+
+  async updateRolePermission(role: number, pageKey: string, canAccess: boolean): Promise<{ data: unknown[] | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockUsersApi.updateRolePermission(role as 1 | 2 | 3 | 4, pageKey, canAccess)
+    }
+
+    // Role permissions would be stored in settings table
+    // For now, use mock implementation
+    return mockUsersApi.updateRolePermission(role as 1 | 2 | 3 | 4, pageKey, canAccess)
   },
 }
 
@@ -903,6 +1009,274 @@ export const pmApi = {
       .lte('scheduled_date', endDateStr)
       .in('status', ['scheduled', 'in_progress'])
       .order('scheduled_date')
+
+    return { data, error: error?.message || null }
+  },
+
+  async getSchedulesByMonth(yearMonth: string): Promise<{ data: PMSchedule[] | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.getSchedulesByMonth(yearMonth)
+    }
+
+    const { data, error } = await getSupabase()
+      .from('pm_schedules')
+      .select(`
+        *,
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        template:pm_templates(*),
+        assigned_technician:users(*)
+      `)
+      .like('scheduled_date', `${yearMonth}%`)
+      .order('scheduled_date')
+
+    return { data, error: error?.message || null }
+  },
+
+  async getScheduleById(id: string): Promise<{ data: PMSchedule | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.getScheduleById(id)
+    }
+
+    const { data, error } = await getSupabase()
+      .from('pm_schedules')
+      .select(`
+        *,
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        template:pm_templates(*),
+        assigned_technician:users(*)
+      `)
+      .eq('id', id)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async createSchedule(form: {
+    template_id: string
+    equipment_id: string
+    scheduled_date: string
+    assigned_technician_id?: string
+    priority?: 'high' | 'medium' | 'low'
+    notes?: string
+  }): Promise<{ data: PMSchedule | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.createSchedule(form)
+    }
+
+    const { data, error } = await getSupabase()
+      .from('pm_schedules')
+      .insert({
+        ...form,
+        status: 'scheduled',
+      })
+      .select(`
+        *,
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        template:pm_templates(*),
+        assigned_technician:users(*)
+      `)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async getComplianceStats(months?: number): Promise<{ data: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.getComplianceStats(months)
+    }
+
+    const monthsToFetch = months || 6
+    const results: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] = []
+
+    for (let i = 0; i < monthsToFetch; i++) {
+      const date = new Date()
+      date.setMonth(date.getMonth() - i)
+      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+      const { data: schedules } = await getSupabase()
+        .from('pm_schedules')
+        .select('status')
+        .like('scheduled_date', `${yearMonth}%`)
+
+      const scheduled_count = schedules?.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length || 0
+      const completed_count = schedules?.filter(s => s.status === 'completed').length || 0
+      const overdue_count = schedules?.filter(s => s.status === 'overdue').length || 0
+      const cancelled_count = schedules?.filter(s => s.status === 'cancelled').length || 0
+      const total = completed_count + overdue_count
+      const compliance_rate = total > 0 ? Math.round((completed_count / total) * 100) : 100
+
+      results.push({ period: yearMonth, scheduled_count, completed_count, overdue_count, cancelled_count, compliance_rate })
+    }
+
+    return { data: results.reverse(), error: null }
+  },
+
+  // PM Template CRUD
+  async createTemplate(template: Partial<PMTemplate>): Promise<{ data: PMTemplate | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.createTemplate(template as Parameters<typeof mockPMApi.createTemplate>[0])
+    }
+
+    const { data, error } = await getSupabase()
+      .from('pm_templates')
+      .insert({ ...template, is_active: true })
+      .select(`*, equipment_type:equipment_types(*)`)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async updateTemplate(id: string, updates: Partial<PMTemplate>): Promise<{ data: PMTemplate | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.updateTemplate(id, updates)
+    }
+
+    const { data, error } = await getSupabase()
+      .from('pm_templates')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select(`*, equipment_type:equipment_types(*)`)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async deleteTemplate(id: string): Promise<{ error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.deleteTemplate(id)
+    }
+
+    const { error } = await getSupabase()
+      .from('pm_templates')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
+
+  // PM Execution functions
+  async getExecutionBySchedule(scheduleId: string): Promise<{ data: unknown | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.getExecutionBySchedule(scheduleId)
+    }
+
+    const { data, error } = await getSupabase()
+      .from('pm_executions')
+      .select(`
+        *,
+        schedule:pm_schedules(*),
+        equipment:equipments(*),
+        technician:users(*)
+      `)
+      .eq('schedule_id', scheduleId)
+      .maybeSingle()
+
+    return { data, error: error?.message || null }
+  },
+
+  async startExecution(scheduleId: string, technicianId: string): Promise<{ data: unknown | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.startExecution(scheduleId, technicianId)
+    }
+
+    // Get schedule info
+    const { data: schedule } = await getSupabase()
+      .from('pm_schedules')
+      .select('equipment_id')
+      .eq('id', scheduleId)
+      .single()
+
+    if (!schedule) {
+      return { data: null, error: 'Schedule not found' }
+    }
+
+    // Update schedule status
+    await getSupabase()
+      .from('pm_schedules')
+      .update({ status: 'in_progress', assigned_technician_id: technicianId })
+      .eq('id', scheduleId)
+
+    // Create execution
+    const { data, error } = await getSupabase()
+      .from('pm_executions')
+      .insert({
+        schedule_id: scheduleId,
+        equipment_id: schedule.equipment_id,
+        technician_id: technicianId,
+        started_at: new Date().toISOString(),
+        status: 'in_progress',
+        checklist_results: [],
+        used_parts: [],
+      })
+      .select(`
+        *,
+        schedule:pm_schedules(*),
+        equipment:equipments(*),
+        technician:users(*)
+      `)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async updateExecution(id: string, updates: Record<string, unknown>): Promise<{ data: unknown | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.updateExecution(id, updates as Parameters<typeof mockPMApi.updateExecution>[1])
+    }
+
+    const { data, error } = await getSupabase()
+      .from('pm_executions')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async completeExecution(id: string, completionData: {
+    checklist_results: unknown[]
+    used_parts: unknown[]
+    findings?: string
+    findings_severity?: string
+    rating?: number
+    notes?: string
+  }): Promise<{ data: unknown | null; error: string | null }> {
+    if (!shouldUseSupabase()) {
+      return mockPMApi.completeExecution(id, completionData as Parameters<typeof mockPMApi.completeExecution>[1])
+    }
+
+    // Get execution to find schedule
+    const { data: execution } = await getSupabase()
+      .from('pm_executions')
+      .select('schedule_id, started_at')
+      .eq('id', id)
+      .single()
+
+    const completedAt = new Date().toISOString()
+    const durationMinutes = execution?.started_at
+      ? Math.round((new Date(completedAt).getTime() - new Date(execution.started_at).getTime()) / (1000 * 60))
+      : 0
+
+    const { data, error } = await getSupabase()
+      .from('pm_executions')
+      .update({
+        ...completionData,
+        completed_at: completedAt,
+        duration_minutes: durationMinutes,
+        status: 'completed',
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    // Update schedule status
+    if (execution?.schedule_id) {
+      await getSupabase()
+        .from('pm_schedules')
+        .update({ status: 'completed' })
+        .eq('id', execution.schedule_id)
+    }
 
     return { data, error: error?.message || null }
   },

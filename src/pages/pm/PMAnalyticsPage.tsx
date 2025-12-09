@@ -70,62 +70,72 @@ export default function PMAnalyticsPage() {
   const fetchAnalytics = async () => {
     setLoading(true)
     try {
-      // Fetch compliance stats and dashboard stats
-      const [complianceRes, dashboardRes] = await Promise.all([
+      // Fetch all analytics data in parallel
+      const [
+        complianceRes,
+        dashboardRes,
+        monthlyTrendRes,
+        byEquipmentTypeRes,
+        byTechnicianRes,
+        statusDistributionRes,
+        avgCompletionTimeRes,
+      ] = await Promise.all([
         pmApi.getComplianceStats(),
         pmApi.getDashboardStats(),
+        pmApi.getMonthlyTrend(6),
+        pmApi.getByEquipmentType(),
+        pmApi.getByTechnician(),
+        pmApi.getStatusDistribution(),
+        pmApi.getAvgCompletionTime(),
       ])
 
-      // Generate mock analytics data
-      const now = new Date()
-      const months = []
-      for (let i = 5; i >= 0; i--) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      // Format monthly trend data with localized month names
+      const monthlyTrend = (monthlyTrendRes.data || []).map((item) => {
+        const date = new Date(item.month + '-01')
         const monthName = date.toLocaleDateString(i18n.language === 'ko' ? 'ko-KR' : 'vi-VN', {
           month: 'short',
         })
-        months.push({
+        return {
           month: monthName,
-          completed: Math.floor(Math.random() * 30) + 20,
-          scheduled: Math.floor(Math.random() * 10) + 30,
-          compliance: Math.floor(Math.random() * 20) + 75,
-        })
+          completed: item.completed,
+          scheduled: item.scheduled,
+          compliance: item.compliance,
+        }
+      })
+
+      // Format equipment type data
+      const byEquipmentType = byEquipmentTypeRes.data || []
+
+      // Format technician data
+      const byTechnician = byTechnicianRes.data || []
+
+      // Format status distribution with colors and translations
+      const statusColorMap: Record<string, { color: string; label: string }> = {
+        completed: { color: '#10B981', label: t('pm.statusCompleted') },
+        scheduled: { color: '#3B82F6', label: t('pm.statusScheduled') },
+        in_progress: { color: '#F59E0B', label: t('pm.statusInProgress') },
+        overdue: { color: '#EF4444', label: t('pm.statusOverdue') },
       }
 
-      const byEquipmentType = equipmentTypes.slice(0, 5).map((type) => ({
-        name: type.name,
-        completed: Math.floor(Math.random() * 20) + 10,
-        overdue: Math.floor(Math.random() * 5),
+      const statusDistribution = (statusDistributionRes.data || []).map((item) => ({
+        name: statusColorMap[item.status]?.label || item.status,
+        value: item.count,
+        color: statusColorMap[item.status]?.color || '#9CA3AF',
       }))
-
-      const byTechnician = [
-        { name: 'Nguyễn Văn A', completed: 25, avgRating: 4.5 },
-        { name: 'Trần Thị B', completed: 22, avgRating: 4.8 },
-        { name: 'Lê Văn C', completed: 18, avgRating: 4.2 },
-        { name: 'Phạm Thị D', completed: 15, avgRating: 4.6 },
-        { name: 'Hoàng Văn E', completed: 12, avgRating: 4.3 },
-      ]
-
-      const statusDistribution = [
-        { name: t('pm.statusCompleted'), value: dashboardRes.data?.completed_this_month || 45, color: '#10B981' },
-        { name: t('pm.statusScheduled'), value: 15, color: '#3B82F6' },
-        { name: t('pm.statusInProgress'), value: 5, color: '#F59E0B' },
-        { name: t('pm.statusOverdue'), value: dashboardRes.data?.overdue_count || 3, color: '#EF4444' },
-      ]
 
       // Calculate overall compliance from the array
       const overallCompliance = complianceRes.data && complianceRes.data.length > 0
         ? Math.round(complianceRes.data.reduce((sum, stat) => sum + stat.compliance_rate, 0) / complianceRes.data.length)
-        : 85
+        : 0
 
       setAnalyticsData({
         complianceRate: overallCompliance,
-        complianceChange: 2.5,
-        totalScheduled: dashboardRes.data?.total_scheduled || 68,
-        totalCompleted: dashboardRes.data?.completed_this_month || 45,
-        totalOverdue: dashboardRes.data?.overdue_count || 3,
-        avgCompletionTime: 45,
-        monthlyTrend: months,
+        complianceChange: 2.5, // TODO: Calculate from previous period
+        totalScheduled: dashboardRes.data?.total_scheduled || 0,
+        totalCompleted: dashboardRes.data?.completed_this_month || 0,
+        totalOverdue: dashboardRes.data?.overdue_count || 0,
+        avgCompletionTime: avgCompletionTimeRes.data || 0,
+        monthlyTrend,
         byEquipmentType,
         byTechnician,
         statusDistribution,

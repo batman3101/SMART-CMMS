@@ -157,13 +157,52 @@ export interface Setting {
 }
 
 // AI Insight types
+export type AIInsightType = 'anomaly' | 'predictive' | 'efficiency' | 'trend' | 'parts' | 'recommendation'
+export type AIInsightSeverity = 'info' | 'warning' | 'critical'
+
 export interface AIInsight {
   id: string
-  insight_type: string
+  insight_type: AIInsightType | string
   title: string
   description: string
+  content?: string
   data: Record<string, unknown> | null
+  severity?: AIInsightSeverity
+  is_read?: boolean
   generated_at: string
+  expires_at?: string
+  created_at?: string
+}
+
+// AI Chat History types
+export interface AIChatMessage {
+  id: string
+  user_id: string
+  session_id: string
+  role: 'user' | 'assistant'
+  content: string
+  language?: string
+  metadata?: Record<string, unknown>
+  created_at: string
+}
+
+// Generated Report types
+export type ReportType = 'daily' | 'weekly' | 'monthly' | 'custom'
+export type ReportStatus = 'generating' | 'completed' | 'failed'
+
+export interface GeneratedReport {
+  id: string
+  name: string
+  type: ReportType
+  period_start: string
+  period_end: string
+  generated_by?: string
+  generated_by_user?: User
+  file_url?: string
+  file_size?: number
+  status: ReportStatus
+  report_data?: Record<string, unknown>
+  created_at: string
 }
 
 // Activity Log types

@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { notificationsApi } from '@/lib/api'
+import { isMainSupabaseConnected } from '@/lib/supabase'
 
 export type NotificationType = 'emergency' | 'long_repair' | 'completed' | 'info' | 'pm_schedule'
 
@@ -44,6 +46,7 @@ interface NotificationState {
 
   // For Supabase Realtime integration
   setNotifications: (notifications: Notification[]) => void
+  fetchNotifications: () => Promise<void>
 
   // Computed
   getUnreadCount: () => number
@@ -89,7 +92,7 @@ const sampleNotifications: Notification[] = [
 export const useNotificationStore = create<NotificationState>()(
   persist(
     (set, get) => ({
-      notifications: sampleNotifications,
+      notifications: isMainSupabaseConnected() ? [] : sampleNotifications,
       pushSettings: {
         enabled: false,
         emergency: true,
@@ -157,6 +160,26 @@ export const useNotificationStore = create<NotificationState>()(
 
       setNotifications: (notifications) => {
         set({ notifications })
+      },
+
+      fetchNotifications: async () => {
+        if (!isMainSupabaseConnected()) return
+
+        const { data } = await notificationsApi.getNotifications()
+        if (data && data.length > 0) {
+          const notifications: Notification[] = (data as Record<string, unknown>[]).map((n) => ({
+            id: n.id as string,
+            type: (n.type as NotificationType) || 'info',
+            title: n.title as string,
+            message: n.message as string,
+            equipment_code: (n.data as Record<string, unknown>)?.equipment_code as string || undefined,
+            time: new Date(n.created_at as string).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+            date: (n.created_at as string).split('T')[0],
+            read: n.is_read as boolean,
+            created_at: n.created_at as string,
+          }))
+          set({ notifications })
+        }
       },
 
       getUnreadCount: () => {

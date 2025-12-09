@@ -35,7 +35,13 @@ export default function NotificationsPage() {
     clearReadNotifications,
     getUnreadCount,
     setPushSettings,
+    fetchNotifications,
   } = useNotificationStore()
+
+  // Supabase에서 알림 가져오기
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
 
   const [filterType, setFilterType] = useState<string>('all')
   const [showSettings, setShowSettings] = useState(false)

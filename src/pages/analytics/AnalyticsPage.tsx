@@ -37,8 +37,7 @@ import {
   Filter,
   RefreshCw,
 } from 'lucide-react'
-import { equipmentApi } from '@/lib/api'
-import { mockStatisticsApi } from '@/mock/api'
+import { equipmentApi, statisticsApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
 import type {
   EquipmentFailureRank,
@@ -107,12 +106,12 @@ export default function AnalyticsPage() {
         buildingRes,
         typesRes,
       ] = await Promise.all([
-        mockStatisticsApi.getFilteredKPIs(filter),
-        mockStatisticsApi.getFilteredEquipmentFailureRank(filter, 10),
-        mockStatisticsApi.getFilteredRepairTypeDistribution(filter),
-        mockStatisticsApi.getFilteredMonthlyRepairTrend(filter),
-        mockStatisticsApi.getFilteredTechnicianPerformance(filter),
-        mockStatisticsApi.getFilteredBuildingFailureStats(filter),
+        statisticsApi.getFilteredKPIs(filter),
+        statisticsApi.getFilteredEquipmentFailureRank(filter, 10),
+        statisticsApi.getFilteredRepairTypeDistribution(filter),
+        statisticsApi.getFilteredMonthlyRepairTrend(filter),
+        statisticsApi.getFilteredTechnicianPerformance(filter),
+        statisticsApi.getFilteredBuildingFailureStats(filter),
         equipmentApi.getEquipmentTypes(),
       ])
 

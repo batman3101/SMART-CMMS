@@ -63,37 +63,9 @@ export default function ReportPage() {
     setEndDate(today.toISOString().split('T')[0])
     setStartDate(monthAgo.toISOString().split('T')[0])
 
-    // Load mock generated reports
-    setGeneratedReports([
-      {
-        id: '1',
-        name: t('report.monthlyReport') + '_2025_01.pdf',
-        type: 'monthly',
-        period: '2025-01-01 ~ 2025-01-31',
-        created_at: '2025-01-31 14:30',
-        status: 'completed',
-        file_size: '2.4 MB',
-      },
-      {
-        id: '2',
-        name: t('report.weeklyReport') + '_2025_W04.pdf',
-        type: 'weekly',
-        period: '2025-01-20 ~ 2025-01-26',
-        created_at: '2025-01-27 09:15',
-        status: 'completed',
-        file_size: '1.8 MB',
-      },
-      {
-        id: '3',
-        name: t('report.dailyReport') + '_2025-01-25.pdf',
-        type: 'daily',
-        period: '2025-01-25',
-        created_at: '2025-01-25 18:00',
-        status: 'completed',
-        file_size: '0.9 MB',
-      },
-    ])
-  }, [t])
+    // Reports are generated locally in this session
+    // In the future, implement a reports table to persist generated reports
+  }, [])
 
   const reportTemplates: ReportTemplate[] = [
     {

@@ -1,17 +1,9 @@
 /**
  * Unified API Layer
- * Automatically switches between Supabase (real) and Mock data based on connection status
+ * Direct Supabase database access
  */
 
-import { supabase, isMainSupabaseConnected } from './supabase'
-import {
-  mockEquipmentApi,
-  mockMaintenanceApi,
-  mockUsersApi,
-  mockStatisticsApi,
-  mockPMApi,
-  mockAIApi as mockAI,
-} from '@/mock/api'
+import { supabase } from './supabase'
 import type {
   Equipment,
   EquipmentType,
@@ -54,25 +46,19 @@ function isEquipmentStatus(status: string): status is EquipmentStatus {
   return ['normal', 'pm', 'repair', 'emergency', 'standby'].includes(status)
 }
 
-// Type guard for PMScheduleStatus
-function isPMScheduleStatus(status: string): status is PMScheduleStatus {
+// Type guard for PMScheduleStatus (reserved for future use)
+function _isPMScheduleStatus(status: string): status is PMScheduleStatus {
   return ['scheduled', 'in_progress', 'completed', 'overdue', 'cancelled'].includes(status)
 }
+void _isPMScheduleStatus // Prevent unused variable warning
 
-/**
- * Check if we should use Supabase
- * Returns true only if:
- * 1. Supabase is connected (isMainSupabaseConnected())
- * 2. Supabase client is not null
- * When this returns true, supabase is guaranteed to be non-null
- */
-const shouldUseSupabase = (): boolean => isMainSupabaseConnected() && supabase !== null
-
-/**
- * Get non-null Supabase client
- * Call only after shouldUseSupabase() returns true
- */
-const getSupabase = () => supabase!
+// Supabase client getter
+const getSupabase = () => {
+  if (!supabase) {
+    throw new Error('Supabase client is not initialized')
+  }
+  return supabase
+}
 
 // Get Supabase project URL for Edge Functions
 const getEdgeFunctionUrl = (functionName: string) => {
@@ -86,10 +72,6 @@ const getEdgeFunctionUrl = (functionName: string) => {
 // ========================================
 export const equipmentApi = {
   async getEquipments(): Promise<{ data: Equipment[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockEquipmentApi.getEquipments()
-    }
-
     const { data, error } = await getSupabase()
       .from('equipments')
       .select(`
@@ -103,10 +85,6 @@ export const equipmentApi = {
   },
 
   async getEquipmentById(id: string): Promise<{ data: Equipment | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockEquipmentApi.getEquipmentById(id)
-    }
-
     const { data, error } = await getSupabase()
       .from('equipments')
       .select(`
@@ -120,10 +98,6 @@ export const equipmentApi = {
   },
 
   async getEquipmentTypes(): Promise<{ data: EquipmentType[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockEquipmentApi.getEquipmentTypes()
-    }
-
     const { data, error } = await getSupabase()
       .from('equipment_types')
       .select('*')
@@ -134,11 +108,8 @@ export const equipmentApi = {
   },
 
   async updateEquipmentStatus(id: string, status: string): Promise<{ data: Equipment | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      if (!isEquipmentStatus(status)) {
-        return { data: null, error: 'Invalid equipment status' }
-      }
-      return mockEquipmentApi.updateEquipmentStatus(id, status)
+    if (!isEquipmentStatus(status)) {
+      return { data: null, error: 'Invalid equipment status' }
     }
 
     const { data, error } = await getSupabase()
@@ -152,10 +123,6 @@ export const equipmentApi = {
   },
 
   async createEquipment(equipment: Partial<Equipment>): Promise<{ data: Equipment | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return { data: null, error: 'Mock API does not support create' }
-    }
-
     const { data, error } = await getSupabase()
       .from('equipments')
       .insert(equipment)
@@ -166,10 +133,6 @@ export const equipmentApi = {
   },
 
   async updateEquipment(id: string, updates: Partial<Equipment>): Promise<{ data: Equipment | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return { data: null, error: 'Mock API does not support update' }
-    }
-
     const { data, error } = await getSupabase()
       .from('equipments')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -181,10 +144,6 @@ export const equipmentApi = {
   },
 
   async deleteEquipment(id: string): Promise<{ error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return { error: 'Mock API does not support delete' }
-    }
-
     const { error } = await getSupabase()
       .from('equipments')
       .update({ is_active: false, updated_at: new Date().toISOString() })
@@ -194,10 +153,6 @@ export const equipmentApi = {
   },
 
   async bulkCreateEquipments(equipments: Partial<Equipment>[]): Promise<{ data: Equipment[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return { data: null, error: 'Mock API does not support bulk create' }
-    }
-
     const { data, error } = await getSupabase()
       .from('equipments')
       .insert(equipments.map(eq => ({ ...eq, is_active: true })))
@@ -219,18 +174,6 @@ export const maintenanceApi = {
     status?: string
     equipmentId?: string
   }): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      const status = filter?.status
-      return mockMaintenanceApi.getMaintenanceRecords({
-        start_date: filter?.startDate,
-        end_date: filter?.endDate,
-        repair_type_id: filter?.repairTypeId,
-        technician_id: filter?.technicianId,
-        status: status === 'in_progress' || status === 'completed' ? status : undefined,
-        equipment_id: filter?.equipmentId,
-      })
-    }
-
     let query = getSupabase()
       .from('maintenance_records')
       .select(`
@@ -266,10 +209,6 @@ export const maintenanceApi = {
   },
 
   async getInProgressRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockMaintenanceApi.getInProgressRecords()
-    }
-
     const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select(`
@@ -285,10 +224,6 @@ export const maintenanceApi = {
   },
 
   async getTodayRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockMaintenanceApi.getTodayRecords()
-    }
-
     const today = new Date().toISOString().split('T')[0]
     const { data, error } = await getSupabase()
       .from('maintenance_records')
@@ -305,14 +240,6 @@ export const maintenanceApi = {
   },
 
   async getTodayCompletedRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      const result = await mockMaintenanceApi.getTodayRecords()
-      return {
-        data: result.data?.filter(r => r.status === 'completed') || null,
-        error: result.error
-      }
-    }
-
     const today = new Date().toISOString().split('T')[0]
     const { data, error } = await getSupabase()
       .from('maintenance_records')
@@ -330,10 +257,6 @@ export const maintenanceApi = {
   },
 
   async getRepairTypes(): Promise<{ data: RepairType[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockMaintenanceApi.getRepairTypes()
-    }
-
     const { data, error } = await getSupabase()
       .from('repair_types')
       .select('*')
@@ -351,19 +274,6 @@ export const maintenanceApi = {
     symptom?: string
     start_time: string
   }): Promise<{ data: MaintenanceRecord | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockMaintenanceApi.startMaintenance(
-        {
-          date: record.date,
-          equipment_id: record.equipment_id,
-          repair_type_id: record.repair_type_id,
-          symptom: record.symptom,
-          start_time: record.start_time,
-        },
-        record.technician_id
-      )
-    }
-
     // Generate record_no
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
     const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase()
@@ -396,14 +306,6 @@ export const maintenanceApi = {
       duration_minutes: number
     }
   ): Promise<{ data: MaintenanceRecord | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockMaintenanceApi.completeMaintenance(id, {
-        end_time: updates.end_time,
-        repair_content: updates.repair_content,
-        rating: updates.rating,
-      })
-    }
-
     const { data, error } = await getSupabase()
       .from('maintenance_records')
       .update({
@@ -429,10 +331,6 @@ export const maintenanceApi = {
 // ========================================
 export const usersApi = {
   async getUsers(): Promise<{ data: User[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.getUsers()
-    }
-
     const { data, error } = await getSupabase()
       .from('users')
       .select('*')
@@ -443,10 +341,6 @@ export const usersApi = {
   },
 
   async getTechnicians(): Promise<{ data: User[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.getTechnicians()
-    }
-
     const { data, error } = await getSupabase()
       .from('users')
       .select('*')
@@ -458,10 +352,6 @@ export const usersApi = {
   },
 
   async getUserById(id: string): Promise<{ data: User | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.getUserById(id)
-    }
-
     const { data, error } = await getSupabase()
       .from('users')
       .select('*')
@@ -472,10 +362,6 @@ export const usersApi = {
   },
 
   async createUser(user: Partial<User>): Promise<{ data: User | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.createUser(user as Parameters<typeof mockUsersApi.createUser>[0])
-    }
-
     const { data, error } = await getSupabase()
       .from('users')
       .insert({ ...user, is_active: true })
@@ -486,10 +372,6 @@ export const usersApi = {
   },
 
   async updateUser(id: string, updates: Partial<User>): Promise<{ data: User | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.updateUser(id, updates)
-    }
-
     const { data, error } = await getSupabase()
       .from('users')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -501,10 +383,6 @@ export const usersApi = {
   },
 
   async deactivateUser(id: string): Promise<{ error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.deactivateUser(id)
-    }
-
     const { error } = await getSupabase()
       .from('users')
       .update({ is_active: false, updated_at: new Date().toISOString() })
@@ -514,10 +392,6 @@ export const usersApi = {
   },
 
   async activateUser(id: string): Promise<{ error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.activateUser(id)
-    }
-
     const { error } = await getSupabase()
       .from('users')
       .update({ is_active: true, updated_at: new Date().toISOString() })
@@ -532,23 +406,20 @@ export const usersApi = {
   },
 
   async getRolePermissions(): Promise<{ data: unknown[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.getRolePermissions()
-    }
+    const { data, error } = await getSupabase()
+      .from('role_permissions')
+      .select('*')
 
-    // Role permissions are typically stored in settings or a separate table
-    // For now, return from mock
-    return mockUsersApi.getRolePermissions()
+    return { data, error: error?.message || null }
   },
 
   async updateRolePermission(role: number, pageKey: string, canAccess: boolean): Promise<{ data: unknown[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockUsersApi.updateRolePermission(role as 1 | 2 | 3 | 4, pageKey, canAccess)
-    }
+    const { data, error } = await getSupabase()
+      .from('role_permissions')
+      .upsert({ role, page_key: pageKey, can_access: canAccess })
+      .select()
 
-    // Role permissions would be stored in settings table
-    // For now, use mock implementation
-    return mockUsersApi.updateRolePermission(role as 1 | 2 | 3 | 4, pageKey, canAccess)
+    return { data, error: error?.message || null }
   },
 }
 
@@ -557,10 +428,6 @@ export const usersApi = {
 // ========================================
 export const statisticsApi = {
   async getDashboardStats(): Promise<{ data: DashboardStats | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockStatisticsApi.getDashboardStats()
-    }
-
     // Get equipment counts
     const { data: equipments } = await getSupabase()
       .from('equipments')
@@ -588,10 +455,6 @@ export const statisticsApi = {
   },
 
   async getEquipmentFailureRank(limit?: number): Promise<{ data: EquipmentFailureRank[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockStatisticsApi.getEquipmentFailureRank(limit)
-    }
-
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -634,10 +497,6 @@ export const statisticsApi = {
   },
 
   async getEquipmentStatusDistribution(): Promise<{ data: { status: string; value: number; color: string }[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockStatisticsApi.getEquipmentStatusDistribution()
-    }
-
     const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('status')
@@ -674,10 +533,6 @@ export const statisticsApi = {
     startDate?: string,
     endDate?: string
   ): Promise<{ data: RepairTypeDistribution[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockStatisticsApi.getRepairTypeDistribution(filterType, startDate, endDate)
-    }
-
     // Calculate date range
     const today = new Date()
     let queryStartDate = startDate
@@ -744,10 +599,6 @@ export const statisticsApi = {
   },
 
   async getWeeklyRepairTrend(): Promise<{ data: { dayIndex: number; count: number }[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockStatisticsApi.getWeeklyRepairTrend()
-    }
-
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
@@ -776,10 +627,6 @@ export const statisticsApi = {
   },
 
   async getTechnicianPerformance(): Promise<{ data: TechnicianPerformance[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockStatisticsApi.getTechnicianPerformance()
-    }
-
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -837,10 +684,6 @@ export const statisticsApi = {
   },
 
   async getKPIs(): Promise<{ data: { mtbf: number; mttr: number; availability: number } | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockStatisticsApi.getKPIs()
-    }
-
     // Calculate KPIs from maintenance records
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -879,6 +722,422 @@ export const statisticsApi = {
       error: null,
     }
   },
+
+  // Filtered Statistics APIs for Analytics Page
+  async getFilteredKPIs(filter?: {
+    startDate?: string
+    endDate?: string
+    building?: string
+    equipmentTypeId?: string
+  }): Promise<{
+    data: {
+      mtbf: number
+      mttr: number
+      availability: number
+      emergencyRatio: number
+      totalRepairs: number
+    } | null
+    error: string | null
+  }> {
+    let query = getSupabase()
+      .from('maintenance_records')
+      .select(`
+        duration_minutes,
+        repair_type:repair_types(code),
+        equipment:equipments(building, equipment_type_id)
+      `)
+      .eq('status', 'completed')
+
+    if (filter?.startDate) {
+      query = query.gte('date', filter.startDate)
+    }
+    if (filter?.endDate) {
+      query = query.lte('date', filter.endDate)
+    }
+
+    const { data: records, error } = await query
+
+    if (error) {
+      return { data: null, error: error.message }
+    }
+
+    // Filter by building and equipment type in memory
+    let filteredRecords = records || []
+    if (filter?.building) {
+      filteredRecords = filteredRecords.filter(r => {
+        const eq = r.equipment as { building?: string } | null
+        return eq?.building === filter.building
+      })
+    }
+    if (filter?.equipmentTypeId) {
+      filteredRecords = filteredRecords.filter(r => {
+        const eq = r.equipment as { equipment_type_id?: string } | null
+        return eq?.equipment_type_id === filter.equipmentTypeId
+      })
+    }
+
+    const totalRecords = filteredRecords.length
+    const totalDowntime = filteredRecords.reduce((sum, r) => sum + (r.duration_minutes || 0), 0)
+    const emergencyCount = filteredRecords.filter(r => {
+      const rt = r.repair_type as { code?: string } | null
+      return rt?.code === 'EM'
+    }).length
+
+    // Calculate days in range
+    const startDate = filter?.startDate ? new Date(filter.startDate) : new Date()
+    const endDate = filter?.endDate ? new Date(filter.endDate) : new Date()
+    const days = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
+
+    const { data: equipments } = await getSupabase()
+      .from('equipments')
+      .select('id')
+      .eq('is_active', true)
+
+    const totalEquipment = equipments?.length || 1
+    const totalHours = days * 24 * totalEquipment
+
+    const mtbf = totalRecords > 0 ? (totalHours - totalDowntime / 60) / totalRecords : totalHours
+    const mttr = totalRecords > 0 ? (totalDowntime / 60) / totalRecords : 0
+    const availability = totalHours > 0 ? ((totalHours - totalDowntime / 60) / totalHours) * 100 : 100
+    const emergencyRatio = totalRecords > 0 ? (emergencyCount / totalRecords) * 100 : 0
+
+    return {
+      data: {
+        mtbf: Math.round(mtbf * 10) / 10,
+        mttr: Math.round(mttr * 10) / 10,
+        availability: Math.round(availability * 10) / 10,
+        emergencyRatio: Math.round(emergencyRatio * 10) / 10,
+        totalRepairs: totalRecords,
+      },
+      error: null,
+    }
+  },
+
+  async getFilteredEquipmentFailureRank(
+    filter?: {
+      startDate?: string
+      endDate?: string
+      building?: string
+      equipmentTypeId?: string
+    },
+    limit?: number
+  ): Promise<{ data: EquipmentFailureRank[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('maintenance_records')
+      .select(`
+        equipment_id,
+        duration_minutes,
+        equipment:equipments(equipment_code, equipment_name, building, equipment_type_id)
+      `)
+
+    if (filter?.startDate) {
+      query = query.gte('date', filter.startDate)
+    }
+    if (filter?.endDate) {
+      query = query.lte('date', filter.endDate)
+    }
+
+    const { data, error } = await query
+
+    if (error || !data) {
+      return { data: null, error: error?.message || null }
+    }
+
+    // Filter by building and equipment type
+    let filteredData = data
+    if (filter?.building) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { building?: string } | null
+        return eq?.building === filter.building
+      })
+    }
+    if (filter?.equipmentTypeId) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { equipment_type_id?: string } | null
+        return eq?.equipment_type_id === filter.equipmentTypeId
+      })
+    }
+
+    // Aggregate by equipment
+    const counts: Record<string, EquipmentFailureRank> = {}
+    filteredData.forEach(record => {
+      const eqId = record.equipment_id
+      const eq = record.equipment as EquipmentJoin | null
+      if (!counts[eqId]) {
+        counts[eqId] = {
+          equipment_id: eqId,
+          equipment_code: eq?.equipment_code || '',
+          equipment_name: eq?.equipment_name || '',
+          failure_count: 0,
+          total_downtime_minutes: 0,
+        }
+      }
+      counts[eqId].failure_count++
+      counts[eqId].total_downtime_minutes += record.duration_minutes || 0
+    })
+
+    const ranked = Object.values(counts)
+      .sort((a, b) => b.failure_count - a.failure_count)
+      .slice(0, limit || 10)
+
+    return { data: ranked, error: null }
+  },
+
+  async getFilteredRepairTypeDistribution(filter?: {
+    startDate?: string
+    endDate?: string
+    building?: string
+    equipmentTypeId?: string
+  }): Promise<{ data: RepairTypeDistribution[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('maintenance_records')
+      .select(`
+        repair_type:repair_types(id, code, name),
+        equipment:equipments(building, equipment_type_id)
+      `)
+
+    if (filter?.startDate) {
+      query = query.gte('date', filter.startDate)
+    }
+    if (filter?.endDate) {
+      query = query.lte('date', filter.endDate)
+    }
+
+    const { data, error } = await query
+
+    if (error || !data) {
+      return { data: null, error: error?.message || null }
+    }
+
+    // Filter by building and equipment type
+    let filteredData = data
+    if (filter?.building) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { building?: string } | null
+        return eq?.building === filter.building
+      })
+    }
+    if (filter?.equipmentTypeId) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { equipment_type_id?: string } | null
+        return eq?.equipment_type_id === filter.equipmentTypeId
+      })
+    }
+
+    // Aggregate by repair type
+    const typeCounts: Record<string, RepairTypeDistribution> = {}
+    filteredData.forEach(record => {
+      const rt = record.repair_type as RepairTypeJoin | null
+      if (rt?.id && rt?.code) {
+        if (!typeCounts[rt.code]) {
+          typeCounts[rt.code] = {
+            repair_type_id: rt.id,
+            code: rt.code,
+            name: rt.name || rt.code,
+            count: 0,
+          }
+        }
+        typeCounts[rt.code].count++
+      }
+    })
+
+    return { data: Object.values(typeCounts), error: null }
+  },
+
+  async getFilteredMonthlyRepairTrend(filter?: {
+    startDate?: string
+    endDate?: string
+    building?: string
+    equipmentTypeId?: string
+  }): Promise<{ data: { monthIndex: number; count: number }[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('maintenance_records')
+      .select(`
+        date,
+        equipment:equipments(building, equipment_type_id)
+      `)
+
+    if (filter?.startDate) {
+      query = query.gte('date', filter.startDate)
+    }
+    if (filter?.endDate) {
+      query = query.lte('date', filter.endDate)
+    }
+
+    const { data, error } = await query
+
+    if (error || !data) {
+      return { data: null, error: error?.message || null }
+    }
+
+    // Filter by building and equipment type
+    let filteredData = data
+    if (filter?.building) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { building?: string } | null
+        return eq?.building === filter.building
+      })
+    }
+    if (filter?.equipmentTypeId) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { equipment_type_id?: string } | null
+        return eq?.equipment_type_id === filter.equipmentTypeId
+      })
+    }
+
+    // Aggregate by month
+    const monthCounts: Record<number, number> = {}
+    filteredData.forEach(record => {
+      const month = new Date(record.date).getMonth() + 1
+      monthCounts[month] = (monthCounts[month] || 0) + 1
+    })
+
+    const trend = Object.entries(monthCounts)
+      .map(([monthIndex, count]) => ({
+        monthIndex: parseInt(monthIndex),
+        count,
+      }))
+      .sort((a, b) => a.monthIndex - b.monthIndex)
+
+    return { data: trend, error: null }
+  },
+
+  async getFilteredBuildingFailureStats(filter?: {
+    startDate?: string
+    endDate?: string
+    equipmentTypeId?: string
+  }): Promise<{ data: { building: string; failure_count: number; total_downtime_minutes: number }[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('maintenance_records')
+      .select(`
+        duration_minutes,
+        equipment:equipments(building, equipment_type_id)
+      `)
+
+    if (filter?.startDate) {
+      query = query.gte('date', filter.startDate)
+    }
+    if (filter?.endDate) {
+      query = query.lte('date', filter.endDate)
+    }
+
+    const { data, error } = await query
+
+    if (error || !data) {
+      return { data: null, error: error?.message || null }
+    }
+
+    // Filter by equipment type
+    let filteredData = data
+    if (filter?.equipmentTypeId) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { equipment_type_id?: string } | null
+        return eq?.equipment_type_id === filter.equipmentTypeId
+      })
+    }
+
+    // Aggregate by building
+    const buildingStats: Record<string, { building: string; failure_count: number; total_downtime_minutes: number }> = {}
+    filteredData.forEach(record => {
+      const eq = record.equipment as { building?: string } | null
+      const building = eq?.building || 'Unknown'
+      if (!buildingStats[building]) {
+        buildingStats[building] = { building, failure_count: 0, total_downtime_minutes: 0 }
+      }
+      buildingStats[building].failure_count++
+      buildingStats[building].total_downtime_minutes += record.duration_minutes || 0
+    })
+
+    return { data: Object.values(buildingStats), error: null }
+  },
+
+  async getFilteredTechnicianPerformance(filter?: {
+    startDate?: string
+    endDate?: string
+    building?: string
+    equipmentTypeId?: string
+  }): Promise<{ data: TechnicianPerformance[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('maintenance_records')
+      .select(`
+        technician_id,
+        duration_minutes,
+        rating,
+        technician:users(id, name),
+        equipment:equipments(building, equipment_type_id)
+      `)
+      .eq('status', 'completed')
+
+    if (filter?.startDate) {
+      query = query.gte('date', filter.startDate)
+    }
+    if (filter?.endDate) {
+      query = query.lte('date', filter.endDate)
+    }
+
+    const { data, error } = await query
+
+    if (error || !data) {
+      return { data: null, error: error?.message || null }
+    }
+
+    // Filter by building and equipment type
+    let filteredData = data
+    if (filter?.building) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { building?: string } | null
+        return eq?.building === filter.building
+      })
+    }
+    if (filter?.equipmentTypeId) {
+      filteredData = filteredData.filter(r => {
+        const eq = r.equipment as { equipment_type_id?: string } | null
+        return eq?.equipment_type_id === filter.equipmentTypeId
+      })
+    }
+
+    // Aggregate by technician
+    const techStats: Record<string, {
+      technician_id: string
+      technician_name: string
+      completed_count: number
+      total_repair_time: number
+      total_rating: number
+      rating_count: number
+    }> = {}
+
+    filteredData.forEach(record => {
+      const tech = record.technician as TechnicianJoin | null
+      if (!tech?.id) return
+
+      if (!techStats[tech.id]) {
+        techStats[tech.id] = {
+          technician_id: tech.id,
+          technician_name: tech.name || '',
+          completed_count: 0,
+          total_repair_time: 0,
+          total_rating: 0,
+          rating_count: 0,
+        }
+      }
+      techStats[tech.id].completed_count++
+      techStats[tech.id].total_repair_time += record.duration_minutes || 0
+      if (record.rating) {
+        techStats[tech.id].total_rating += record.rating
+        techStats[tech.id].rating_count++
+      }
+    })
+
+    const performance: TechnicianPerformance[] = Object.values(techStats).map(stat => ({
+      technician_id: stat.technician_id,
+      technician_name: stat.technician_name,
+      completed_count: stat.completed_count,
+      avg_repair_time: stat.completed_count > 0 ? Math.round(stat.total_repair_time / stat.completed_count) : 0,
+      avg_rating: stat.rating_count > 0 ? Math.round((stat.total_rating / stat.rating_count) * 10) / 10 : 0,
+    }))
+
+    return { data: performance.sort((a, b) => b.completed_count - a.completed_count), error: null }
+  },
 }
 
 // ========================================
@@ -892,17 +1151,6 @@ export const pmApi = {
     startDate?: string
     endDate?: string
   }): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      const status = filter?.status
-      return mockPMApi.getSchedules({
-        status: status && isPMScheduleStatus(status) ? status : undefined,
-        equipment_type_id: filter?.equipmentTypeId,
-        technician_id: filter?.technicianId,
-        start_date: filter?.startDate,
-        end_date: filter?.endDate,
-      })
-    }
-
     let query = getSupabase()
       .from('pm_schedules')
       .select(`
@@ -932,10 +1180,6 @@ export const pmApi = {
   },
 
   async getTemplates(): Promise<{ data: PMTemplate[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getTemplates()
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_templates')
       .select(`
@@ -949,10 +1193,6 @@ export const pmApi = {
   },
 
   async getTodaySchedules(): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getTodaySchedules()
-    }
-
     const today = new Date().toISOString().split('T')[0]
     const { data, error } = await getSupabase()
       .from('pm_schedules')
@@ -969,10 +1209,6 @@ export const pmApi = {
   },
 
   async getOverdueSchedules(): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getOverdueSchedules()
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
@@ -988,10 +1224,6 @@ export const pmApi = {
   },
 
   async getUpcomingSchedules(days: number = 7): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getUpcomingSchedules(days)
-    }
-
     const today = new Date().toISOString().split('T')[0]
     const endDate = new Date()
     endDate.setDate(endDate.getDate() + days)
@@ -1014,10 +1246,6 @@ export const pmApi = {
   },
 
   async getSchedulesByMonth(yearMonth: string): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getSchedulesByMonth(yearMonth)
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
@@ -1033,10 +1261,6 @@ export const pmApi = {
   },
 
   async getScheduleById(id: string): Promise<{ data: PMSchedule | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getScheduleById(id)
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
@@ -1059,10 +1283,6 @@ export const pmApi = {
     priority?: 'high' | 'medium' | 'low'
     notes?: string
   }): Promise<{ data: PMSchedule | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.createSchedule(form)
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_schedules')
       .insert({
@@ -1081,10 +1301,6 @@ export const pmApi = {
   },
 
   async getComplianceStats(months?: number): Promise<{ data: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getComplianceStats(months)
-    }
-
     const monthsToFetch = months || 6
     const results: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] = []
 
@@ -1113,10 +1329,6 @@ export const pmApi = {
 
   // PM Template CRUD
   async createTemplate(template: Partial<PMTemplate>): Promise<{ data: PMTemplate | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.createTemplate(template as Parameters<typeof mockPMApi.createTemplate>[0])
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_templates')
       .insert({ ...template, is_active: true })
@@ -1127,10 +1339,6 @@ export const pmApi = {
   },
 
   async updateTemplate(id: string, updates: Partial<PMTemplate>): Promise<{ data: PMTemplate | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.updateTemplate(id, updates)
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_templates')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -1142,10 +1350,6 @@ export const pmApi = {
   },
 
   async deleteTemplate(id: string): Promise<{ error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.deleteTemplate(id)
-    }
-
     const { error } = await getSupabase()
       .from('pm_templates')
       .update({ is_active: false, updated_at: new Date().toISOString() })
@@ -1156,10 +1360,6 @@ export const pmApi = {
 
   // PM Execution functions
   async getExecutionBySchedule(scheduleId: string): Promise<{ data: unknown | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getExecutionBySchedule(scheduleId)
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_executions')
       .select(`
@@ -1175,10 +1375,6 @@ export const pmApi = {
   },
 
   async startExecution(scheduleId: string, technicianId: string): Promise<{ data: unknown | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.startExecution(scheduleId, technicianId)
-    }
-
     // Get schedule info
     const { data: schedule } = await getSupabase()
       .from('pm_schedules')
@@ -1220,10 +1416,6 @@ export const pmApi = {
   },
 
   async updateExecution(id: string, updates: Record<string, unknown>): Promise<{ data: unknown | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.updateExecution(id, updates as Parameters<typeof mockPMApi.updateExecution>[1])
-    }
-
     const { data, error } = await getSupabase()
       .from('pm_executions')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -1242,10 +1434,6 @@ export const pmApi = {
     rating?: number
     notes?: string
   }): Promise<{ data: unknown | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.completeExecution(id, completionData as Parameters<typeof mockPMApi.completeExecution>[1])
-    }
-
     // Get execution to find schedule
     const { data: execution } = await getSupabase()
       .from('pm_executions')
@@ -1282,10 +1470,6 @@ export const pmApi = {
   },
 
   async getDashboardStats(): Promise<{ data: { total_scheduled: number; completed_this_month: number; overdue_count: number; upcoming_week: number; compliance_rate: number } | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockPMApi.getDashboardStats()
-    }
-
     const today = new Date().toISOString().split('T')[0]
     const weekLater = new Date()
     weekLater.setDate(weekLater.getDate() + 7)
@@ -1323,6 +1507,194 @@ export const pmApi = {
 
     return { data: stats, error: null }
   },
+
+  // PM Analytics - Monthly Trend
+  async getMonthlyTrend(months: number = 6): Promise<{ data: { month: string; completed: number; scheduled: number; compliance: number }[] | null; error: string | null }> {
+    const results: { month: string; completed: number; scheduled: number; compliance: number }[] = []
+
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date()
+      date.setMonth(date.getMonth() - i)
+      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const monthName = date.toLocaleDateString('ko-KR', { month: 'short' })
+
+      const { data: schedules } = await getSupabase()
+        .from('pm_schedules')
+        .select('status')
+        .like('scheduled_date', `${yearMonth}%`)
+
+      const scheduled = schedules?.length || 0
+      const completed = schedules?.filter(s => s.status === 'completed').length || 0
+      const compliance = scheduled > 0 ? Math.round((completed / scheduled) * 100) : 0
+
+      results.push({ month: monthName, completed, scheduled, compliance })
+    }
+
+    return { data: results, error: null }
+  },
+
+  // PM Analytics - By Equipment Type
+  async getByEquipmentType(): Promise<{ data: { name: string; completed: number; overdue: number }[] | null; error: string | null }> {
+    const { data: schedules } = await getSupabase()
+      .from('pm_schedules')
+      .select(`
+        status,
+        equipment_id,
+        equipments!inner(equipment_type_id, equipment_types!inner(id, name))
+      `)
+
+    if (!schedules) return { data: [], error: null }
+
+    // Group by equipment type
+    const typeMap: Record<string, { name: string; completed: number; overdue: number }> = {}
+
+    ;(schedules as Record<string, unknown>[]).forEach((s) => {
+      const equipment = s.equipments as Record<string, unknown> | null
+      const equipmentType = equipment?.equipment_types as Record<string, unknown> | null
+      const typeName = (equipmentType?.name as string) || 'Unknown'
+      const status = s.status as string
+
+      if (!typeMap[typeName]) {
+        typeMap[typeName] = { name: typeName, completed: 0, overdue: 0 }
+      }
+      if (status === 'completed') typeMap[typeName].completed++
+      if (status === 'overdue') typeMap[typeName].overdue++
+    })
+
+    return { data: Object.values(typeMap), error: null }
+  },
+
+  // PM Analytics - By Technician
+  async getByTechnician(): Promise<{ data: { name: string; completed: number; avgRating: number }[] | null; error: string | null }> {
+    const { data: executions } = await getSupabase()
+      .from('pm_executions')
+      .select(`
+        status,
+        rating,
+        technician_id,
+        users!inner(id, name)
+      `)
+      .eq('status', 'completed')
+
+    if (!executions) return { data: [], error: null }
+
+    // Group by technician
+    const techMap: Record<string, { name: string; completed: number; totalRating: number; count: number }> = {}
+
+    ;(executions as Record<string, unknown>[]).forEach((e) => {
+      const user = e.users as Record<string, unknown> | null
+      const techName = (user?.name as string) || 'Unknown'
+      const rating = e.rating as number | null
+
+      if (!techMap[techName]) {
+        techMap[techName] = { name: techName, completed: 0, totalRating: 0, count: 0 }
+      }
+      techMap[techName].completed++
+      if (rating) {
+        techMap[techName].totalRating += rating
+        techMap[techName].count++
+      }
+    })
+
+    const result = Object.values(techMap).map(t => ({
+      name: t.name,
+      completed: t.completed,
+      avgRating: t.count > 0 ? Math.round((t.totalRating / t.count) * 10) / 10 : 0,
+    })).sort((a, b) => b.completed - a.completed).slice(0, 5)
+
+    return { data: result, error: null }
+  },
+
+  // PM Analytics - Status Distribution
+  async getStatusDistribution(): Promise<{ data: { status: string; count: number }[] | null; error: string | null }> {
+    const { data: schedules } = await getSupabase()
+      .from('pm_schedules')
+      .select('status')
+
+    if (!schedules) return { data: [], error: null }
+
+    const statusCount: Record<string, number> = {}
+    schedules.forEach((s: { status: string }) => {
+      statusCount[s.status] = (statusCount[s.status] || 0) + 1
+    })
+
+    return {
+      data: Object.entries(statusCount).map(([status, count]) => ({ status, count })),
+      error: null
+    }
+  },
+
+  // PM Analytics - Average Completion Time
+  async getAvgCompletionTime(): Promise<{ data: number | null; error: string | null }> {
+    const { data: executions } = await getSupabase()
+      .from('pm_executions')
+      .select('duration_minutes')
+      .eq('status', 'completed')
+      .not('duration_minutes', 'is', null)
+
+    if (!executions || executions.length === 0) return { data: 0, error: null }
+
+    const total = executions.reduce((sum: number, e: { duration_minutes: number }) => sum + e.duration_minutes, 0)
+    return { data: Math.round(total / executions.length), error: null }
+  },
+}
+
+// ========================================
+// Notifications API
+// ========================================
+export const notificationsApi = {
+  async getNotifications(userId?: string): Promise<{ data: unknown[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (userId) {
+      query = query.eq('user_id', userId)
+    }
+
+    const { data, error } = await query
+    return { data, error: error?.message || null }
+  },
+
+  async markAsRead(id: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
+
+  async markAllAsRead(userId: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('is_read', false)
+
+    return { error: error?.message || null }
+  },
+
+  async deleteNotification(id: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('notifications')
+      .delete()
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
+
+  async clearRead(userId: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId)
+      .eq('is_read', true)
+
+    return { error: error?.message || null }
+  },
 }
 
 // ========================================
@@ -1330,10 +1702,6 @@ export const pmApi = {
 // ========================================
 export const aiApi = {
   async getInsights(): Promise<{ data: AIInsight[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockAI.getInsights()
-    }
-
     const { data, error } = await getSupabase()
       .from('ai_insights')
       .select('*')
@@ -1353,10 +1721,6 @@ export const aiApi = {
     } | null
     error: string | null
   }> {
-    if (!shouldUseSupabase()) {
-      return mockAI.getInsightSummary()
-    }
-
     const { data: insights, error } = await getSupabase()
       .from('ai_insights')
       .select('*')
@@ -1378,10 +1742,6 @@ export const aiApi = {
   },
 
   async refreshInsights(): Promise<{ data: AIInsight[] | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockAI.refreshInsights()
-    }
-
     const edgeFunctionUrl = getEdgeFunctionUrl('ai-generate-insights')
     if (!edgeFunctionUrl) {
       return { data: null, error: 'Edge function URL not configured' }
@@ -1411,10 +1771,6 @@ export const aiApi = {
   },
 
   async chat(message: string, language: string = 'ko'): Promise<{ data: { response: string } | null; error: string | null }> {
-    if (!shouldUseSupabase()) {
-      return mockAI.chat(message)
-    }
-
     const edgeFunctionUrl = getEdgeFunctionUrl('ai-chat')
     if (!edgeFunctionUrl) {
       return { data: null, error: 'Edge function URL not configured' }
@@ -1446,6 +1802,176 @@ export const aiApi = {
 }
 
 // ========================================
+// Reports API
+// ========================================
+export const reportsApi = {
+  async getReports(filter?: {
+    type?: string
+    startDate?: string
+    endDate?: string
+    limit?: number
+  }): Promise<{ data: unknown[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('generated_reports')
+      .select(`
+        *,
+        generated_by_user:users(id, name, email)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (filter?.type) {
+      query = query.eq('type', filter.type)
+    }
+    if (filter?.startDate) {
+      query = query.gte('period_start', filter.startDate)
+    }
+    if (filter?.endDate) {
+      query = query.lte('period_end', filter.endDate)
+    }
+    if (filter?.limit) {
+      query = query.limit(filter.limit)
+    }
+
+    const { data, error } = await query
+    return { data, error: error?.message || null }
+  },
+
+  async getReportById(id: string): Promise<{ data: unknown | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('generated_reports')
+      .select(`
+        *,
+        generated_by_user:users(id, name, email)
+      `)
+      .eq('id', id)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async createReport(report: {
+    name: string
+    type: 'daily' | 'weekly' | 'monthly' | 'custom'
+    period_start: string
+    period_end: string
+    generated_by: string
+    file_url?: string
+    file_size?: number
+    status?: 'generating' | 'completed' | 'failed'
+    report_data?: Record<string, unknown>
+  }): Promise<{ data: unknown | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('generated_reports')
+      .insert(report)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async updateReport(id: string, updates: {
+    file_url?: string
+    file_size?: number
+    status?: 'generating' | 'completed' | 'failed'
+    report_data?: Record<string, unknown>
+  }): Promise<{ data: unknown | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('generated_reports')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async deleteReport(id: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('generated_reports')
+      .delete()
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
+}
+
+// ========================================
+// AI Chat History API
+// ========================================
+export const chatHistoryApi = {
+  async getChatHistory(userId: string, sessionId?: string): Promise<{ data: unknown[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('ai_chat_history')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+
+    if (sessionId) {
+      query = query.eq('session_id', sessionId)
+    }
+
+    const { data, error } = await query
+    return { data, error: error?.message || null }
+  },
+
+  async getChatSessions(userId: string): Promise<{ data: unknown[] | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('ai_chat_history')
+      .select('session_id, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error || !data) {
+      return { data: null, error: error?.message || null }
+    }
+
+    // Get unique sessions with their first message time
+    const sessions = [...new Set(data.map(d => d.session_id))].map(sessionId => {
+      const firstMessage = data.find(d => d.session_id === sessionId)
+      return { session_id: sessionId, created_at: firstMessage?.created_at }
+    })
+
+    return { data: sessions, error: null }
+  },
+
+  async addMessage(message: {
+    user_id: string
+    session_id: string
+    role: 'user' | 'assistant'
+    content: string
+    language?: string
+    metadata?: Record<string, unknown>
+  }): Promise<{ data: unknown | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('ai_chat_history')
+      .insert(message)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async deleteSession(userId: string, sessionId: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('ai_chat_history')
+      .delete()
+      .eq('user_id', userId)
+      .eq('session_id', sessionId)
+
+    return { error: error?.message || null }
+  },
+
+  async clearAllHistory(userId: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('ai_chat_history')
+      .delete()
+      .eq('user_id', userId)
+
+    return { error: error?.message || null }
+  },
+}
+
+// ========================================
 // Export all APIs
 // ========================================
 export const api = {
@@ -1454,7 +1980,10 @@ export const api = {
   users: usersApi,
   statistics: statisticsApi,
   pm: pmApi,
+  notifications: notificationsApi,
   ai: aiApi,
+  reports: reportsApi,
+  chatHistory: chatHistoryApi,
 }
 
 export default api

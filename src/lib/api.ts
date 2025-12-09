@@ -160,6 +160,112 @@ export const equipmentApi = {
 
     return { data, error: error?.message || null }
   },
+
+  // Equipment Types CRUD
+  async getAllEquipmentTypes(includeInactive: boolean = false): Promise<{ data: EquipmentType[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('equipment_types')
+      .select('*')
+      .order('code')
+
+    if (!includeInactive) {
+      query = query.eq('is_active', true)
+    }
+
+    const { data, error } = await query
+
+    return { data, error: error?.message || null }
+  },
+
+  async createEquipmentType(equipmentType: Partial<EquipmentType>): Promise<{ data: EquipmentType | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('equipment_types')
+      .insert(equipmentType)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async updateEquipmentType(id: string, updates: Partial<EquipmentType>): Promise<{ data: EquipmentType | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('equipment_types')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async deleteEquipmentType(id: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('equipment_types')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
+}
+
+// ========================================
+// Repair Types API
+// ========================================
+export const repairTypesApi = {
+  async getAll(includeInactive: boolean = false): Promise<{ data: RepairType[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('repair_types')
+      .select('*')
+      .order('priority')
+
+    if (!includeInactive) {
+      query = query.eq('is_active', true)
+    }
+
+    const { data, error } = await query
+
+    return { data, error: error?.message || null }
+  },
+
+  async getActive(): Promise<{ data: RepairType[] | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('repair_types')
+      .select('*')
+      .eq('is_active', true)
+      .order('priority')
+
+    return { data, error: error?.message || null }
+  },
+
+  async create(repairType: Partial<RepairType>): Promise<{ data: RepairType | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('repair_types')
+      .insert(repairType)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async update(id: string, updates: Partial<RepairType>): Promise<{ data: RepairType | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('repair_types')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async delete(id: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('repair_types')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
 }
 
 // ========================================
@@ -1972,6 +2078,88 @@ export const chatHistoryApi = {
 }
 
 // ========================================
+// Settings API
+// ========================================
+export const settingsApi = {
+  async getAll(): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('settings')
+      .select('*')
+
+    if (error) {
+      return { data: null, error: error.message }
+    }
+
+    // Convert array to object keyed by setting key
+    const settingsObject: Record<string, unknown> = {}
+    if (data) {
+      data.forEach((setting: { key: string; value: unknown }) => {
+        settingsObject[setting.key] = setting.value
+      })
+    }
+
+    return { data: settingsObject, error: null }
+  },
+
+  async get(key: string): Promise<{ data: unknown | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('settings')
+      .select('*')
+      .eq('key', key)
+      .maybeSingle()
+
+    if (error) {
+      return { data: null, error: error.message }
+    }
+
+    return { data: data?.value || null, error: null }
+  },
+
+  async set(key: string, value: unknown, description?: string, updatedBy?: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('settings')
+      .upsert({
+        key,
+        value,
+        description,
+        updated_by: updatedBy,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'key',
+      })
+
+    return { error: error?.message || null }
+  },
+
+  async setMultiple(settings: { key: string; value: unknown; description?: string }[], updatedBy?: string): Promise<{ error: string | null }> {
+    const settingsToUpsert = settings.map(s => ({
+      key: s.key,
+      value: s.value,
+      description: s.description,
+      updated_by: updatedBy,
+      updated_at: new Date().toISOString(),
+    }))
+
+    const { error } = await getSupabase()
+      .from('settings')
+      .upsert(settingsToUpsert, {
+        onConflict: 'key',
+      })
+
+    return { error: error?.message || null }
+  },
+
+  async delete(key: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('settings')
+      .delete()
+      .eq('key', key)
+
+    return { error: error?.message || null }
+  },
+}
+
+// ========================================
 // Export all APIs
 // ========================================
 export const api = {
@@ -1984,6 +2172,7 @@ export const api = {
   ai: aiApi,
   reports: reportsApi,
   chatHistory: chatHistoryApi,
+  settings: settingsApi,
 }
 
 export default api

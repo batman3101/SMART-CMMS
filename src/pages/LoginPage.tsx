@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Globe, Eye, EyeOff, Loader2, Sun, Moon } from 'lucide-react'
-import { mockAuthApi } from '@/mock/api'
+import { signIn, supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const { login, language, setLanguage } = useAuthStore()
+  const { login, language, setLanguage, isAuthenticated } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,23 +31,43 @@ export default function LoginPage() {
     }
   }, [theme])
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      // Mock API를 사용한 로그인 처리
-      // Supabase 연동 시 mockAuthApi.login을 실제 API로 교체
-      const { user, error: loginError } = await mockAuthApi.login({ email, password })
+      // Supabase Auth로 로그인
+      const { data, error: signInError } = await signIn(email, password)
 
-      if (loginError || !user) {
-        setError(loginError || t('auth.loginFailed'))
+      if (signInError || !data?.user) {
+        setError(signInError?.message || t('auth.loginFailed'))
         return
       }
 
-      login(user)
-      navigate('/dashboard')
+      // users 테이블에서 사용자 정보 조회
+      if (supabase && data.user) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('auth_user_id', data.user.id)
+          .single()
+
+        if (userError || !userData) {
+          setError(t('auth.userNotFound'))
+          return
+        }
+
+        login(userData)
+        navigate('/dashboard')
+      }
     } catch {
       setError(t('auth.loginFailed'))
     } finally {

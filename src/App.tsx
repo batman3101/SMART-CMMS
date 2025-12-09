@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import MainLayout from '@/components/layout/MainLayout'
@@ -27,9 +28,19 @@ import PMAnalyticsPage from '@/pages/pm/PMAnalyticsPage'
 import PMScheduleDetailPage from '@/pages/pm/PMScheduleDetailPage'
 import PMScheduleCreatePage from '@/pages/pm/PMScheduleCreatePage'
 import PartsPage from '@/pages/parts/PartsPage'
+import { Loader2 } from 'lucide-react'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, isLoading } = useAuthStore()
+
+  // Show loading while checking session
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -39,6 +50,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const { checkSession } = useAuthStore()
+
+  // Check Supabase session on app load
+  useEffect(() => {
+    checkSession()
+  }, [checkSession])
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

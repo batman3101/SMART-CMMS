@@ -74,6 +74,7 @@ export interface EquipmentType {
   name_ko?: string
   name_vi?: string
   category: EquipmentCategory
+  description?: string
   is_active: boolean
 }
 
@@ -104,6 +105,7 @@ export interface RepairType {
   name_vi?: string
   color: string
   priority: number
+  description?: string
   is_active: boolean
 }
 

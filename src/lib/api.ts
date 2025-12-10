@@ -467,25 +467,104 @@ export const usersApi = {
     return { data, error: error?.message || null }
   },
 
-  async createUser(user: Partial<User>): Promise<{ data: User | null; error: string | null }> {
-    const { data, error } = await getSupabase()
-      .from('users')
-      .insert({ ...user, is_active: true })
-      .select()
-      .single()
+  async createUser(user: Partial<User> & { email: string; password: string }): Promise<{ data: User | null; error: string | null }> {
+    try {
+      const { email, password, ...userData } = user
+      const supabase = getSupabase()
+      const { data: { session } } = await supabase.auth.getSession()
 
-    return { data, error: error?.message || null }
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-management`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'create_user',
+          email,
+          password,
+          userData,
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        return { data: null, error: result.error || 'Failed to create user' }
+      }
+      return { data: result.user, error: null }
+    } catch (error) {
+      return { data: null, error: String(error) }
+    }
   },
 
-  async updateUser(id: string, updates: Partial<User>): Promise<{ data: User | null; error: string | null }> {
-    const { data, error } = await getSupabase()
-      .from('users')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single()
+  async updateUser(id: string, updates: Partial<User> & { password?: string }): Promise<{ data: User | null; error: string | null }> {
+    try {
+      const { password, ...userData } = updates
+      const supabase = getSupabase()
 
-    return { data, error: error?.message || null }
+      // Get auth_user_id for password change
+      let authUserId = null
+      if (password) {
+        const { data: userRecord } = await supabase
+          .from('users')
+          .select('auth_user_id')
+          .eq('id', id)
+          .single()
+        authUserId = userRecord?.auth_user_id
+      }
+
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-management`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'update_user',
+          userId: id,
+          authUserId,
+          password,
+          userData,
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        return { data: null, error: result.error || 'Failed to update user' }
+      }
+      return { data: result.user, error: null }
+    } catch (error) {
+      return { data: null, error: String(error) }
+    }
+  },
+
+  async deleteUser(id: string): Promise<{ error: string | null }> {
+    try {
+      const supabase = getSupabase()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-management`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'delete_user',
+          userId: id,
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        return { error: result.error || 'Failed to delete user' }
+      }
+      return { error: null }
+    } catch (error) {
+      return { error: String(error) }
+    }
   },
 
   async deactivateUser(id: string): Promise<{ error: string | null }> {
@@ -506,9 +585,32 @@ export const usersApi = {
     return { error: error?.message || null }
   },
 
-  async resetPassword(_id: string): Promise<{ error: string | null }> {
-    // Password reset needs to be handled through Supabase Auth
-    return { error: 'Password reset should be handled through auth flow' }
+  async changePassword(authUserId: string, newPassword: string): Promise<{ error: string | null }> {
+    try {
+      const supabase = getSupabase()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-management`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'change_password',
+          authUserId,
+          password: newPassword,
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        return { error: result.error || 'Failed to change password' }
+      }
+      return { error: null }
+    } catch (error) {
+      return { error: String(error) }
+    }
   },
 
   async getRolePermissions(): Promise<{ data: { role: number; permissions: { page_key: string; page_name: string; can_access: boolean }[] }[] | null; error: string | null }> {

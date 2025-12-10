@@ -7,8 +7,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
 import type { Equipment, MaintenanceRecord } from '@/types'
 
-// 데이터가 stale로 간주되는 시간 (30초)
-const STALE_TIME = 30000
+// 데이터가 stale로 간주되는 시간 (10초로 단축 - 더 빠른 새로고침)
+const STALE_TIME = 10000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>
@@ -177,7 +177,7 @@ export function useNotificationRealtime(enabled = true) {
  * - stale 데이터 자동 갱신
  */
 export function useAppRealtime(enabled = true) {
-  const { user } = useAuthStore()
+  const { user, refreshUser } = useAuthStore()
   const { updateEquipment, setEquipments } = useEquipmentStore()
   const { updateRecord, setRecords, deleteRecord } = useMaintenanceStore()
   const { addNotification } = useNotificationStore()
@@ -324,6 +324,45 @@ export function useAppRealtime(enabled = true) {
             date: now.toLocaleDateString('ko-KR'),
             read: data.is_read,
           })
+        },
+      },
+      // 사용자 프로필 변경 감지 (현재 로그인한 사용자)
+      {
+        table: 'users',
+        filter: user?.id ? `id=eq.${user.id}` : undefined,
+        onUpdate: () => {
+          console.log('[Realtime] User profile updated, refreshing...')
+          refreshUser()
+        },
+      },
+      // PM 스케줄 변경 감지
+      {
+        table: 'pm_schedules',
+        onInsert: () => {
+          console.log('[Realtime] PM schedule created')
+        },
+        onUpdate: () => {
+          console.log('[Realtime] PM schedule updated')
+        },
+        onDelete: () => {
+          console.log('[Realtime] PM schedule deleted')
+        },
+      },
+      // PM 실행 변경 감지
+      {
+        table: 'pm_executions',
+        onInsert: () => {
+          console.log('[Realtime] PM execution created')
+        },
+        onUpdate: () => {
+          console.log('[Realtime] PM execution updated')
+        },
+      },
+      // 설정 변경 감지
+      {
+        table: 'settings',
+        onUpdate: () => {
+          console.log('[Realtime] Settings updated')
         },
       },
     ],

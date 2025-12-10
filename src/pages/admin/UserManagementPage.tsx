@@ -24,9 +24,10 @@ import {
   Shield,
   CheckCircle,
   XCircle,
-  RefreshCw,
   Eye,
   EyeOff,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 import { usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
@@ -49,6 +50,11 @@ export default function UserManagementPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  // Delete modal states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -238,14 +244,16 @@ export default function UserManagementPage() {
           setIsModalOpen(false)
         }
       } else {
+        // 신규 사용자 생성 시 email과 password 필수
         const { data, error } = await usersApi.createUser({
           email: formData.email,
+          password: formData.password, // Auth 사용자 생성에 필수
           name: formData.name,
           department: formData.department,
           position: formData.position,
           role: formData.role,
           is_active: true,
-        } as Parameters<typeof usersApi.createUser>[0])
+        })
 
         if (error) {
           addToast({ type: 'error', title: t('common.error'), message: error })
@@ -271,9 +279,29 @@ export default function UserManagementPage() {
     setUsers(users.map((u) => (u.id === user.id ? { ...u, is_active: !u.is_active } : u)))
   }
 
-  const handleResetPassword = async (user: User) => {
-    await usersApi.resetPassword(user.id)
-    addToast({ type: 'success', title: t('admin.passwordResetSuccess'), message: user.name })
+  const openDeleteModal = (user: User) => {
+    setUserToDelete(user)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return
+
+    setIsDeleting(true)
+    try {
+      const { error } = await usersApi.deleteUser(userToDelete.id)
+      if (error) {
+        addToast({ type: 'error', title: t('common.error'), message: error })
+      } else {
+        setUsers(users.filter((u) => u.id !== userToDelete.id))
+        addToast({ type: 'success', title: t('admin.userDeleted'), message: userToDelete.name })
+        setIsDeleteModalOpen(false)
+        setUserToDelete(null)
+      }
+    } catch (error) {
+      addToast({ type: 'error', title: t('common.error'), message: String(error) })
+    }
+    setIsDeleting(false)
   }
 
   if (isLoading) {
@@ -427,16 +455,19 @@ export default function UserManagementPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => openEditModal(user)}
+                        title={t('common.edit')}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleResetPassword(user)}
-                        title={t('admin.resetPassword')}
+                        onClick={() => openDeleteModal(user)}
+                        title={t('common.delete')}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        disabled={user.role === 1} // Admin cannot be deleted
                       >
-                        <RefreshCw className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -622,6 +653,54 @@ export default function UserManagementPage() {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
                   {t('common.save')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                {t('admin.deleteUser')}
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setIsDeleteModalOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t('admin.deleteUserConfirm')}
+              </p>
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="font-medium">{userToDelete.name}</p>
+                <p className="text-sm text-muted-foreground">{userToDelete.email}</p>
+                <Badge variant="outline" className="mt-2">{roleLabels[userToDelete.role]}</Badge>
+              </div>
+              <p className="text-sm text-destructive font-medium">
+                {t('admin.deleteUserWarning')}
+              </p>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteUser}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-2 h-4 w-4" />
+                  )}
+                  {t('common.delete')}
                 </Button>
               </div>
             </CardContent>

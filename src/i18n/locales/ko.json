@@ -471,7 +471,11 @@
     "leaveEmptyToKeep": "빈 값이면 기존 유지",
     "enterPassword": "비밀번호 입력",
     "enterName": "이름 입력",
-    "searchByNameEmail": "이름 또는 이메일로 검색"
+    "searchByNameEmail": "이름 또는 이메일로 검색",
+    "deleteUser": "사용자 삭제",
+    "deleteUserConfirm": "다음 사용자를 삭제하시겠습니까?",
+    "deleteUserWarning": "이 작업은 되돌릴 수 없습니다. 사용자 계정과 모든 관련 데이터가 영구적으로 삭제됩니다.",
+    "userDeleted": "사용자 삭제 완료"
   },
   "settings": {
     "general": "일반 설정",

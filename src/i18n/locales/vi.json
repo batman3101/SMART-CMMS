@@ -471,7 +471,11 @@
     "leaveEmptyToKeep": "Để trống để giữ nguyên",
     "enterPassword": "Nhập mật khẩu",
     "enterName": "Nhập tên",
-    "searchByNameEmail": "Tìm theo tên hoặc email"
+    "searchByNameEmail": "Tìm theo tên hoặc email",
+    "deleteUser": "Xóa người dùng",
+    "deleteUserConfirm": "Bạn có chắc muốn xóa người dùng này?",
+    "deleteUserWarning": "Hành động này không thể hoàn tác. Tài khoản người dùng và tất cả dữ liệu liên quan sẽ bị xóa vĩnh viễn.",
+    "userDeleted": "Đã xóa người dùng"
   },
   "settings": {
     "general": "Cài đặt chung",

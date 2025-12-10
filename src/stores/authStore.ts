@@ -14,6 +14,7 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void
   setLoading: (loading: boolean) => void
   checkSession: () => Promise<boolean>
+  refreshUser: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -63,25 +64,23 @@ export const useAuthStore = create<AuthState>()(
             return false
           }
 
-          // If session exists but no user in store, fetch user data
-          const currentUser = get().user
-          if (!currentUser && session.user) {
-            // Fetch user profile from users table
-            const { data: userData } = await supabase
+          // 항상 Supabase에서 최신 사용자 데이터 가져오기 (캐시보다 DB 우선)
+          if (session.user) {
+            const { data: userData, error: userError } = await supabase
               .from('users')
               .select('*')
               .eq('auth_user_id', session.user.id)
               .single()
 
-            if (userData) {
-              set({ user: userData, isAuthenticated: true, isLoading: false })
-            } else {
+            if (userError || !userData) {
               // User exists in auth but not in users table
+              console.error('User profile not found:', userError)
               set({ isAuthenticated: false, isLoading: false, user: null })
               return false
             }
-          } else {
-            set({ isLoading: false })
+
+            // 최신 데이터로 상태 업데이트
+            set({ user: userData, isAuthenticated: true, isLoading: false })
           }
 
           return true
@@ -89,6 +88,26 @@ export const useAuthStore = create<AuthState>()(
           console.error('Session check failed:', error)
           set({ isAuthenticated: false, isLoading: false, user: null })
           return false
+        }
+      },
+
+      // Supabase에서 최신 사용자 데이터 새로고침
+      refreshUser: async () => {
+        const currentUser = get().user
+        if (!supabase || !currentUser?.id) return
+
+        try {
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single()
+
+          if (!error && userData) {
+            set({ user: userData })
+          }
+        } catch (error) {
+          console.error('Failed to refresh user:', error)
         }
       },
     }),

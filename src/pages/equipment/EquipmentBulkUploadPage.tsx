@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
-import type { EquipmentType, Equipment } from '@/types'
+import type { EquipmentType } from '@/types'
 
 interface UploadRow {
   rowNumber: number
@@ -189,22 +189,20 @@ export default function EquipmentBulkUploadPage() {
 
     setIsUploading(true)
     try {
-      const equipments: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>[] = validRows.map(
-        (row) => {
-          const equipmentType = equipmentTypes.find((t) => t.code === row.equipment_type_code)
-          return {
-            equipment_code: row.equipment_code,
-            equipment_name: row.equipment_name,
-            equipment_type_id: equipmentType?.id || '',
-            equipment_type: equipmentType,
-            status: 'normal' as const,
-            install_date: row.install_date || null,
-            manufacturer: row.manufacturer || null,
-            building: row.building,
-            is_active: true,
-          }
+      // DB에 저장할 데이터만 포함 (equipment_type 객체 제외)
+      const equipments = validRows.map((row) => {
+        const equipmentType = equipmentTypes.find((t) => t.code === row.equipment_type_code)
+        return {
+          equipment_code: row.equipment_code,
+          equipment_name: row.equipment_name,
+          equipment_type_id: equipmentType?.id || '',
+          status: 'normal' as const,
+          install_date: row.install_date || null,
+          manufacturer: row.manufacturer || null,
+          building: row.building,
+          is_active: true,
         }
-      )
+      })
 
       const { data, error } = await equipmentApi.bulkCreateEquipments(equipments)
       if (data) {

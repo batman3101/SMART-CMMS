@@ -511,19 +511,47 @@ export const usersApi = {
     return { error: 'Password reset should be handled through auth flow' }
   },
 
-  async getRolePermissions(): Promise<{ data: unknown[] | null; error: string | null }> {
+  async getRolePermissions(): Promise<{ data: { role: number; permissions: { page_key: string; page_name: string; can_access: boolean }[] }[] | null; error: string | null }> {
     const { data, error } = await getSupabase()
       .from('role_permissions')
       .select('*')
+      .order('role')
+      .order('page_key')
 
-    return { data, error: error?.message || null }
+    if (error || !data) {
+      return { data: null, error: error?.message || null }
+    }
+
+    // 역할별로 그룹화
+    const roleMap: Record<number, { page_key: string; page_name: string; can_access: boolean }[]> = {}
+
+    data.forEach((item: { role: number; page_key: string; page_name: string; can_access: boolean }) => {
+      if (!roleMap[item.role]) {
+        roleMap[item.role] = []
+      }
+      roleMap[item.role].push({
+        page_key: item.page_key,
+        page_name: item.page_name,
+        can_access: item.can_access,
+      })
+    })
+
+    const result = Object.entries(roleMap).map(([role, permissions]) => ({
+      role: parseInt(role),
+      permissions,
+    }))
+
+    return { data: result, error: null }
   },
 
-  async updateRolePermission(role: number, pageKey: string, canAccess: boolean): Promise<{ data: unknown[] | null; error: string | null }> {
+  async updateRolePermission(role: number, pageKey: string, canAccess: boolean): Promise<{ data: unknown | null; error: string | null }> {
     const { data, error } = await getSupabase()
       .from('role_permissions')
-      .upsert({ role, page_key: pageKey, can_access: canAccess })
+      .update({ can_access: canAccess, updated_at: new Date().toISOString() })
+      .eq('role', role)
+      .eq('page_key', pageKey)
       .select()
+      .single()
 
     return { data, error: error?.message || null }
   },

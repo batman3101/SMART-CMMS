@@ -124,12 +124,20 @@ export default function RolePermissionPage() {
       pages: ['maintenance_input', 'maintenance_history', 'maintenance_monitor'],
     },
     {
+      name: t('admin.pageGroupPM'),
+      pages: ['pm_dashboard', 'pm_calendar', 'pm_schedule', 'pm_execution', 'pm_templates', 'pm_analytics'],
+    },
+    {
       name: t('admin.pageGroupAnalytics'),
       pages: ['analytics', 'report'],
     },
     {
       name: t('admin.pageGroupAI'),
       pages: ['ai_insight', 'ai_chat'],
+    },
+    {
+      name: t('admin.pageGroupParts'),
+      pages: ['parts'],
     },
     {
       name: t('admin.pageGroupAdmin'),

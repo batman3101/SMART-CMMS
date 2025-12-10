@@ -18,7 +18,7 @@ import {
   Star,
   Timer,
 } from 'lucide-react'
-import { maintenanceApi } from '@/lib/api'
+import { maintenanceApi, settingsApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import { hasPermission } from '@/lib/permissions'
 import type { MaintenanceRecord, Equipment } from '@/types'
@@ -55,6 +55,7 @@ export default function MaintenanceMonitorPage() {
   const [loading, setLoading] = useState(true)
   const [inProgressRecords, setInProgressRecords] = useState<MaintenanceRecord[]>([])
   const [todayCompletedRecords, setTodayCompletedRecords] = useState<MaintenanceRecord[]>([])
+  const [longRepairThresholdHours, setLongRepairThresholdHours] = useState(2) // 기본값 2시간
 
   // 완료 처리 모달
   const [showCompleteModal, setShowCompleteModal] = useState(false)
@@ -68,6 +69,21 @@ export default function MaintenanceMonitorPage() {
 
   // 컴포넌트 마운트 상태 추적
   const isMountedRef = useRef(true)
+
+  // 설정 로드
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data } = await settingsApi.get('long_repair_threshold_hours')
+        if (data && typeof data === 'number') {
+          setLongRepairThresholdHours(data)
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error)
+      }
+    }
+    loadSettings()
+  }, [])
 
   // 데이터 로드 함수
   const fetchData = useCallback(async () => {
@@ -123,7 +139,7 @@ export default function MaintenanceMonitorPage() {
     const minutes = diffMinutes % 60
     return {
       text: t('maintenance.hourMinuteFormat', { hours, minutes }),
-      isLong: hours >= 2,
+      isLong: hours >= longRepairThresholdHours,
     }
   }
 

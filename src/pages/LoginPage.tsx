@@ -196,23 +196,6 @@ export default function LoginPage() {
             </div>
           </form>
 
-          {/* 테스트 계정 안내 (개발 모드에서만 표시) */}
-          <div className="mt-6 rounded-lg bg-muted p-4">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
-              {language === 'ko' ? '테스트 계정' : 'Tài khoản test'}
-            </p>
-            <div className="space-y-1 text-xs">
-              <p>
-                <span className="font-medium">Admin:</span> admin@amms.com / admin123
-              </p>
-              <p>
-                <span className="font-medium">Supervisor:</span> supervisor@amms.com / super123
-              </p>
-              <p>
-                <span className="font-medium">Technician:</span> tech1@amms.com / tech123
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

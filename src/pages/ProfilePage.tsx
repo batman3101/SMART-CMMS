@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
@@ -45,6 +45,62 @@ export default function ProfilePage() {
 
   const [passwordError, setPasswordError] = useState('')
   const [profileError, setProfileError] = useState('')
+
+  // Activity summary state - fetched from DB
+  const [activityStats, setActivityStats] = useState({
+    totalRepairs: 0,
+    thisMonth: 0,
+    avgRepairTime: 0,
+    avgRating: 0,
+  })
+
+  // Fetch user's activity stats
+  useEffect(() => {
+    const fetchActivityStats = async () => {
+      if (!user?.id || !supabase) return
+
+      try {
+        // Get all completed repairs by this user
+        const { data: allRecords } = await supabase
+          .from('maintenance_records')
+          .select('duration_minutes, rating, date')
+          .eq('technician_id', user.id)
+          .eq('status', 'completed')
+
+        // Get this month's records
+        const thisMonthStart = new Date()
+        thisMonthStart.setDate(1)
+        thisMonthStart.setHours(0, 0, 0, 0)
+        const thisMonthStr = thisMonthStart.toISOString().split('T')[0]
+
+        const thisMonthRecords = allRecords?.filter(r => r.date >= thisMonthStr) || []
+
+        // Calculate stats
+        const totalRepairs = allRecords?.length || 0
+        const thisMonth = thisMonthRecords.length
+
+        // Average repair time
+        const totalDuration = allRecords?.reduce((sum, r) => sum + (r.duration_minutes || 0), 0) || 0
+        const avgRepairTime = totalRepairs > 0 ? Math.round(totalDuration / totalRepairs) : 0
+
+        // Average rating
+        const ratedRecords = allRecords?.filter(r => r.rating) || []
+        const totalRating = ratedRecords.reduce((sum, r) => sum + (r.rating || 0), 0)
+        const avgRating = ratedRecords.length > 0 ? Math.round((totalRating / ratedRecords.length) * 10) / 10 : 0
+
+        setActivityStats({
+          totalRepairs,
+          thisMonth,
+          avgRepairTime,
+          avgRating,
+        })
+      } catch (error) {
+        console.error('Failed to fetch activity stats:', error)
+      }
+    }
+
+    fetchActivityStats()
+  }, [user?.id])
 
   const roleLabels: Record<number, string> = {
     1: t('admin.roleAdmin'),
@@ -173,7 +229,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {t('profile.joinedAt')}: {user?.created_at?.split('T')[0] || '2024-01-01'}
+                  {t('profile.joinedAt')}: {user?.created_at?.split('T')[0] || '-'}
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -358,20 +414,25 @@ export default function ProfilePage() {
           <div className="grid gap-4 md:grid-cols-4">
             <div className="rounded-lg border p-4 text-center">
               <p className="text-sm text-muted-foreground">{t('profile.totalRepairs')}</p>
-              <p className="text-2xl font-bold text-blue-600">156</p>
+              <p className="text-2xl font-bold text-blue-600">{activityStats.totalRepairs}</p>
             </div>
             <div className="rounded-lg border p-4 text-center">
               <p className="text-sm text-muted-foreground">{t('profile.thisMonth')}</p>
-              <p className="text-2xl font-bold text-green-600">23</p>
+              <p className="text-2xl font-bold text-green-600">{activityStats.thisMonth}</p>
             </div>
             <div className="rounded-lg border p-4 text-center">
               <p className="text-sm text-muted-foreground">{t('profile.avgRepairTime')}</p>
-              <p className="text-2xl font-bold text-yellow-600">45{t('profile.minutes')}</p>
+              <p className="text-2xl font-bold text-yellow-600">{activityStats.avgRepairTime}{t('profile.minutes')}</p>
             </div>
             <div className="rounded-lg border p-4 text-center">
               <p className="text-sm text-muted-foreground">{t('profile.avgRating')}</p>
-              <p className="text-2xl font-bold text-purple-600">4.8</p>
-              <span className="text-yellow-500">★★★★★</span>
+              <p className="text-2xl font-bold text-purple-600">{activityStats.avgRating || '-'}</p>
+              {activityStats.avgRating > 0 && (
+                <span className="text-yellow-500">
+                  {'★'.repeat(Math.round(activityStats.avgRating / 2))}
+                  {'☆'.repeat(5 - Math.round(activityStats.avgRating / 2))}
+                </span>
+              )}
             </div>
           </div>
         </CardContent>

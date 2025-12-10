@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,14 +7,25 @@ import { Send, Bot, User, Sparkles, Loader2, Trash2, Clock } from 'lucide-react'
 import { aiApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 
-const sampleQuestions = [
-  '이번 주 가장 많이 고장난 설비는?',
-  'CNC-001 설비의 최근 수리 이력 알려줘',
-  'PM 일정이 다가오는 설비 목록',
-  '평균 수리 시간이 가장 긴 수리 유형은?',
-  '긴급수리 건수 추이 분석',
-  '설비 가동률 현황',
-]
+// 다국어 샘플 질문
+const sampleQuestionsData = {
+  ko: [
+    '이번 주 가장 많이 고장난 설비는?',
+    'PM 일정이 다가오는 설비 목록',
+    '평균 수리 시간이 가장 긴 수리 유형은?',
+    '긴급수리 건수 추이 분석',
+    '설비 가동률 현황',
+    '이번 달 수리 통계 요약',
+  ],
+  vi: [
+    'Thiết bị nào hỏng nhiều nhất tuần này?',
+    'Danh sách thiết bị sắp đến lịch PM',
+    'Loại sửa chữa nào có thời gian trung bình dài nhất?',
+    'Phân tích xu hướng số lượng sửa chữa khẩn cấp',
+    'Tình trạng hoạt động thiết bị',
+    'Tóm tắt thống kê sửa chữa tháng này',
+  ],
+}
 
 interface Message {
   id: number
@@ -30,6 +41,12 @@ export default function AIChatPage() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // 현재 언어에 맞는 샘플 질문
+  const sampleQuestions = useMemo(() => {
+    const lang = language || i18n.language || 'ko'
+    return sampleQuestionsData[lang as keyof typeof sampleQuestionsData] || sampleQuestionsData.ko
+  }, [language, i18n.language])
 
   // 초기 메시지 설정
   useEffect(() => {

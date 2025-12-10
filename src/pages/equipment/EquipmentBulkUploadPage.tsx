@@ -44,7 +44,7 @@ interface UploadResult {
 }
 
 export default function EquipmentBulkUploadPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
@@ -65,19 +65,21 @@ export default function EquipmentBulkUploadPage() {
 
   // 엑셀 템플릿 다운로드
   const handleDownloadTemplate = () => {
-    // CSV 템플릿 생성 (실제로는 XLSX 라이브러리 사용)
-    const headers = [
-      '설비코드',
-      '설비명',
-      '설비유형코드',
-      '동',
-      '설치일',
-      '제조사',
-    ]
-    const sampleData = [
-      ['CNC-801', 'CNC 밀링 머신 #801', 'CNC', 'A동', '2024-01-15', 'FANUC'],
-      ['CNC-802', 'CNC 밀링 머신 #802', 'CNC', 'B동', '2024-01-15', 'Mazak'],
-    ]
+    // CSV 템플릿 생성 (언어별 헤더)
+    const isVietnamese = i18n.language === 'vi'
+    const headers = isVietnamese
+      ? ['Mã thiết bị', 'Tên thiết bị', 'Mã loại', 'Tòa nhà', 'Ngày lắp đặt', 'Nhà sản xuất']
+      : ['설비코드', '설비명', '설비유형코드', '동', '설치일', '제조사']
+
+    const sampleData = isVietnamese
+      ? [
+          ['CNC-001', 'Máy phay CNC #001', 'CNC', 'Tòa A', '2024-01-15', 'FANUC'],
+          ['CNC-002', 'Máy phay CNC #002', 'CNC', 'Tòa B', '2024-01-15', 'Mazak'],
+        ]
+      : [
+          ['CNC-001', 'CNC 밀링 머신 #001', 'CNC', 'A동', '2024-01-15', 'FANUC'],
+          ['CNC-002', 'CNC 밀링 머신 #002', 'CNC', 'B동', '2024-01-15', 'Mazak'],
+        ]
 
     const csvContent = [
       headers.join(','),

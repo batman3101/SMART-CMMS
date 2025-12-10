@@ -12,6 +12,8 @@ import {
   Play,
 } from 'lucide-react'
 import { pmApi } from '@/lib/api'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { getTodayInTimezone, formatDateInTimezone, parseLocalDate } from '@/lib/dateUtils'
 import type { PMSchedule } from '@/types'
 
 interface CalendarDay {
@@ -25,6 +27,8 @@ interface CalendarDay {
 export default function PMCalendarPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { settings } = useSettingsStore()
+  const timezone = settings.timezone
 
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -57,12 +61,14 @@ export default function PMCalendarPage() {
     startDate.setDate(startDate.getDate() - firstDay.getDay())
 
     const days: CalendarDay[] = []
-    const today = new Date().toISOString().split('T')[0]
+    // 설정된 타임존 기준 오늘 날짜
+    const today = getTodayInTimezone(timezone)
 
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate)
       date.setDate(startDate.getDate() + i)
-      const dateString = date.toISOString().split('T')[0]
+      // 설정된 타임존 기준으로 날짜 문자열 생성
+      const dateString = formatDateInTimezone(date, timezone)
 
       days.push({
         date,
@@ -74,7 +80,7 @@ export default function PMCalendarPage() {
     }
 
     return days
-  }, [currentDate, schedules])
+  }, [currentDate, schedules, timezone])
 
   const goToPreviousMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
@@ -88,7 +94,7 @@ export default function PMCalendarPage() {
 
   const goToToday = () => {
     setCurrentDate(new Date())
-    setSelectedDate(new Date().toISOString().split('T')[0])
+    setSelectedDate(getTodayInTimezone(timezone))
   }
 
   const monthName = currentDate.toLocaleDateString(i18n.language === 'ko' ? 'ko-KR' : 'vi-VN', {
@@ -226,10 +232,14 @@ export default function PMCalendarPage() {
           <CardHeader>
             <CardTitle className="text-lg">
               {selectedDate
-                ? new Date(selectedDate).toLocaleDateString(
-                    i18n.language === 'ko' ? 'ko-KR' : 'vi-VN',
-                    { year: 'numeric', month: 'long', day: 'numeric' }
-                  )
+                ? (() => {
+                    // selectedDate는 "YYYY-MM-DD" 형식 - parseLocalDate로 안전하게 파싱
+                    const localDate = parseLocalDate(selectedDate)
+                    return localDate.toLocaleDateString(
+                      i18n.language === 'ko' ? 'ko-KR' : 'vi-VN',
+                      { year: 'numeric', month: 'long', day: 'numeric' }
+                    )
+                  })()
                 : t('pm.scheduledDate')}
             </CardTitle>
           </CardHeader>

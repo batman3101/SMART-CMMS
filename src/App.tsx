@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import MainLayout from '@/components/layout/MainLayout'
 import LoginPage from '@/pages/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
@@ -51,11 +52,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   const { checkSession } = useAuthStore()
+  const { fetchSettings } = useSettingsStore()
 
-  // Check Supabase session on app load
+  // Check Supabase session and load settings on app load
   useEffect(() => {
     checkSession()
-  }, [checkSession])
+    fetchSettings()
+  }, [checkSession, fetchSettings])
 
   return (
     <Routes>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
+import { supabase } from '@/lib/supabase'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,11 +20,12 @@ import {
   Shield,
   Calendar,
   Clock,
+  AlertCircle,
 } from 'lucide-react'
 
 export default function ProfilePage() {
   const { t } = useTranslation()
-  const { user, language, setLanguage } = useAuthStore()
+  const { user, language, setLanguage, updateUser } = useAuthStore()
 
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -42,6 +44,7 @@ export default function ProfilePage() {
   })
 
   const [passwordError, setPasswordError] = useState('')
+  const [profileError, setProfileError] = useState('')
 
   const roleLabels: Record<number, string> = {
     1: t('admin.roleAdmin'),
@@ -51,16 +54,37 @@ export default function ProfilePage() {
   }
 
   const handleSaveProfile = async () => {
+    if (!user?.id || !supabase) return
+
     setIsSaving(true)
     setSaveSuccess(false)
+    setProfileError('')
 
-    // Simulate save
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      // Supabase에 프로필 업데이트
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name: profileData.name,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
 
-    setIsSaving(false)
-    setSaveSuccess(true)
+      if (error) {
+        throw error
+      }
 
-    setTimeout(() => setSaveSuccess(false), 3000)
+      // authStore 상태 업데이트
+      updateUser({ name: profileData.name })
+
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
+    } catch (error) {
+      console.error('Profile update failed:', error)
+      setProfileError(t('profile.updateFailed') || '프로필 업데이트에 실패했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleChangePassword = async () => {
@@ -189,11 +213,21 @@ export default function ProfilePage() {
                 <Input
                   type="email"
                   value={profileData.email}
-                  onChange={(e) =>
-                    setProfileData({ ...profileData, email: e.target.value })
-                  }
+                  disabled
+                  className="bg-muted"
                 />
+                <p className="text-xs text-muted-foreground">
+                  {t('profile.emailCannotChange') || '이메일은 변경할 수 없습니다.'}
+                </p>
               </div>
+
+              {profileError && (
+                <div className="flex items-center gap-2 text-sm text-red-500">
+                  <AlertCircle className="h-4 w-4" />
+                  {profileError}
+                </div>
+              )}
+
               <Button type="submit" disabled={isSaving}>
                 {isSaving ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -123,21 +123,27 @@ export const equipmentApi = {
   },
 
   async createEquipment(equipment: Partial<Equipment>): Promise<{ data: Equipment | null; error: string | null }> {
+    // Remove equipment_type object as database only has equipment_type_id column
+    const { equipment_type, ...insertData } = equipment
+
     const { data, error } = await getSupabase()
       .from('equipments')
-      .insert(equipment)
-      .select()
+      .insert(insertData)
+      .select(`*, equipment_type:equipment_types(*)`)
       .single()
 
     return { data, error: error?.message || null }
   },
 
   async updateEquipment(id: string, updates: Partial<Equipment>): Promise<{ data: Equipment | null; error: string | null }> {
+    // Remove equipment_type object as database only has equipment_type_id column
+    const { equipment_type, ...updateData } = updates
+
     const { data, error } = await getSupabase()
       .from('equipments')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...updateData, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .select()
+      .select(`*, equipment_type:equipment_types(*)`)
       .single()
 
     return { data, error: error?.message || null }
@@ -153,10 +159,16 @@ export const equipmentApi = {
   },
 
   async bulkCreateEquipments(equipments: Partial<Equipment>[]): Promise<{ data: Equipment[] | null; error: string | null }> {
+    // Remove equipment_type object from each equipment as database only has equipment_type_id column
+    const insertData = equipments.map(eq => {
+      const { equipment_type, ...rest } = eq
+      return { ...rest, is_active: true }
+    })
+
     const { data, error } = await getSupabase()
       .from('equipments')
-      .insert(equipments.map(eq => ({ ...eq, is_active: true })))
-      .select()
+      .insert(insertData)
+      .select(`*, equipment_type:equipment_types(*)`)
 
     return { data, error: error?.message || null }
   },

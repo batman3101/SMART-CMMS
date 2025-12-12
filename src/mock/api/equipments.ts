@@ -198,9 +198,12 @@ export const mockEquipmentApi = {
     equipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>
   ): Promise<{ data: Equipment | null; error: string | null }> {
     if (shouldUseSupabase()) {
+      // Remove equipment_type object as database only has equipment_type_id column
+      const { equipment_type, ...insertData } = equipment
+
       const { data, error } = await getSupabase()
         .from('equipments')
-        .insert(equipment)
+        .insert(insertData)
         .select(`
           *,
           equipment_type:equipment_types(*)
@@ -231,9 +234,12 @@ export const mockEquipmentApi = {
     updates: Partial<Equipment>
   ): Promise<{ data: Equipment | null; error: string | null }> {
     if (shouldUseSupabase()) {
+      // Remove equipment_type object as database only has equipment_type_id column
+      const { equipment_type, ...updateData } = updates
+
       const { data, error } = await getSupabase()
         .from('equipments')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...updateData, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select(`
           *,

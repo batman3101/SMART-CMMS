@@ -579,6 +579,38 @@ export const usersApi = {
     }
   },
 
+  async bulkCreateUsers(
+    users: Array<{ email: string; password: string } & Partial<User>>
+  ): Promise<{
+    results: Array<{ success: boolean; email: string; user?: User; error?: string }>
+    summary: { success: number; failed: number }
+  }> {
+    const results: Array<{ success: boolean; email: string; user?: User; error?: string }> = []
+    let successCount = 0
+    let failedCount = 0
+
+    for (const userData of users) {
+      try {
+        const { data, error } = await this.createUser(userData)
+        if (data) {
+          results.push({ success: true, email: userData.email, user: data })
+          successCount++
+        } else {
+          results.push({ success: false, email: userData.email, error: error || 'Unknown error' })
+          failedCount++
+        }
+      } catch (error) {
+        results.push({ success: false, email: userData.email, error: String(error) })
+        failedCount++
+      }
+    }
+
+    return {
+      results,
+      summary: { success: successCount, failed: failedCount }
+    }
+  },
+
   async deactivateUser(id: string): Promise<{ error: string | null }> {
     const { error } = await getSupabase()
       .from('users')

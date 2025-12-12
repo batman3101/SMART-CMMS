@@ -28,7 +28,9 @@ import {
   EyeOff,
   Trash2,
   AlertTriangle,
+  Upload,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
 import type { User, UserRole, DepartmentCode, PositionCode } from '@/types'
@@ -316,10 +318,18 @@ export default function UserManagementPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('admin.userManagement')}</h1>
-        <Button onClick={openCreateModal}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          {t('admin.addUser')}
-        </Button>
+        <div className="flex gap-2">
+          <Link to="/admin/users/bulk-upload">
+            <Button variant="outline">
+              <Upload className="mr-2 h-4 w-4" />
+              {t('admin.bulkUserUpload')}
+            </Button>
+          </Link>
+          <Button onClick={openCreateModal}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            {t('admin.addUser')}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

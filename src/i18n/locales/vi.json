@@ -475,7 +475,21 @@
     "deleteUser": "Xóa người dùng",
     "deleteUserConfirm": "Bạn có chắc muốn xóa người dùng này?",
     "deleteUserWarning": "Hành động này không thể hoàn tác. Tài khoản người dùng và tất cả dữ liệu liên quan sẽ bị xóa vĩnh viễn.",
-    "userDeleted": "Đã xóa người dùng"
+    "userDeleted": "Đã xóa người dùng",
+    "bulkUserUpload": "Tải lên hàng loạt người dùng",
+    "downloadUserTemplate": "Tải xuống mẫu",
+    "userTemplateDescription": "Bạn có thể đăng ký nhiều người dùng cùng lúc bằng file CSV. Vui lòng tải xuống và sử dụng mẫu bên dưới.",
+    "requiredUserFields": "Các trường bắt buộc",
+    "minSixChars": "Tối thiểu 6 ký tự",
+    "uploadUserArea": "Kéo thả file CSV vào đây hoặc nhấp để chọn",
+    "uploadUsers": "Đăng ký {{count}} người dùng",
+    "previewData": "Xem trước dữ liệu",
+    "uploadComplete": "Hoàn tất đăng ký",
+    "uploadPartialComplete": "Đăng ký một phần hoàn tất",
+    "failedUsers": "Người dùng đăng ký thất bại",
+    "invalidDepartment": "Mã phòng ban không hợp lệ",
+    "invalidPosition": "Mã chức vụ không hợp lệ",
+    "templateDownload": "Tải xuống mẫu"
   },
   "settings": {
     "general": "Cài đặt chung",

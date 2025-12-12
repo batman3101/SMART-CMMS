@@ -17,6 +17,7 @@ import ReportPage from '@/pages/analytics/ReportPage'
 import AIInsightPage from '@/pages/ai/AIInsightPage'
 import AIChatPage from '@/pages/ai/AIChatPage'
 import UserManagementPage from '@/pages/admin/UserManagementPage'
+import UserBulkUploadPage from '@/pages/admin/UserBulkUploadPage'
 import RolePermissionPage from '@/pages/admin/RolePermissionPage'
 import SettingsPage from '@/pages/admin/SettingsPage'
 import ProfilePage from '@/pages/ProfilePage'
@@ -120,6 +121,7 @@ function App() {
         {/* Admin */}
         <Route path="admin">
           <Route path="users" element={<UserManagementPage />} />
+          <Route path="users/bulk-upload" element={<UserBulkUploadPage />} />
           <Route path="roles" element={<RolePermissionPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

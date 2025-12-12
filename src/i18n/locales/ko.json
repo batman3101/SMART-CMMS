@@ -475,7 +475,21 @@
     "deleteUser": "사용자 삭제",
     "deleteUserConfirm": "다음 사용자를 삭제하시겠습니까?",
     "deleteUserWarning": "이 작업은 되돌릴 수 없습니다. 사용자 계정과 모든 관련 데이터가 영구적으로 삭제됩니다.",
-    "userDeleted": "사용자 삭제 완료"
+    "userDeleted": "사용자 삭제 완료",
+    "bulkUserUpload": "사용자 일괄 등록",
+    "downloadUserTemplate": "템플릿 다운로드",
+    "userTemplateDescription": "CSV 파일로 여러 사용자를 한 번에 등록할 수 있습니다. 아래 템플릿을 다운로드하여 사용해주세요.",
+    "requiredUserFields": "필수 항목",
+    "minSixChars": "최소 6자 이상",
+    "uploadUserArea": "CSV 파일을 여기에 끌어다 놓거나 클릭하세요",
+    "uploadUsers": "{{count}}명 사용자 등록",
+    "previewData": "데이터 미리보기",
+    "uploadComplete": "등록 완료",
+    "uploadPartialComplete": "일부 등록 완료",
+    "failedUsers": "등록 실패 사용자",
+    "invalidDepartment": "잘못된 부서 코드",
+    "invalidPosition": "잘못된 직책 코드",
+    "templateDownload": "템플릿 다운로드"
   },
   "settings": {
     "general": "일반 설정",

@@ -1526,6 +1526,13 @@ export const pmApi = {
   },
 
   async getSchedulesByMonth(yearMonth: string): Promise<{ data: PMSchedule[] | null; error: string | null }> {
+    // yearMonth 형식: "2025-12"
+    const [year, month] = yearMonth.split('-').map(Number)
+    const startDate = `${yearMonth}-01`
+    // 해당 월의 마지막 날 계산
+    const lastDay = new Date(year, month, 0).getDate()
+    const endDate = `${yearMonth}-${String(lastDay).padStart(2, '0')}`
+
     const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
@@ -1534,7 +1541,8 @@ export const pmApi = {
         template:pm_templates(*),
         assigned_technician:users(*)
       `)
-      .like('scheduled_date', `${yearMonth}%`)
+      .gte('scheduled_date', startDate)
+      .lte('scheduled_date', endDate)
       .order('scheduled_date')
 
     return { data, error: error?.message || null }

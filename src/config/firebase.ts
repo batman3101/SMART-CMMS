@@ -12,7 +12,7 @@
  * VITE_FIREBASE_VAPID_KEY=your_vapid_key
  */
 
-import { initializeApp, FirebaseApp } from 'firebase/app'
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app'
 import { getMessaging, Messaging, getToken, onMessage, MessagePayload } from 'firebase/messaging'
 
 // Firebase 설정
@@ -42,6 +42,12 @@ export const initializeFirebase = (): FirebaseApp | null => {
   }
 
   try {
+    // 이미 초기화된 앱이 있는지 확인
+    if (getApps().length > 0) {
+      app = getApp()
+      return app
+    }
+
     if (!app) {
       app = initializeApp(firebaseConfig)
       console.log('[Firebase] Firebase 초기화됨')

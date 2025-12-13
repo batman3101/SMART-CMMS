@@ -107,9 +107,10 @@ class ServerPushService {
   /**
    * Edge Function 호출
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async invokeFunction<T>(
     functionName: string,
-    body: unknown
+    body: any
   ): Promise<T> {
     if (!this.isEnabled || !supabase) {
       console.warn('[ServerPush] Supabase가 연결되지 않았습니다.')

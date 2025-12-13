@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import MobileBottomNav from './MobileBottomNav'
 import { useUIStore } from '@/stores/uiStore'
 import { cn } from '@/lib/utils'
 import { useAppRealtime } from '@/hooks/useRealtimeSync'
@@ -21,14 +22,20 @@ export default function MainLayout() {
       <div
         className={cn(
           "transition-all duration-300",
-          sidebarCollapsed ? "ml-16" : "ml-64"
+          // 모바일: 마진 없음, 데스크톱: 사이드바 너비만큼 마진
+          "ml-0 md:ml-16",
+          !sidebarCollapsed && "md:ml-64",
+          // 모바일: 하단 네비게이션 공간 확보
+          "pb-16 md:pb-0"
         )}
       >
         <Header />
-        <main className="p-6">
+        <main className="p-4 md:p-6">
           <Outlet />
         </main>
       </div>
+      {/* 모바일 하단 네비게이션 */}
+      <MobileBottomNav />
     </div>
   )
 }

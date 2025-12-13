@@ -190,33 +190,38 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Bell className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">{t('notification.pageTitle')}</h1>
+    <div className="space-y-4 md:space-y-6">
+      {/* 헤더 - 모바일에서 세로 스택 */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
+          <h1 className="text-xl md:text-2xl font-bold">{t('notification.pageTitle')}</h1>
           {unreadCount > 0 && (
-            <Badge variant="destructive">{unreadCount} {t('notification.unread')}</Badge>
+            <Badge variant="destructive" className="text-xs">{unreadCount}</Badge>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={showSettings ? 'default' : 'outline'}
             size="sm"
             onClick={() => setShowSettings(!showSettings)}
+            className="flex-1 sm:flex-none"
           >
-            <Settings className="mr-2 h-4 w-4" />
-            {t('notification.pushSettings')}
+            <Settings className="mr-1 sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">{t('notification.pushSettings')}</span>
+            <span className="sm:hidden">{t('notification.settings')}</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={markAllAsRead} disabled={unreadCount === 0}>
-            <CheckCheck className="mr-2 h-4 w-4" />
-            {t('notification.markAllRead')}
+          <Button variant="outline" size="sm" onClick={markAllAsRead} disabled={unreadCount === 0} className="flex-1 sm:flex-none">
+            <CheckCheck className="mr-1 sm:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">{t('notification.markAllRead')}</span>
+            <span className="sm:hidden">{t('notification.readAll')}</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={clearReadNotifications}
             disabled={notifications.filter((n) => n.read).length === 0}
+            className="hidden sm:flex"
           >
             <Trash2 className="mr-2 h-4 w-4" />
             {t('notification.deleteRead')}
@@ -338,65 +343,67 @@ export default function NotificationsPage() {
         </Card>
       )}
 
-      {/* 통계 카드 */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* 통계 카드 - 모바일: 2열, 데스크톱: 4열 */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
         <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-              <Bell className="h-5 w-5" />
+          <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
+            <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('notification.total')}</p>
-              <p className="text-xl font-bold">{notifications.length}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('notification.total')}</p>
+              <p className="text-lg sm:text-xl font-bold">{notifications.length}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+          <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
+            <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('notification.emergency')}</p>
-              <p className="text-xl font-bold text-red-600">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('notification.emergency')}</p>
+              <p className="text-lg sm:text-xl font-bold text-red-600">
                 {notifications.filter((n) => n.type === 'emergency').length}
               </p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-              <Clock className="h-5 w-5 text-yellow-500" />
+          <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
+            <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('notification.longRepair')}</p>
-              <p className="text-xl font-bold text-yellow-600">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('notification.longRepair')}</p>
+              <p className="text-lg sm:text-xl font-bold text-yellow-600">
                 {notifications.filter((n) => n.type === 'long_repair').length}
               </p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <Bell className="h-5 w-5 text-blue-500" />
+          <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
+            <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('notification.unread')}</p>
-              <p className="text-xl font-bold text-blue-600">{unreadCount}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('notification.unread')}</p>
+              <p className="text-lg sm:text-xl font-bold text-blue-600">{unreadCount}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* 필터 */}
+      {/* 필터 - 모바일에서 가로 스크롤 */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">{t('notification.filter')}:</span>
-            <div className="flex flex-wrap gap-2">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs sm:text-sm font-medium">{t('notification.filter')}:</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap">
               {[
                 { value: 'all', label: t('common.all') },
                 { value: 'unread', label: t('notification.unread') },
@@ -410,6 +417,7 @@ export default function NotificationsPage() {
                   variant={filterType === filter.value ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setFilterType(filter.value)}
+                  className="flex-shrink-0 text-xs sm:text-sm h-8 px-2 sm:px-3"
                 >
                   {filter.label}
                 </Button>
@@ -421,40 +429,40 @@ export default function NotificationsPage() {
 
       {/* 알림 목록 */}
       <Card>
-        <CardHeader>
-          <CardTitle>{t('notification.list')}</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">{t('notification.list')}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
           {filteredNotifications.length === 0 ? (
-            <div className="py-12 text-center">
-              <Bell className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 text-muted-foreground">{t('notification.noNotifications')}</p>
+            <div className="py-8 sm:py-12 text-center">
+              <Bell className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/50" />
+              <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground">{t('notification.noNotifications')}</p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {Object.entries(groupedNotifications)
                 .sort(([a], [b]) => b.localeCompare(a))
                 .map(([date, items]) => (
                   <div key={date}>
-                    <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+                    <h3 className="mb-2 sm:mb-3 text-xs sm:text-sm font-semibold text-muted-foreground">
                       {formatDate(date)}
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {items.map((notification) => (
                         <div
                           key={notification.id}
-                          className={`relative rounded-lg border p-4 transition-colors ${getNotificationBgColor(
+                          className={`relative rounded-lg border p-3 sm:p-4 transition-colors ${getNotificationBgColor(
                             notification.type,
                             notification.read
                           )}`}
                         >
-                          <div className="flex items-start gap-4">
-                            <div className="mt-0.5">
+                          <div className="flex items-start gap-2 sm:gap-4">
+                            <div className="mt-0.5 flex-shrink-0">
                               {getNotificationIcon(notification.type)}
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className={`font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                                <p className={`text-sm sm:text-base font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
                                   {notification.title || getNotificationTitle(notification.type)}
                                 </p>
                                 {getTypeBadge(notification.type)}
@@ -462,27 +470,28 @@ export default function NotificationsPage() {
                                   <span className="h-2 w-2 rounded-full bg-primary" />
                                 )}
                               </div>
-                              <p className="mt-1 text-sm text-muted-foreground">
+                              <p className="mt-1 text-xs sm:text-sm text-muted-foreground line-clamp-2">
                                 {notification.message || getNotificationMessage(notification.type, notification.equipment_code)}
                               </p>
                               {notification.equipment_code && (
-                                <p className="mt-2 text-xs">
-                                  <span className="rounded bg-muted px-2 py-1 font-mono">
+                                <p className="mt-1 sm:mt-2 text-xs">
+                                  <span className="rounded bg-muted px-2 py-0.5 font-mono">
                                     {notification.equipment_code}
                                   </span>
                                 </p>
                               )}
-                              <p className="mt-2 text-xs text-muted-foreground">
+                              <p className="mt-1 sm:mt-2 text-xs text-muted-foreground">
                                 {notification.time}
                               </p>
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex gap-0.5 sm:gap-1 flex-shrink-0">
                               {!notification.read && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => markAsRead(notification.id)}
                                   title={t('notification.markRead')}
+                                  className="h-8 w-8 p-0"
                                 >
                                   <CheckCircle className="h-4 w-4" />
                                 </Button>
@@ -492,6 +501,7 @@ export default function NotificationsPage() {
                                 size="sm"
                                 onClick={() => removeNotification(notification.id)}
                                 title={t('common.delete')}
+                                className="h-8 w-8 p-0"
                               >
                                 <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                               </Button>

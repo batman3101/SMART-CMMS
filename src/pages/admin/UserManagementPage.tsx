@@ -315,40 +315,40 @@ export default function UserManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('admin.userManagement')}</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">{t('admin.userManagement')}</h1>
         <div className="flex gap-2">
           <Link to="/admin/users/bulk-upload">
-            <Button variant="outline">
-              <Upload className="mr-2 h-4 w-4" />
-              {t('admin.bulkUserUpload')}
+            <Button variant="outline" size="sm" className="h-9 px-3">
+              <Upload className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{t('admin.bulkUserUpload')}</span>
             </Button>
           </Link>
-          <Button onClick={openCreateModal}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            {t('admin.addUser')}
+          <Button onClick={openCreateModal} size="sm" className="h-9 px-3">
+            <UserPlus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('admin.addUser')}</span>
           </Button>
         </div>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="relative flex-1 min-w-[200px]">
+        <CardContent className="p-3 sm:p-6">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-4">
+            <div className="relative col-span-2 sm:flex-1 sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={t('admin.searchByNameEmail')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-9 sm:h-10"
               />
             </div>
             <Select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-[150px]"
+              className="w-full sm:w-[150px] h-9 sm:h-10 text-sm"
             >
               <option value="all">{t('admin.allRoles')}</option>
               <option value="1">{t('admin.roleAdmin')}</option>
@@ -359,7 +359,7 @@ export default function UserManagementPage() {
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-[150px]"
+              className="w-full sm:w-[150px] h-9 sm:h-10 text-sm"
             >
               <option value="all">{t('admin.allStatus')}</option>
               <option value="active">{t('admin.active')}</option>
@@ -369,8 +369,8 @@ export default function UserManagementPage() {
         </CardContent>
       </Card>
 
-      {/* Users Table */}
-      <Card>
+      {/* Users Table - Desktop */}
+      <Card className="hidden md:block">
         <CardContent className="pt-6">
           <Table>
             <TableHeader>
@@ -494,34 +494,108 @@ export default function UserManagementPage() {
         </CardContent>
       </Card>
 
+      {/* Users - Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {sortedData.length === 0 ? (
+          <Card>
+            <CardContent className="py-6 text-center text-muted-foreground text-sm">
+              {t('common.noData')}
+            </CardContent>
+          </Card>
+        ) : (
+          sortedData.map((user) => (
+            <Card key={user.id} className="overflow-hidden">
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{user.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => openEditModal(user)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => openDeleteModal(user)}
+                      disabled={user.role === 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                  <div>
+                    <span className="text-muted-foreground">{t('admin.department')}: </span>
+                    <span>{getDepartmentLabel(user.department)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">{t('admin.position')}: </span>
+                    <span>{getPositionLabel(user.position)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Badge
+                    variant={user.role === 1 ? 'default' : 'outline'}
+                    className="flex w-fit items-center gap-1 text-xs"
+                  >
+                    {user.role === 1 && <Shield className="h-3 w-3" />}
+                    {roleLabels[user.role]}
+                  </Badge>
+                  <Badge
+                    variant={user.is_active ? 'success' : 'secondary'}
+                    className="flex w-fit items-center gap-1 text-xs cursor-pointer"
+                    onClick={() => handleToggleStatus(user)}
+                  >
+                    {user.is_active ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {user.is_active ? t('admin.active') : t('admin.inactive')}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
       {/* User Summary */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">{t('admin.totalUsers')}</p>
-            <p className="text-2xl font-bold">{users.length}</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">{t('admin.totalUsers')}</p>
+            <p className="text-lg sm:text-2xl font-bold">{users.length}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">{t('admin.activeUsers')}</p>
-            <p className="text-2xl font-bold text-green-600">
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">{t('admin.activeUsers')}</p>
+            <p className="text-lg sm:text-2xl font-bold text-green-600">
               {users.filter((u) => u.is_active).length}
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">{t('admin.technicians')}</p>
-            <p className="text-2xl font-bold text-blue-600">
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">{t('admin.technicians')}</p>
+            <p className="text-lg sm:text-2xl font-bold text-blue-600">
               {users.filter((u) => u.role === 3 && u.is_active).length}
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">{t('admin.admins')}</p>
-            <p className="text-2xl font-bold text-purple-600">
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">{t('admin.admins')}</p>
+            <p className="text-lg sm:text-2xl font-bold text-purple-600">
               {users.filter((u) => u.role === 1).length}
             </p>
           </CardContent>
@@ -530,37 +604,38 @@ export default function UserManagementPage() {
 
       {/* Create/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-lg mx-4">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">
                 {editingUser ? t('admin.editUser') : t('admin.addUser')}
               </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setIsModalOpen(false)}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsModalOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
               {/* Email */}
-              <div className="space-y-2">
-                <Label>{t('auth.email')} *</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-sm">{t('auth.email')} *</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="user@example.com"
+                  className="h-9 sm:h-10 text-sm"
                 />
                 {formErrors.email && (
-                  <p className="text-sm text-destructive">{formErrors.email}</p>
+                  <p className="text-xs sm:text-sm text-destructive">{formErrors.email}</p>
                 )}
               </div>
 
               {/* Password */}
-              <div className="space-y-2">
-                <Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-sm">
                   {t('auth.password')} {!editingUser && '*'}
                   {editingUser && (
-                    <span className="text-xs text-muted-foreground ml-2">
+                    <span className="text-xs text-muted-foreground ml-1 sm:ml-2">
                       ({t('admin.leaveEmptyToKeep')})
                     </span>
                   )}
@@ -571,6 +646,7 @@ export default function UserManagementPage() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder={editingUser ? '••••••••' : t('admin.enterPassword')}
+                    className="h-9 sm:h-10 text-sm pr-10"
                   />
                   <Button
                     type="button"
@@ -587,30 +663,32 @@ export default function UserManagementPage() {
                   </Button>
                 </div>
                 {formErrors.password && (
-                  <p className="text-sm text-destructive">{formErrors.password}</p>
+                  <p className="text-xs sm:text-sm text-destructive">{formErrors.password}</p>
                 )}
               </div>
 
               {/* Name */}
-              <div className="space-y-2">
-                <Label>{t('admin.name')} *</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-sm">{t('admin.name')} *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder={t('admin.enterName')}
+                  className="h-9 sm:h-10 text-sm"
                 />
                 {formErrors.name && (
-                  <p className="text-sm text-destructive">{formErrors.name}</p>
+                  <p className="text-xs sm:text-sm text-destructive">{formErrors.name}</p>
                 )}
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                 {/* Department */}
-                <div className="space-y-2">
-                  <Label>{t('admin.department')} *</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">{t('admin.department')} *</Label>
                   <Select
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value as DepartmentCode })}
+                    className="h-9 sm:h-10 text-sm"
                   >
                     {departmentOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -619,16 +697,17 @@ export default function UserManagementPage() {
                     ))}
                   </Select>
                   {formErrors.department && (
-                    <p className="text-sm text-destructive">{formErrors.department}</p>
+                    <p className="text-xs sm:text-sm text-destructive">{formErrors.department}</p>
                   )}
                 </div>
 
                 {/* Position - 직책 선택시 권한 자동 설정 */}
-                <div className="space-y-2">
-                  <Label>{t('admin.position')} *</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">{t('admin.position')} *</Label>
                   <Select
                     value={formData.position}
                     onChange={(e) => handlePositionChange(e.target.value as PositionCode)}
+                    className="h-9 sm:h-10 text-sm"
                   >
                     {positionOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -637,28 +716,28 @@ export default function UserManagementPage() {
                     ))}
                   </Select>
                   {formErrors.position && (
-                    <p className="text-sm text-destructive">{formErrors.position}</p>
+                    <p className="text-xs sm:text-sm text-destructive">{formErrors.position}</p>
                   )}
                 </div>
               </div>
 
               {/* Role - 직책에 따라 자동 설정됨 (읽기 전용) */}
-              <div className="space-y-2">
-                <Label>{t('admin.role')}</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-sm">{t('admin.role')}</Label>
                 <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
                   <Shield className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{roleLabels[formData.role]}</span>
-                  <span className="text-xs text-muted-foreground ml-auto">
+                  <span className="text-xs sm:text-sm">{roleLabels[formData.role]}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground ml-auto">
                     ({t('admin.position')}에 따라 자동 설정)
                   </span>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              <div className="flex justify-end gap-2 pt-3 sm:pt-4">
+                <Button variant="outline" size="sm" className="h-9 text-sm" onClick={() => setIsModalOpen(false)}>
                   {t('common.cancel')}
                 </Button>
-                <Button onClick={handleSave} disabled={isSaving}>
+                <Button size="sm" className="h-9 text-sm" onClick={handleSave} disabled={isSaving}>
                   {isSaving ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
@@ -672,36 +751,38 @@ export default function UserManagementPage() {
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && userToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-destructive text-base sm:text-lg">
+                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('admin.deleteUser')}
               </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setIsDeleteModalOpen(false)}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsDeleteModalOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {t('admin.deleteUserConfirm')}
               </p>
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="font-medium">{userToDelete.name}</p>
-                <p className="text-sm text-muted-foreground">{userToDelete.email}</p>
-                <Badge variant="outline" className="mt-2">{roleLabels[userToDelete.role]}</Badge>
+              <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                <p className="font-medium text-sm sm:text-base">{userToDelete.name}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{userToDelete.email}</p>
+                <Badge variant="outline" className="mt-2 text-xs">{roleLabels[userToDelete.role]}</Badge>
               </div>
-              <p className="text-sm text-destructive font-medium">
+              <p className="text-xs sm:text-sm text-destructive font-medium">
                 {t('admin.deleteUserWarning')}
               </p>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              <div className="flex justify-end gap-2 pt-3 sm:pt-4">
+                <Button variant="outline" size="sm" className="h-9 text-sm" onClick={() => setIsDeleteModalOpen(false)}>
                   {t('common.cancel')}
                 </Button>
                 <Button
                   variant="destructive"
+                  size="sm"
+                  className="h-9 text-sm"
                   onClick={handleDeleteUser}
                   disabled={isDeleting}
                 >

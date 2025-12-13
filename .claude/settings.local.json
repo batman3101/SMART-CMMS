@@ -33,7 +33,18 @@
       "Bash(curl:*)",
       "mcp__supabase-smart-cmms__get_edge_function",
       "Bash(powershell -Command \"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $body = @{user_ids = @(''f93d9b74-eb1d-488d-8a5e-0638f35e575b''); notification = @{title = ''알림 테스트''; body = ''한글 인코딩 테스트입니다.''}; data = @{type = ''info''; url = ''/notifications''}} | ConvertTo-Json -Depth 3; Invoke-RestMethod -Uri ''https://bujsinmxmhchrrkascjl.supabase.co/functions/v1/send-push-notification'' -Method POST -Headers @{Authorization = ''Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1anNpbm14bWhjaHJya2FzY2psIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0MDAxOTQsImV4cCI6MjA3OTk3NjE5NH0.xnAPyl7O_NX04bGNq639Cf5P4ub8d8CGXHzu6GjEAzY''; ''Content-Type'' = ''application/json; charset=utf-8''} -Body ([System.Text.Encoding]::UTF8.GetBytes($body))\")",
-      "Bash(del \"C:\\Work Drive\\APP\\SMART-CMMS\\test-push.json\")"
+      "Bash(del \"C:\\Work Drive\\APP\\SMART-CMMS\\test-push.json\")",
+      "Bash(dir:*)",
+      "Bash(powershell -Command \"(Get-Item ''C:\\Work Drive\\APP\\SMART-CMMS\\public\\NotoSansKR-Regular.ttf'').Length\")",
+      "Bash(powershell -Command \"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri ''https://fonts.google.com/download?family=Noto%20Sans%20KR'' -OutFile ''C:\\Work Drive\\APP\\SMART-CMMS\\Noto_Sans_KR.zip''\")",
+      "Bash(powershell:*)",
+      "Bash(del \"C:\\Work Drive\\APP\\SMART-CMMS\\Noto_Sans_KR.zip\")",
+      "Bash(del \"C:\\Work Drive\\APP\\SMART-CMMS\\public\\NotoSansKR-Regular.ttf\")",
+      "Bash(npm search:*)",
+      "Bash(npm info:*)",
+      "Bash(xxd:*)",
+      "Bash(ls:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

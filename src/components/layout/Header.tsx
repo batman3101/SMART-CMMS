@@ -126,12 +126,24 @@ export default function Header() {
     setShowNotifications(false)
   }
 
+  // Helper function to parse date with robust timezone handling
+  const parseDateTime = (dateStr: string): Date => {
+    if (dateStr.includes('Z') || dateStr.includes('+') || (dateStr.includes('-') && dateStr.lastIndexOf('-') > 9)) {
+      return new Date(dateStr)
+    }
+    const cleanedStr = dateStr.replace(' ', 'T').slice(0, 16)
+    const [datePart, timePart] = cleanedStr.split('T')
+    const [year, month, day] = datePart.split('-').map(Number)
+    const [hour, minute] = (timePart || '00:00').split(':').map(Number)
+    return new Date(year, month - 1, day, hour, minute)
+  }
+
   // 상대 시간 표시 (created_at 기준)
   const getRelativeTime = (createdAt: string) => {
     const now = new Date()
-    const created = new Date(createdAt)
+    const created = parseDateTime(createdAt)
     const diffMs = now.getTime() - created.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
+    const diffMins = Math.max(0, Math.floor(diffMs / 60000))
     const diffHours = Math.floor(diffMins / 60)
     const diffDays = Math.floor(diffHours / 24)
 
@@ -142,16 +154,25 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-6">
-      <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold text-foreground">
+    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b bg-background px-3 md:px-6">
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* 모바일: 로고만, 데스크톱: 전체 타이틀 */}
+        <div className="flex items-center gap-2 md:hidden">
+          <img
+            src="/A symbol BLUE-02.png"
+            alt="Logo"
+            className="h-8 w-8 object-contain"
+          />
+          <span className="text-sm font-bold text-primary">SMART CMMS</span>
+        </div>
+        <h1 className="hidden md:block text-lg font-semibold text-foreground">
           {language === 'ko'
             ? 'ALMUS TECH 설비 유지보수 시스템'
             : 'ALMUS TECH Maintenance Management System'}
         </h1>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
           <Button
@@ -170,7 +191,7 @@ export default function Header() {
 
           {/* 알림 드롭다운 */}
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border bg-background shadow-lg">
+            <div className="absolute right-0 top-full mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm rounded-lg border bg-background shadow-lg">
               {/* 헤더 */}
               <div className="flex items-center justify-between border-b px-4 py-3">
                 <h3 className="font-semibold">{t('notification.title')}</h3>
@@ -270,14 +291,17 @@ export default function Header() {
           )}
         </Button>
 
-        {/* Language Toggle */}
-        <Button variant="ghost" size="sm" onClick={toggleLanguage}>
+        {/* Language Toggle - 모바일: 아이콘만, 데스크톱: 텍스트 포함 */}
+        <Button variant="ghost" size="icon" onClick={toggleLanguage} className="md:hidden">
+          <Globe className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={toggleLanguage} className="hidden md:flex">
           <Globe className="mr-2 h-4 w-4" />
           {language === 'ko' ? '한국어' : 'Tiếng Việt'}
         </Button>
 
-        {/* User Info */}
-        <div className="flex items-center gap-3 border-l pl-4">
+        {/* User Info - 데스크톱에서만 표시 */}
+        <div className="hidden md:flex items-center gap-3 border-l pl-4">
           <div className="text-right">
             <p className="text-sm font-medium">
               {user?.name}
@@ -288,6 +312,11 @@ export default function Header() {
             <LogOut className="h-5 w-5" />
           </Button>
         </div>
+
+        {/* 모바일 로그아웃 버튼 */}
+        <Button variant="ghost" size="icon" onClick={handleLogout} className="md:hidden">
+          <LogOut className="h-5 w-5" />
+        </Button>
       </div>
     </header>
   )

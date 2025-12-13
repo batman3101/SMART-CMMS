@@ -214,11 +214,13 @@ export default function MaintenanceInputPage() {
     }
   }
 
-  // 부품 코드 검색 (디바운스 적용)
+  // 부품 검색 (디바운스 적용) - 부품코드, 부품명 모두 검색 가능
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [searchField, setSearchField] = useState<'code' | 'name'>('code')
 
-  const handlePartCodeSearch = useCallback((index: number, searchTerm: string) => {
-    updatePart(index, 'code', searchTerm)
+  const handlePartSearch = useCallback((index: number, searchTerm: string, field: 'code' | 'name') => {
+    updatePart(index, field, searchTerm)
+    setSearchField(field)
 
     // 이전 검색 타이머 취소
     if (searchTimeoutRef.current) {
@@ -251,6 +253,16 @@ export default function MaintenanceInputPage() {
       }
     }, 300)
   }, [partsConnected, updatePart])
+
+  // 부품 코드 검색 (기존 호환성 유지)
+  const handlePartCodeSearch = useCallback((index: number, searchTerm: string) => {
+    handlePartSearch(index, searchTerm, 'code')
+  }, [handlePartSearch])
+
+  // 부품명 검색
+  const handlePartNameSearch = useCallback((index: number, searchTerm: string) => {
+    handlePartSearch(index, searchTerm, 'name')
+  }, [handlePartSearch])
 
   // 컴포넌트 언마운트 시 타이머 정리
   useEffect(() => {
@@ -363,12 +375,13 @@ export default function MaintenanceInputPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <h1 className="text-2xl font-bold">
+    <div className="space-y-4 md:space-y-6">
+      {/* 헤더 */}
+      <div className="flex items-center gap-2 sm:gap-4">
+        <h1 className="text-xl md:text-2xl font-bold">
           {isEmergency ? (
             <span className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-6 w-6" />
+              <AlertTriangle className="h-5 w-5 md:h-6 md:w-6" />
               {t('maintenance.emergencyRepairStart')}
             </span>
           ) : (
@@ -377,16 +390,44 @@ export default function MaintenanceInputPage() {
         </h1>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* 모바일에서는 선택된 설비 정보를 상단에 간략히 표시 */}
+      {selectedEquipment && (
+        <div className="lg:hidden">
+          <Card className="bg-muted/50">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-bold">{selectedEquipment.equipment_code}</span>
+                  <span className="ml-2 text-sm text-muted-foreground">{getEquipmentName(selectedEquipment)}</span>
+                </div>
+                <Badge
+                  variant={
+                    selectedEquipment.status === 'normal'
+                      ? 'success'
+                      : selectedEquipment.status === 'emergency'
+                        ? 'destructive'
+                        : 'warning'
+                  }
+                  className="text-xs"
+                >
+                  {selectedEquipment.status}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
         {/* 메인 폼 */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader>
-              <CardTitle>{t('maintenance.input')}</CardTitle>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-lg sm:text-xl">{t('maintenance.input')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="date">{t('maintenance.date')}</Label>
                     <Input
@@ -514,19 +555,19 @@ export default function MaintenanceInputPage() {
                 </div>
 
                 {/* Parts Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
-                      <Label>{t('maintenance.usedParts')}</Label>
+                      <Label className="text-sm sm:text-base">{t('maintenance.usedParts')}</Label>
                       {partsConnected && (
                         <Badge variant="outline" className="text-xs">
                           <Package className="mr-1 h-3 w-3" />
-                          {t('maintenance.partsDbConnected')}
+                          <span className="hidden sm:inline">{t('maintenance.partsDbConnected')}</span>
                         </Badge>
                       )}
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addPart}>
-                      <Plus className="mr-2 h-4 w-4" />
+                    <Button type="button" variant="outline" size="sm" onClick={addPart} className="w-fit">
+                      <Plus className="mr-1 sm:mr-2 h-4 w-4" />
                       {t('maintenance.addPart')}
                     </Button>
                   </div>
@@ -536,88 +577,124 @@ export default function MaintenanceInputPage() {
                     </p>
                   ) : (
                     parts.map((part, index) => (
-                      <div key={index} className="flex items-end gap-2 rounded-lg border p-3">
-                        {/* 부품코드 검색 */}
-                        <div className="w-40 space-y-2">
-                          <Label className="text-xs">{t('parts.partCode')}</Label>
-                          <div className="relative">
-                            <Input
-                              placeholder={t('parts.partCodeSearch')}
-                              value={part.code}
-                              onChange={(e) => handlePartCodeSearch(index, e.target.value)}
-                              onBlur={() => setTimeout(() => handlePartCodeBlur(index), 200)}
-                              className="pr-8"
-                            />
-                            {part.isLoading && (
-                              <Loader2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-                            )}
-                            {/* 검색 결과 드롭다운 */}
-                            {activePartIndex === index && partSearchResults.length > 0 && (
-                              <div className="absolute z-20 mt-1 max-h-48 w-72 overflow-auto rounded-md border bg-popover shadow-lg">
-                                {partSearchLoading ? (
-                                  <div className="flex items-center justify-center py-4">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  </div>
-                                ) : (
-                                  partSearchResults.map((result) => (
-                                    <div
-                                      key={result.id}
-                                      className="cursor-pointer px-3 py-2 hover:bg-muted"
-                                      onMouseDown={() => handlePartSelect(index, result)}
-                                    >
-                                      <p className="font-mono text-sm font-medium">{result.part_code}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{result.part_name}</p>
+                      <div key={index} className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-end sm:gap-2">
+                        {/* 모바일: 2열 그리드, 데스크톱: 가로 정렬 */}
+                        <div className="grid grid-cols-2 gap-2 sm:contents">
+                          {/* 부품코드 검색 */}
+                          <div className="col-span-2 sm:w-40 space-y-1 sm:space-y-2">
+                            <Label className="text-xs">{t('parts.partCode')}</Label>
+                            <div className="relative">
+                              <Input
+                                placeholder={t('parts.partCodeSearch')}
+                                value={part.code}
+                                onChange={(e) => handlePartCodeSearch(index, e.target.value)}
+                                onBlur={() => setTimeout(() => {
+                                  if (searchField === 'code') {
+                                    handlePartCodeBlur(index)
+                                  }
+                                }, 200)}
+                                className="pr-8 h-9"
+                              />
+                              {part.isLoading && (
+                                <Loader2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                              )}
+                              {/* 부품코드 검색 결과 드롭다운 */}
+                              {activePartIndex === index && searchField === 'code' && partSearchResults.length > 0 && (
+                                <div className="absolute z-20 mt-1 max-h-48 w-full sm:w-72 overflow-auto rounded-md border bg-popover shadow-lg">
+                                  {partSearchLoading ? (
+                                    <div className="flex items-center justify-center py-4">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
                                     </div>
-                                  ))
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {/* 부품명 (자동 완성) */}
-                        <div className="flex-1 space-y-2">
-                          <Label className="text-xs">{t('parts.partName')}</Label>
-                          <Input
-                            placeholder={t('parts.partName')}
-                            value={part.name}
-                            onChange={(e) => updatePart(index, 'name', e.target.value)}
-                            readOnly={partsConnected && !!part.code}
-                            className={partsConnected && part.code ? 'bg-muted' : ''}
-                          />
-                        </div>
-                        {/* 수량 */}
-                        <div className="w-20 space-y-2">
-                          <Label className="text-xs">{t('parts.quantity')}</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={part.qty}
-                            onChange={(e) => updatePart(index, 'qty', parseInt(e.target.value) || 1)}
-                          />
-                        </div>
-                        {/* 현재 재고 */}
-                        {partsConnected && (
-                          <div className="w-24 space-y-2">
-                            <Label className="text-xs text-muted-foreground">{t('parts.currentStock')}</Label>
-                            <div className="flex h-9 items-center justify-center rounded-md border bg-muted px-2 text-sm">
-                              {part.isLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : part.currentStock !== undefined ? (
-                                <span className={part.currentStock <= part.qty ? 'text-destructive font-medium' : 'text-muted-foreground'}>
-                                  {part.currentStock}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
+                                  ) : (
+                                    partSearchResults.map((result) => (
+                                      <div
+                                        key={result.id}
+                                        className="cursor-pointer px-3 py-2 hover:bg-muted"
+                                        onMouseDown={() => handlePartSelect(index, result)}
+                                      >
+                                        <p className="font-mono text-sm font-medium">{result.part_code}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{result.part_name}</p>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
-                        )}
+                          {/* 부품명 (검색 가능) */}
+                          <div className="col-span-2 sm:flex-1 space-y-1 sm:space-y-2">
+                            <Label className="text-xs">{t('parts.partName')}</Label>
+                            <div className="relative">
+                              <Input
+                                placeholder={t('parts.partName')}
+                                value={part.name}
+                                onChange={(e) => handlePartNameSearch(index, e.target.value)}
+                                onBlur={() => setTimeout(() => {
+                                  if (searchField === 'name') {
+                                    setPartSearchResults([])
+                                    setActivePartIndex(null)
+                                  }
+                                }, 200)}
+                                className="h-9"
+                              />
+                              {/* 부품명 검색 결과 드롭다운 */}
+                              {activePartIndex === index && searchField === 'name' && partSearchResults.length > 0 && (
+                                <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover shadow-lg">
+                                  {partSearchLoading ? (
+                                    <div className="flex items-center justify-center py-4">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    </div>
+                                  ) : (
+                                    partSearchResults.map((result) => (
+                                      <div
+                                        key={result.id}
+                                        className="cursor-pointer px-3 py-2 hover:bg-muted"
+                                        onMouseDown={() => handlePartSelect(index, result)}
+                                      >
+                                        <p className="text-sm font-medium">{result.part_name}</p>
+                                        <p className="font-mono text-xs text-muted-foreground">{result.part_code}</p>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {/* 수량 */}
+                          <div className="space-y-1 sm:space-y-2 sm:w-20">
+                            <Label className="text-xs">{t('parts.quantity')}</Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={part.qty}
+                              onChange={(e) => updatePart(index, 'qty', parseInt(e.target.value) || 1)}
+                              className="h-9"
+                            />
+                          </div>
+                          {/* 현재 재고 */}
+                          {partsConnected && (
+                            <div className="space-y-1 sm:space-y-2 sm:w-24">
+                              <Label className="text-xs text-muted-foreground">{t('parts.currentStock')}</Label>
+                              <div className="flex h-9 items-center justify-center rounded-md border bg-muted px-2 text-sm">
+                                {part.isLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : part.currentStock !== undefined ? (
+                                  <span className={part.currentStock <= part.qty ? 'text-destructive font-medium' : 'text-muted-foreground'}>
+                                    {part.currentStock}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
                           onClick={() => removePart(index)}
-                          className="shrink-0"
+                          className="shrink-0 self-end sm:self-auto h-9 w-9"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -626,14 +703,14 @@ export default function MaintenanceInputPage() {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-4">
-                  <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-4">
+                  <Button type="button" variant="outline" onClick={() => navigate(-1)} className="w-full sm:w-auto">
                     {t('common.cancel')}
                   </Button>
                   <Button
                     type="submit"
                     disabled={submitting || !formData.equipment_id || !formData.repair_type_id}
-                    className={isEmergency ? 'bg-red-600 hover:bg-red-700' : ''}
+                    className={`w-full sm:w-auto ${isEmergency ? 'bg-red-600 hover:bg-red-700' : ''}`}
                   >
                     {submitting ? (
                       <>
@@ -653,11 +730,11 @@ export default function MaintenanceInputPage() {
           </Card>
         </div>
 
-        {/* 사이드바: 선택된 설비 정보 */}
-        <div className="space-y-4">
+        {/* 사이드바: 선택된 설비 정보 - 데스크톱에서만 표시 */}
+        <div className="hidden lg:block space-y-4">
           {selectedEquipment ? (
             <Card>
-              <CardHeader>
+              <CardHeader className="p-4">
                 <CardTitle className="text-lg">{t('maintenance.selectedEquipment')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">

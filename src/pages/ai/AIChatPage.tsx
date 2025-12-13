@@ -130,49 +130,49 @@ export default function AIChatPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('ai.chat')}</h1>
-        <Button variant="outline" size="sm" onClick={handleClearChat}>
-          <Trash2 className="mr-2 h-4 w-4" />
-          {t('common.clearChat')}
+        <h1 className="text-xl sm:text-2xl font-bold">{t('ai.chat')}</h1>
+        <Button variant="outline" size="sm" onClick={handleClearChat} className="h-9 px-3">
+          <Trash2 className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">{t('common.clearChat')}</span>
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-4">
         {/* Chat Area */}
         <Card className="lg:col-span-3">
           <CardContent className="p-0">
             {/* Messages */}
-            <div className="h-[500px] space-y-4 overflow-y-auto p-6">
+            <div className="h-[400px] sm:h-[500px] space-y-3 sm:space-y-4 overflow-y-auto p-3 sm:p-6">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
+                  className={`flex gap-2 sm:gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
                 >
                   <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    className={`flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full ${
                       message.role === 'user' ? 'bg-primary' : 'bg-slate-200'
                     }`}
                   >
                     {message.role === 'user' ? (
-                      <User className="h-4 w-4 text-white" />
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                     ) : (
-                      <Bot className="h-4 w-4 text-slate-600" />
+                      <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-600" />
                     )}
                   </div>
                   <div
-                    className={`max-w-[70%] rounded-lg p-3 ${
+                    className={`max-w-[80%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 ${
                       message.role === 'user' ? 'bg-primary text-white' : 'bg-slate-100'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                    <p className="whitespace-pre-wrap text-xs sm:text-sm">{message.content}</p>
                     <p
-                      className={`mt-1 flex items-center gap-1 text-xs ${
+                      className={`mt-1 flex items-center gap-1 text-[10px] sm:text-xs ${
                         message.role === 'user' ? 'text-white/70' : 'text-muted-foreground'
                       }`}
                     >
-                      <Clock className="h-3 w-3" />
+                      <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                       {formatTime(message.timestamp)}
                     </p>
                   </div>
@@ -181,13 +181,13 @@ export default function AIChatPage() {
 
               {/* Loading indicator */}
               {isLoading && (
-                <div className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200">
-                    <Bot className="h-4 w-4 text-slate-600" />
+                <div className="flex gap-2 sm:gap-3">
+                  <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-slate-200">
+                    <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-600" />
                   </div>
-                  <div className="rounded-lg bg-slate-100 p-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="rounded-lg bg-slate-100 p-2 sm:p-3">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                       {t('common.generatingResponse')}
                     </div>
                   </div>
@@ -198,7 +198,7 @@ export default function AIChatPage() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t p-4">
+            <div className="border-t p-3 sm:p-4">
               <div className="flex gap-2">
                 <Input
                   value={input}
@@ -206,8 +206,9 @@ export default function AIChatPage() {
                   placeholder={t('ai.askQuestion')}
                   onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                   disabled={isLoading}
+                  className="h-9 sm:h-10 text-sm"
                 />
-                <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+                <Button onClick={handleSend} disabled={isLoading || !input.trim()} className="h-9 sm:h-10 px-3 sm:px-4">
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -222,23 +223,23 @@ export default function AIChatPage() {
         {/* Sample Questions */}
         <div className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Sparkles className="h-5 w-5" />
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('common.sampleQuestions')}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
                 {sampleQuestions.map((question, index) => (
                   <Button
                     key={index}
                     variant="outline"
-                    className="h-auto w-full justify-start px-4 py-3 text-left"
+                    className="h-auto w-full justify-start px-2 sm:px-4 py-2 sm:py-3 text-left"
                     onClick={() => handleSampleQuestion(question)}
                     disabled={isLoading}
                   >
-                    <span className="text-sm">{question}</span>
+                    <span className="text-xs sm:text-sm line-clamp-2">{question}</span>
                   </Button>
                 ))}
               </div>
@@ -246,12 +247,12 @@ export default function AIChatPage() {
           </Card>
 
           {/* 사용 팁 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">{t('common.usageTips')}</CardTitle>
+          <Card className="hidden sm:block">
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">{t('common.usageTips')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
                 <li>• {t('ai.tip1')}</li>
                 <li>• {t('ai.tip2')}</li>
                 <li>• {t('ai.tip3')}</li>

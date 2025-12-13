@@ -151,7 +151,9 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-slate-900 text-white transition-all duration-300",
+        // 모바일: 숨김, 데스크톱: 표시
+        "hidden md:fixed md:block",
+        "left-0 top-0 z-40 h-screen bg-slate-900 text-white transition-all duration-300",
         sidebarCollapsed ? "w-16" : "w-64"
       )}
     >

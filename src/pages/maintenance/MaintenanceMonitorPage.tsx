@@ -124,12 +124,26 @@ export default function MaintenanceMonitorPage() {
     }
   }, [fetchData])
 
+  // Helper function to parse date with robust timezone handling
+  const parseDateTime = (dateStr: string): Date => {
+    // If has timezone info (Z or +/-), parse directly
+    if (dateStr.includes('Z') || dateStr.includes('+') || (dateStr.includes('-') && dateStr.lastIndexOf('-') > 9)) {
+      return new Date(dateStr)
+    }
+    // Parse as local time components
+    const cleanedStr = dateStr.replace(' ', 'T').slice(0, 16)
+    const [datePart, timePart] = cleanedStr.split('T')
+    const [year, month, day] = datePart.split('-').map(Number)
+    const [hour, minute] = (timePart || '00:00').split(':').map(Number)
+    return new Date(year, month - 1, day, hour, minute)
+  }
+
   // 경과 시간 계산
   const getElapsedTime = (startTime: string): { text: string; isLong: boolean } => {
-    const start = new Date(startTime)
+    const start = parseDateTime(startTime)
     const now = new Date()
     const diffMs = now.getTime() - start.getTime()
-    const diffMinutes = Math.floor(diffMs / (1000 * 60))
+    const diffMinutes = Math.max(0, Math.floor(diffMs / (1000 * 60))) // Prevent negative
 
     if (diffMinutes < 60) {
       return { text: `${diffMinutes}${t('maintenance.minuteUnit')}`, isLong: false }
@@ -159,10 +173,53 @@ export default function MaintenanceMonitorPage() {
 
     setSubmitting(true)
     try {
-      // Calculate duration
+      // Calculate duration with proper timezone handling
+      // Parse start_time - ensure it's treated as a proper date object
       const startTime = new Date(selectedRecord.start_time)
-      const endTime = new Date(completeForm.end_time)
-      const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
+
+      // Parse end_time - the form value is in 'YYYY-MM-DDTHH:mm' format (local time)
+      // We need to ensure consistent parsing
+      const endTimeStr = completeForm.end_time
+      let endTime: Date
+
+      // If end_time doesn't have timezone info, parse it as local time
+      if (endTimeStr.includes('Z') || endTimeStr.includes('+') || endTimeStr.includes('-', 10)) {
+        endTime = new Date(endTimeStr)
+      } else {
+        // Parse as local time by appending the local date/time components
+        const [datePart, timePart] = endTimeStr.split('T')
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hour, minute] = timePart.split(':').map(Number)
+        endTime = new Date(year, month - 1, day, hour, minute)
+      }
+
+      // Similarly, ensure start_time is properly parsed
+      // If start_time from DB doesn't have timezone, treat it as local time
+      let parsedStartTime: Date
+      const startTimeStr = selectedRecord.start_time
+      if (startTimeStr.includes('Z') || startTimeStr.includes('+') || (startTimeStr.includes('-') && startTimeStr.lastIndexOf('-') > 9)) {
+        parsedStartTime = startTime
+      } else {
+        // Parse as local time
+        const cleanedStr = startTimeStr.replace(' ', 'T').slice(0, 16)
+        const [datePart, timePart] = cleanedStr.split('T')
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hour, minute] = (timePart || '00:00').split(':').map(Number)
+        parsedStartTime = new Date(year, month - 1, day, hour, minute)
+      }
+
+      let durationMinutes = Math.round((endTime.getTime() - parsedStartTime.getTime()) / (1000 * 60))
+
+      // Prevent negative duration - this shouldn't happen if dates are correct
+      if (durationMinutes < 0) {
+        addToast({
+          type: 'error',
+          title: t('common.error'),
+          message: t('maintenance.endTimeBeforeStart')
+        })
+        setSubmitting(false)
+        return
+      }
 
       const { data, error } = await maintenanceApi.completeRecord(selectedRecord.id, {
         repair_content: completeForm.repair_content,
@@ -216,47 +273,47 @@ export default function MaintenanceMonitorPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('nav.maintenanceMonitor')}</h1>
-        <Button variant="outline" size="sm" onClick={fetchData}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          {t('common.refresh')}
+        <h1 className="text-xl sm:text-2xl font-bold">{t('nav.maintenanceMonitor')}</h1>
+        <Button variant="outline" size="sm" onClick={fetchData} className="h-9 px-3">
+          <RefreshCw className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">{t('common.refresh')}</span>
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-              <Wrench className="h-6 w-6 text-yellow-600" />
+          <CardContent className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 p-3 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-yellow-100 flex-shrink-0">
+              <Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('maintenance.inProgressRepairs')}</p>
-              <p className="text-2xl font-bold">{inProgressRecords.length}</p>
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{t('maintenance.inProgressRepairs')}</p>
+              <p className="text-xl sm:text-2xl font-bold">{inProgressRecords.length}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <Clock className="h-6 w-6 text-red-600" />
+          <CardContent className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 p-3 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-100 flex-shrink-0">
+              <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('maintenance.longRepairs')}</p>
-              <p className="text-2xl font-bold text-red-600">{longRepairCount}</p>
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{t('maintenance.longRepairs')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">{longRepairCount}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle className="h-6 w-6 text-green-600" />
+          <CardContent className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 p-3 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-100 flex-shrink-0">
+              <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('maintenance.todayCompleted')}</p>
-              <p className="text-2xl font-bold">{todayCompletedRecords.length}</p>
+            <div className="text-center sm:text-left">
+              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{t('maintenance.todayCompleted')}</p>
+              <p className="text-xl sm:text-2xl font-bold">{todayCompletedRecords.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -264,20 +321,20 @@ export default function MaintenanceMonitorPage() {
 
       {/* In Progress List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Timer className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Timer className="h-4 w-4 sm:h-5 sm:w-5" />
             {t('maintenance.inProgressRepairs')}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
           {inProgressRecords.length === 0 ? (
             <div className="py-8 text-center">
-              <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-              <p className="mt-2 text-muted-foreground">{t('maintenance.noInProgressRepairs')}</p>
+              <CheckCircle className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-green-500" />
+              <p className="mt-2 text-sm sm:text-base text-muted-foreground">{t('maintenance.noInProgressRepairs')}</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {inProgressRecords.map((record) => {
                 const elapsed = getElapsedTime(record.start_time)
                 const isEmergency = record.repair_type?.code === 'EM'
@@ -285,62 +342,115 @@ export default function MaintenanceMonitorPage() {
                 return (
                   <div
                     key={record.id}
-                    className={`flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 ${
+                    className={`rounded-lg border p-3 sm:p-4 hover:bg-muted/50 ${
                       isEmergency ? 'border-red-300 bg-red-50' : ''
                     }`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                          isEmergency ? 'bg-red-100' : 'bg-yellow-100'
-                        }`}
-                      >
-                        {isEmergency ? (
-                          <AlertTriangle className="h-5 w-5 text-red-600" />
-                        ) : (
-                          <Wrench className="h-5 w-5 text-yellow-600" />
-                        )}
+                    {/* 모바일 레이아웃 */}
+                    <div className="sm:hidden">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0 ${
+                              isEmergency ? 'bg-red-100' : 'bg-yellow-100'
+                            }`}
+                          >
+                            {isEmergency ? (
+                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                            ) : (
+                              <Wrench className="h-4 w-4 text-yellow-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{record.equipment?.equipment_code}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                              {getEquipmentName(record.equipment)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className={`font-medium text-sm ${elapsed.isLong ? 'text-red-600' : ''}`}>
+                            {elapsed.text}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{record.equipment?.equipment_code}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {getEquipmentName(record.equipment)}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge
                             style={{
                               backgroundColor: record.repair_type?.color || '#gray',
                               color: 'white',
                             }}
+                            className="text-xs"
                           >
                             {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : ''}
                           </Badge>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <User className="h-3 w-3" />
                             {record.technician?.name}
                           </span>
                         </div>
+                        <Button size="sm" className="h-8 text-xs px-2" onClick={() => handleComplete(record)}>
+                          {t('maintenance.completeProcess')}
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">{t('maintenance.startTime')}</p>
-                        <p className="font-medium">
-                          {new Date(record.start_time).toLocaleTimeString(getLocale(), {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
+
+                    {/* 데스크톱 레이아웃 */}
+                    <div className="hidden sm:flex sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                            isEmergency ? 'bg-red-100' : 'bg-yellow-100'
+                          }`}
+                        >
+                          {isEmergency ? (
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                          ) : (
+                            <Wrench className="h-5 w-5 text-yellow-600" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium">{record.equipment?.equipment_code}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {getEquipmentName(record.equipment)}
+                          </p>
+                          <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                            <Badge
+                              style={{
+                                backgroundColor: record.repair_type?.color || '#gray',
+                                color: 'white',
+                              }}
+                            >
+                              {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : ''}
+                            </Badge>
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {record.technician?.name}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">{t('maintenance.elapsedTime')}</p>
-                        <p className={`font-medium ${elapsed.isLong ? 'text-red-600' : ''}`}>
-                          {elapsed.text}
-                        </p>
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">{t('maintenance.startTime')}</p>
+                          <p className="font-medium">
+                            {new Date(record.start_time).toLocaleTimeString(getLocale(), {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">{t('maintenance.elapsedTime')}</p>
+                          <p className={`font-medium ${elapsed.isLong ? 'text-red-600' : ''}`}>
+                            {elapsed.text}
+                          </p>
+                        </div>
+                        <Button size="sm" onClick={() => handleComplete(record)}>
+                          {t('maintenance.completeProcess')}
+                        </Button>
                       </div>
-                      <Button size="sm" onClick={() => handleComplete(record)}>
-                        {t('maintenance.completeProcess')}
-                      </Button>
                     </div>
                   </div>
                 )
@@ -352,41 +462,41 @@ export default function MaintenanceMonitorPage() {
 
       {/* 금일 완료 목록 */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
             {t('maintenance.todayCompletedRepairs')}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
           {todayCompletedRecords.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
+            <div className="py-8 text-center text-sm sm:text-base text-muted-foreground">
               {t('maintenance.noTodayCompleted')}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {todayCompletedRecords.slice(0, 10).map((record) => (
                 <div
                   key={record.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border p-3 gap-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <div>
-                      <p className="font-medium">{record.equipment?.equipment_code}</p>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{record.equipment?.equipment_code}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
                         {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : ''} - {record.technician?.name}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm ml-6 sm:ml-0">
                     <div>
                       <span className="text-muted-foreground">{t('maintenance.durationLabel')}: </span>
                       <span className="font-medium">{record.duration_minutes}{t('maintenance.minuteUnit')}</span>
                     </div>
                     {record.rating && (
                       <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
                         <span className="font-medium">{record.rating}</span>
                       </div>
                     )}
@@ -400,23 +510,26 @@ export default function MaintenanceMonitorPage() {
 
       {/* 완료 처리 모달 */}
       {showCompleteModal && selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-lg">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{t('maintenance.completeModal')}</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowCompleteModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
+          <Card className="w-full sm:max-w-lg max-h-[90vh] overflow-auto rounded-b-none sm:rounded-b-lg">
+            <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 sticky top-0 bg-card z-10 border-b">
+              <CardTitle className="text-base sm:text-lg">{t('maintenance.completeModal')}</CardTitle>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowCompleteModal(false)}>
                 ✕
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg bg-muted p-4">
-                <p className="font-medium">{selectedRecord.equipment?.equipment_code}</p>
-                <p className="text-sm text-muted-foreground">
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="rounded-lg bg-muted p-3 sm:p-4">
+                <p className="font-medium text-sm sm:text-base">{selectedRecord.equipment?.equipment_code}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {selectedRecord.repair_type?.code ? getRepairTypeLabel(selectedRecord.repair_type.code) : ''} - {selectedRecord.technician?.name}
                 </p>
-                <p className="mt-1 text-sm">
-                  {t('maintenance.startLabel')}:{' '}
-                  {new Date(selectedRecord.start_time).toLocaleTimeString(getLocale(), {
+                <p className="mt-1 text-xs sm:text-sm">
+                  {t('maintenance.startDateTime')}:{' '}
+                  {new Date(selectedRecord.start_time).toLocaleString(getLocale(), {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
@@ -424,10 +537,11 @@ export default function MaintenanceMonitorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endTime">{t('maintenance.endTime')}</Label>
+                <Label htmlFor="endTime" className="text-sm">{t('maintenance.endTime')}</Label>
                 <Input
                   id="endTime"
                   type="datetime-local"
+                  className="h-9 sm:h-10 text-sm"
                   value={completeForm.end_time}
                   onChange={(e) =>
                     setCompleteForm((prev) => ({ ...prev, end_time: e.target.value }))
@@ -436,10 +550,10 @@ export default function MaintenanceMonitorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="repairContent">{t('maintenance.repairContent')}</Label>
+                <Label htmlFor="repairContent" className="text-sm">{t('maintenance.repairContent')}</Label>
                 <textarea
                   id="repairContent"
-                  className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex min-h-[80px] sm:min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder={t('maintenance.repairContentPlaceholder')}
                   value={completeForm.repair_content}
                   onChange={(e) =>
@@ -449,13 +563,13 @@ export default function MaintenanceMonitorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>{t('maintenance.ratingLabel')}</Label>
-                <div className="flex items-center gap-2">
+                <Label className="text-sm">{t('maintenance.ratingLabel')}</Label>
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                   {Array.from({ length: 10 }, (_, i) => (
                     <button
                       key={i + 1}
                       type="button"
-                      className={`flex h-8 w-8 items-center justify-center rounded ${
+                      className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded text-xs sm:text-sm ${
                         completeForm.rating >= i + 1
                           ? 'bg-yellow-400 text-white'
                           : 'bg-gray-200 text-gray-500'
@@ -468,11 +582,11 @@ export default function MaintenanceMonitorPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setShowCompleteModal(false)}>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowCompleteModal(false)} className="h-9 sm:h-10">
                   {t('common.cancel')}
                 </Button>
-                <Button onClick={handleSubmitComplete} disabled={submitting}>
+                <Button onClick={handleSubmitComplete} disabled={submitting} className="h-9 sm:h-10">
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

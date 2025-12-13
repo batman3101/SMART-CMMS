@@ -255,42 +255,43 @@ export default function MaintenanceHistoryPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t('maintenance.history')}</h1>
-          <p className="text-sm text-muted-foreground">{t('maintenance.historyCount', { count: filteredRecords.length })}</p>
+          <h1 className="text-xl sm:text-2xl font-bold">{t('maintenance.history')}</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">{t('maintenance.historyCount', { count: filteredRecords.length })}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {t('common.refresh')}
+          <Button variant="outline" size="sm" onClick={handleRefresh} className="h-9 px-3">
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            {t('common.export')}
+          <Button variant="outline" size="sm" onClick={handleExport} className="h-9 px-3">
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('common.export')}</span>
           </Button>
         </div>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex gap-2">
+        <CardContent className="p-3 sm:p-6">
+          <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-4">
+            {/* 날짜 필터 */}
+            <div className="flex gap-2 items-center">
               <Input
                 type="date"
-                className="w-[150px]"
+                className="flex-1 sm:w-[130px] h-9 text-sm"
                 value={startDate}
                 onChange={(e) => {
                   setStartDate(e.target.value)
                   setCurrentPage(1)
                 }}
               />
-              <span className="self-center">~</span>
+              <span className="text-muted-foreground text-sm">~</span>
               <Input
                 type="date"
-                className="w-[150px]"
+                className="flex-1 sm:w-[130px] h-9 text-sm"
                 value={endDate}
                 onChange={(e) => {
                   setEndDate(e.target.value)
@@ -298,70 +299,134 @@ export default function MaintenanceHistoryPage() {
                 }}
               />
             </div>
-            <Select
-              className="w-[150px]"
-              value={repairTypeFilter}
-              onChange={(e) => {
-                setRepairTypeFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-            >
-              <option value="">{t('maintenance.repairType')}</option>
-              {repairTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              className="w-[150px]"
-              value={technicianFilter}
-              onChange={(e) => {
-                setTechnicianFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-            >
-              <option value="">{t('maintenance.technician')}</option>
-              {technicians.map((tech) => (
-                <option key={tech.id} value={tech.id}>
-                  {tech.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              className="w-[150px]"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as 'in_progress' | 'completed' | '')
-                setCurrentPage(1)
-              }}
-            >
-              <option value="">{t('equipment.status')}</option>
-              <option value="in_progress">{t('maintenance.statusInProgress')}</option>
-              <option value="completed">{t('maintenance.statusCompleted')}</option>
-            </Select>
-            <div className="relative min-w-[200px] flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={t('common.search')}
-                className="pl-9"
-                value={search}
+
+            {/* 셀렉트 필터들 */}
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-4">
+              <Select
+                className="h-9 text-sm sm:w-[130px]"
+                value={repairTypeFilter}
                 onChange={(e) => {
-                  setSearch(e.target.value)
+                  setRepairTypeFilter(e.target.value)
                   setCurrentPage(1)
                 }}
-              />
+              >
+                <option value="">{t('maintenance.repairType')}</option>
+                {repairTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                className="h-9 text-sm sm:w-[130px]"
+                value={technicianFilter}
+                onChange={(e) => {
+                  setTechnicianFilter(e.target.value)
+                  setCurrentPage(1)
+                }}
+              >
+                <option value="">{t('maintenance.technician')}</option>
+                {technicians.map((tech) => (
+                  <option key={tech.id} value={tech.id}>
+                    {tech.name}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                className="h-9 text-sm sm:w-[130px]"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as 'in_progress' | 'completed' | '')
+                  setCurrentPage(1)
+                }}
+              >
+                <option value="">{t('equipment.status')}</option>
+                <option value="in_progress">{t('maintenance.statusInProgress')}</option>
+                <option value="completed">{t('maintenance.statusCompleted')}</option>
+              </Select>
             </div>
-            <Button variant="outline" onClick={handleResetFilters}>
-              <Filter className="mr-2 h-4 w-4" />
-              {t('common.reset')}
-            </Button>
+
+            {/* 검색 + 리셋 */}
+            <div className="flex gap-2 sm:flex-1">
+              <div className="relative flex-1 sm:min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={t('common.search')}
+                  className="pl-9 h-9 text-sm"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    setCurrentPage(1)
+                  }}
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={handleResetFilters} className="h-9 px-3">
+                <Filter className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('common.reset')}</span>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* History Table */}
-      <Card>
+      {/* 모바일 카드 뷰 */}
+      <div className="md:hidden space-y-3">
+        {paginatedRecords.map((record) => (
+          <Card key={record.id} className="overflow-hidden" onClick={() => setSelectedRecord(record)}>
+            <CardContent className="p-3">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm">{record.record_no}</span>
+                  <Badge
+                    style={{
+                      backgroundColor: record.repair_type?.color || '#gray',
+                      color: 'white',
+                    }}
+                    className="text-xs"
+                  >
+                    {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : '-'}
+                  </Badge>
+                  <Badge variant={record.status === 'completed' ? 'success' : 'warning'} className="text-xs">
+                    {record.status === 'completed'
+                      ? t('maintenance.statusCompleted')
+                      : t('maintenance.statusInProgress')}
+                  </Badge>
+                </div>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground truncate mb-2">
+                {record.equipment?.equipment_code} - {getEquipmentName(record.equipment)}
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>{formatDate(record.date)}</span>
+                <span>{formatTime(record.start_time)} ~ {record.end_time ? formatTime(record.end_time) : '-'}</span>
+                {record.duration_minutes && (
+                  <span>{record.duration_minutes}{t('maintenance.minuteUnit')}</span>
+                )}
+                <span>{record.technician?.name}</span>
+                {record.rating && (
+                  <span className="flex items-center gap-1">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    {record.rating}
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {paginatedRecords.length === 0 && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              {t('common.noSearchResults')}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* 데스크톱 테이블 */}
+      <Card className="hidden md:block">
         <CardContent className="pt-6">
           <Table>
             <TableHeader>
@@ -501,115 +566,123 @@ export default function MaintenanceHistoryPage() {
               )}
             </TableBody>
           </Table>
-
-          {/* 페이지네이션 */}
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{' '}
-                {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords.length)} /{' '}
-                {filteredRecords.length}
-              </p>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum
-                  if (totalPages <= 5) {
-                    pageNum = i + 1
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i
-                  } else {
-                    pageNum = currentPage - 2 + i
-                  }
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={currentPage === pageNum ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setCurrentPage(pageNum)}
-                    >
-                      {pageNum}
-                    </Button>
-                  )
-                })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+            {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{' '}
+            {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords.length)} /{' '}
+            {filteredRecords.length}
+          </p>
+          <div className="flex justify-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="flex items-center px-2 sm:hidden text-xs">
+              {currentPage} / {totalPages}
+            </span>
+            <div className="hidden sm:flex gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                )
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 상세 정보 모달 */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-auto">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{t('maintenance.repairDetail')}</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedRecord(null)}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
+          <Card className="w-full sm:max-w-2xl max-h-[90vh] overflow-auto rounded-b-none sm:rounded-b-lg">
+            <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 sticky top-0 bg-card z-10 border-b">
+              <CardTitle className="text-base sm:text-lg">{t('maintenance.repairDetail')}</CardTitle>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSelectedRecord(null)}>
                 ✕
               </Button>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
               {/* 기본 정보 */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('maintenance.recordNo')}</p>
-                  <p className="font-medium">{selectedRecord.record_no}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('maintenance.recordNo')}</p>
+                  <p className="font-medium text-sm sm:text-base">{selectedRecord.record_no}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('maintenance.date')}</p>
-                  <p className="font-medium">{formatDate(selectedRecord.date)}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('maintenance.date')}</p>
+                  <p className="font-medium text-sm sm:text-base">{formatDate(selectedRecord.date)}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('maintenance.equipmentInfo')}</p>
-                  <p className="font-medium">
+                <div className="col-span-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('maintenance.equipmentInfo')}</p>
+                  <p className="font-medium text-sm sm:text-base">
                     {selectedRecord.equipment?.equipment_code} -{' '}
                     {getEquipmentName(selectedRecord.equipment)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('maintenance.repairType')}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('maintenance.repairType')}</p>
                   <Badge
                     style={{
                       backgroundColor: selectedRecord.repair_type?.color || '#gray',
                       color: 'white',
                     }}
+                    className="text-xs"
                   >
                     {selectedRecord.repair_type?.code ? getRepairTypeLabel(selectedRecord.repair_type.code) : ''}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('maintenance.technician')}</p>
-                  <p className="font-medium">{selectedRecord.technician?.name}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('maintenance.technician')}</p>
+                  <p className="font-medium text-sm sm:text-base">{selectedRecord.technician?.name}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('equipment.status')}</p>
-                  <Badge variant={selectedRecord.status === 'completed' ? 'success' : 'warning'}>
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('equipment.status')}</p>
+                  <Badge variant={selectedRecord.status === 'completed' ? 'success' : 'warning'} className="text-xs">
                     {selectedRecord.status === 'completed' ? t('maintenance.statusCompleted') : t('maintenance.statusInProgress')}
                   </Badge>
                 </div>
               </div>
 
               {/* 시간 정보 */}
-              <div className="rounded-lg bg-muted p-4">
-                <h4 className="mb-2 font-medium">{t('maintenance.timeInfo')}</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="rounded-lg bg-muted p-3 sm:p-4">
+                <h4 className="mb-2 font-medium text-sm sm:text-base">{t('maintenance.timeInfo')}</h4>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
                   <div>
                     <p className="text-muted-foreground">{t('maintenance.startTime')}</p>
                     <p className="font-medium">{formatTime(selectedRecord.start_time)}</p>
@@ -634,34 +707,34 @@ export default function MaintenanceHistoryPage() {
               {/* 증상 및 수리 내용 */}
               {selectedRecord.symptom && (
                 <div>
-                  <h4 className="mb-2 font-medium">{t('maintenance.symptom')}</h4>
-                  <p className="rounded-lg border p-3 text-sm">{selectedRecord.symptom}</p>
+                  <h4 className="mb-2 font-medium text-sm sm:text-base">{t('maintenance.symptom')}</h4>
+                  <p className="rounded-lg border p-2 sm:p-3 text-xs sm:text-sm">{selectedRecord.symptom}</p>
                 </div>
               )}
 
               {selectedRecord.repair_content && (
                 <div>
-                  <h4 className="mb-2 font-medium">{t('maintenance.repairContent')}</h4>
-                  <p className="rounded-lg border p-3 text-sm">{selectedRecord.repair_content}</p>
+                  <h4 className="mb-2 font-medium text-sm sm:text-base">{t('maintenance.repairContent')}</h4>
+                  <p className="rounded-lg border p-2 sm:p-3 text-xs sm:text-sm">{selectedRecord.repair_content}</p>
                 </div>
               )}
 
               {/* 평점 */}
               {selectedRecord.rating && (
                 <div>
-                  <h4 className="mb-2 font-medium">{t('maintenance.rating')}</h4>
-                  <div className="flex items-center gap-2">
+                  <h4 className="mb-2 font-medium text-sm sm:text-base">{t('maintenance.rating')}</h4>
+                  <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                     {Array.from({ length: 10 }, (_, i) => (
                       <Star
                         key={i}
-                        className={`h-5 w-5 ${
+                        className={`h-4 w-4 sm:h-5 sm:w-5 ${
                           i < selectedRecord.rating!
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-gray-300'
                         }`}
                       />
                     ))}
-                    <span className="ml-2 font-bold">{selectedRecord.rating}/10</span>
+                    <span className="ml-1 sm:ml-2 font-bold text-sm sm:text-base">{selectedRecord.rating}/10</span>
                   </div>
                 </div>
               )}

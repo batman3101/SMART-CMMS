@@ -454,48 +454,48 @@ export default function PMTemplatesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{t('pm.templates')}</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold">{t('pm.templates')}</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {t('pm.templateCount')}: {filteredTemplates.length}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchTemplates}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {t('common.refresh')}
+          <Button variant="outline" size="sm" onClick={fetchTemplates} className="h-9 px-3">
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadDialogOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            {t('pm.bulkUpload')}
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadDialogOpen(true)} className="h-9 px-3">
+            <Upload className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('pm.bulkUpload')}</span>
           </Button>
-          <Button size="sm" onClick={openCreateDialog}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t('pm.createTemplate')}
+          <Button size="sm" onClick={openCreateDialog} className="h-9 px-3">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('pm.createTemplate')}</span>
           </Button>
         </div>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="min-w-[200px] flex-1">
+        <CardContent className="p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder={t('common.search')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-9 sm:h-10"
                 />
               </div>
             </div>
             <Select
-              className="w-[200px]"
+              className="w-full sm:w-[200px] h-9 sm:h-10"
               value={equipmentTypeFilter}
               onChange={(e) => setEquipmentTypeFilter(e.target.value)}
             >
@@ -512,132 +512,220 @@ export default function PMTemplatesPage() {
 
       {/* Table */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="p-3 sm:p-6">
           {loading ? (
-            <div className="flex h-64 items-center justify-center">
-              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex h-48 sm:h-64 items-center justify-center">
+              <RefreshCw className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('pm.templateName')}</TableHead>
-                  <TableHead>{t('equipment.equipmentType')}</TableHead>
-                  <TableHead>{t('pm.pmInterval')}</TableHead>
-                  <TableHead className="text-center">{t('pm.checklistItems')}</TableHead>
-                  <TableHead>{t('pm.estimatedDuration')}</TableHead>
-                  <TableHead className="text-center">{t('equipment.status')}</TableHead>
-                  <TableHead className="w-[150px] text-center">{t('common.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* 모바일 카드 뷰 */}
+              <div className="md:hidden space-y-3">
                 {filteredTemplates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{getLocalizedTemplateName(template)}</p>
-                        {getLocalizedDescription(template) && (
-                          <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                            {getLocalizedDescription(template)}
-                          </p>
-                        )}
+                  <Card key={template.id} className="overflow-hidden">
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{getLocalizedTemplateName(template)}</p>
+                          {getLocalizedDescription(template) && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {getLocalizedDescription(template)}
+                            </p>
+                          )}
+                        </div>
+                        <Badge
+                          variant={template.is_active ? 'success' : 'secondary'}
+                          className="cursor-pointer text-xs shrink-0"
+                          onClick={() => toggleTemplateActive(template)}
+                        >
+                          {template.is_active ? t('common.active') : t('common.inactive')}
+                        </Badge>
                       </div>
-                    </TableCell>
-                    <TableCell>{getEquipmentTypeName(template.equipment_type_id)}</TableCell>
-                    <TableCell>
-                      {getIntervalLabel(template.interval_type, template.interval_value)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline">{template.checklist_items.length}</Badge>
-                    </TableCell>
-                    <TableCell>{template.estimated_duration} {t('pm.minutes')}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={template.is_active ? 'success' : 'secondary'}
-                        className="cursor-pointer"
-                        onClick={() => toggleTemplateActive(template)}
-                      >
-                        {template.is_active ? t('common.active') : t('common.inactive')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
+                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
+                        <div>
+                          <span className="text-muted-foreground/70">{t('equipment.equipmentType')}: </span>
+                          <span>{getEquipmentTypeName(template.equipment_type_id)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground/70">{t('pm.pmInterval')}: </span>
+                          <span>{getIntervalLabel(template.interval_type, template.interval_value)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground/70">{t('pm.checklistItems')}: </span>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{template.checklist_items.length}</Badge>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground/70">{t('pm.estimatedDuration')}: </span>
+                          <span>{template.estimated_duration} {t('pm.minutes')}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-1 border-t pt-2">
                         <Button
-                          size="icon"
+                          size="sm"
                           variant="ghost"
                           onClick={() => openEditDialog(template)}
-                          title={t('common.edit')}
+                          className="h-8 px-2"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-3.5 w-3.5 mr-1" />
+                          <span className="text-xs">{t('common.edit')}</span>
                         </Button>
                         <Button
-                          size="icon"
+                          size="sm"
                           variant="ghost"
                           onClick={() => openDuplicateDialog(template)}
-                          title={t('common.duplicate')}
+                          className="h-8 px-2"
                         >
-                          <Copy className="h-4 w-4" />
+                          <Copy className="h-3.5 w-3.5 mr-1" />
+                          <span className="text-xs">{t('common.duplicate')}</span>
                         </Button>
                         <Button
-                          size="icon"
+                          size="sm"
                           variant="ghost"
                           onClick={() => {
                             setTemplateToDelete(template)
                             setIsDeleteDialogOpen(true)
                           }}
-                          title={t('common.delete')}
+                          className="h-8 px-2"
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </CardContent>
+                  </Card>
                 ))}
                 {filteredTemplates.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                      {t('common.noSearchResults')}
-                    </TableCell>
-                  </TableRow>
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    {t('common.noSearchResults')}
+                  </div>
                 )}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* 데스크톱 테이블 뷰 */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('pm.templateName')}</TableHead>
+                      <TableHead>{t('equipment.equipmentType')}</TableHead>
+                      <TableHead>{t('pm.pmInterval')}</TableHead>
+                      <TableHead className="text-center">{t('pm.checklistItems')}</TableHead>
+                      <TableHead>{t('pm.estimatedDuration')}</TableHead>
+                      <TableHead className="text-center">{t('equipment.status')}</TableHead>
+                      <TableHead className="w-[150px] text-center">{t('common.actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTemplates.map((template) => (
+                      <TableRow key={template.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{getLocalizedTemplateName(template)}</p>
+                            {getLocalizedDescription(template) && (
+                              <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                                {getLocalizedDescription(template)}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getEquipmentTypeName(template.equipment_type_id)}</TableCell>
+                        <TableCell>
+                          {getIntervalLabel(template.interval_type, template.interval_value)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline">{template.checklist_items.length}</Badge>
+                        </TableCell>
+                        <TableCell>{template.estimated_duration} {t('pm.minutes')}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={template.is_active ? 'success' : 'secondary'}
+                            className="cursor-pointer"
+                            onClick={() => toggleTemplateActive(template)}
+                          >
+                            {template.is_active ? t('common.active') : t('common.inactive')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => openEditDialog(template)}
+                              title={t('common.edit')}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => openDuplicateDialog(template)}
+                              title={t('common.duplicate')}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setTemplateToDelete(template)
+                                setIsDeleteDialogOpen(true)
+                              }}
+                              title={t('common.delete')}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredTemplates.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                          {t('common.noSearchResults')}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-2xl max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {editingTemplate ? t('pm.editTemplate') : t('pm.createTemplate')}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {editingTemplate
                 ? t('pm.editTemplateDesc')
                 : t('pm.createTemplateDesc')}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             {/* Basic Info */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('pm.templateName')} *</label>
+            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">{t('pm.templateName')} *</label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder={t('pm.templateNamePlaceholder')}
+                  className="h-9 sm:h-10"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('equipment.equipmentType')} *</label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">{t('equipment.equipmentType')} *</label>
                 <Select
                   value={formData.equipment_type_id}
                   onChange={(e) =>
                     setFormData({ ...formData, equipment_type_id: e.target.value })
                   }
+                  className="h-9 sm:h-10"
                 >
                   <option value="">{t('pm.selectEquipmentType')}</option>
                   {equipmentTypes.map((type) => (
@@ -649,25 +737,27 @@ export default function PMTemplatesPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('pm.templateDescription')}</label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-xs sm:text-sm font-medium">{t('pm.templateDescription')}</label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder={t('pm.templateDescriptionPlaceholder')}
                 rows={2}
+                className="text-sm"
               />
             </div>
 
             {/* Interval Settings */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('pm.intervalType')} *</label>
+            <div className="grid gap-3 sm:gap-4 grid-cols-3">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">{t('pm.intervalType')} *</label>
                 <Select
                   value={formData.interval_type}
                   onChange={(e) =>
                     setFormData({ ...formData, interval_type: e.target.value as PMIntervalType })
                   }
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 >
                   <option value="daily">{t('pm.intervalDaily')}</option>
                   <option value="weekly">{t('pm.intervalWeekly')}</option>
@@ -676,8 +766,8 @@ export default function PMTemplatesPage() {
                   <option value="yearly">{t('pm.intervalYearly')}</option>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('pm.intervalValue')} *</label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">{t('pm.intervalValue')} *</label>
                 <Input
                   type="number"
                   min={1}
@@ -685,10 +775,11 @@ export default function PMTemplatesPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, interval_value: parseInt(e.target.value) || 1 })
                   }
+                  className="h-9 sm:h-10"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('pm.estimatedDuration')} ({t('pm.minutes')})</label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium truncate">{t('pm.estimatedDuration')}</label>
                 <Input
                   type="number"
                   min={1}
@@ -699,21 +790,23 @@ export default function PMTemplatesPage() {
                       estimated_duration: parseInt(e.target.value) || 60,
                     })
                   }
+                  className="h-9 sm:h-10"
                 />
               </div>
             </div>
 
             {/* Checklist */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium">{t('pm.checklist')}</label>
+            <div className="space-y-2 sm:space-y-3">
+              <label className="text-xs sm:text-sm font-medium">{t('pm.checklist')}</label>
               <div className="flex gap-2">
                 <Input
                   value={newItemDescription}
                   onChange={(e) => setNewItemDescription(e.target.value)}
                   placeholder={t('pm.checklistItemPlaceholder')}
                   onKeyPress={(e) => e.key === 'Enter' && addChecklistItem()}
+                  className="h-9 sm:h-10 text-sm"
                 />
-                <Button type="button" onClick={addChecklistItem}>
+                <Button type="button" onClick={addChecklistItem} className="h-9 sm:h-10 px-3">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -723,52 +816,55 @@ export default function PMTemplatesPage() {
                   {checklistItems.map((item, index) => (
                     <div
                       key={item.id}
-                      className={`flex items-center justify-between p-3 ${
+                      className={`flex items-center justify-between p-2 sm:p-3 ${
                         index !== checklistItems.length - 1 ? 'border-b' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground">{index + 1}.</span>
-                        <span className="text-sm">{item.description}</span>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <span className="text-xs sm:text-sm text-muted-foreground shrink-0">{index + 1}.</span>
+                        <span className="text-xs sm:text-sm truncate">{item.description}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => toggleItemRequired(item.id)}
                           title={item.is_required ? t('pm.required') : t('pm.optional')}
+                          className="h-7 w-7 sm:h-8 sm:w-8"
                         >
                           {item.is_required ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
                           ) : (
-                            <XCircle className="h-4 w-4 text-gray-400" />
+                            <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
                           )}
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={() => removeChecklistItem(item.id)}
+                          className="h-7 w-7 sm:h-8 sm:w-8"
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive" />
                         </Button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 {t('pm.checklistRequiredHint')}
               </p>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="h-9 sm:h-10">
               {t('common.cancel')}
             </Button>
             <Button
               onClick={handleSave}
               disabled={!formData.name || !formData.equipment_type_id}
+              className="h-9 sm:h-10"
             >
               {editingTemplate ? t('common.save') : t('common.create')}
             </Button>
@@ -778,18 +874,18 @@ export default function PMTemplatesPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>{t('pm.deleteTemplate')}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">{t('pm.deleteTemplate')}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               {t('pm.deleteTemplateConfirm', { name: templateToDelete?.name })}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="h-9 sm:h-10">
               {t('common.cancel')}
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button variant="destructive" onClick={handleDelete} className="h-9 sm:h-10">
               {t('common.delete')}
             </Button>
           </DialogFooter>
@@ -798,69 +894,69 @@ export default function PMTemplatesPage() {
 
       {/* Bulk Upload Dialog */}
       <Dialog open={isBulkUploadDialogOpen} onOpenChange={closeBulkUploadDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-3xl max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <FileSpreadsheet className="h-4 w-4 sm:h-5 sm:w-5" />
               {t('pm.bulkUpload')}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {t('pm.bulkUploadDesc')}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-4 sm:space-y-6 py-3 sm:py-4">
             {/* Language Selection */}
-            <div className="space-y-3">
-              <h3 className="font-medium">{t('pm.selectLanguage')}</h3>
+            <div className="space-y-2 sm:space-y-3">
+              <h3 className="text-sm sm:font-medium">{t('pm.selectLanguage')}</h3>
               <div className="flex gap-2">
                 <Button
                   variant={selectedLanguage === 'ko' ? 'default' : 'outline'}
                   onClick={() => setSelectedLanguage('ko')}
-                  className="flex-1"
+                  className="flex-1 h-9 sm:h-10 text-xs sm:text-sm"
                 >
                   🇰🇷 한국어
                 </Button>
                 <Button
                   variant={selectedLanguage === 'vi' ? 'default' : 'outline'}
                   onClick={() => setSelectedLanguage('vi')}
-                  className="flex-1"
+                  className="flex-1 h-9 sm:h-10 text-xs sm:text-sm"
                 >
                   🇻🇳 Tiếng Việt
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {t('pm.selectLanguageHint')}
               </p>
             </div>
 
             {/* Step 1: Download Template */}
-            <div className="space-y-3">
-              <h3 className="font-medium flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">1</span>
+            <div className="space-y-2 sm:space-y-3">
+              <h3 className="text-sm sm:font-medium flex items-center gap-2">
+                <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-primary text-[10px] sm:text-xs text-primary-foreground">1</span>
                 {t('pm.downloadExcelTemplate')}
               </h3>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleDownloadTemplate}>
-                  <Download className="mr-2 h-4 w-4" />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={handleDownloadTemplate} className="h-9 sm:h-10 text-xs sm:text-sm">
+                  <Download className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {t('pm.downloadTemplate')} ({selectedLanguage === 'ko' ? '한국어' : 'Tiếng Việt'})
                 </Button>
                 {templates.length > 0 && (
-                  <Button variant="outline" onClick={handleExportTemplates}>
-                    <Download className="mr-2 h-4 w-4" />
+                  <Button variant="outline" onClick={handleExportTemplates} className="h-9 sm:h-10 text-xs sm:text-sm">
+                    <Download className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     {t('pm.exportExisting')} ({templates.length})
                   </Button>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {t('pm.downloadTemplateHint')}
               </p>
             </div>
 
             {/* Step 2: Upload File */}
-            <div className="space-y-3">
-              <h3 className="font-medium flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">2</span>
+            <div className="space-y-2 sm:space-y-3">
+              <h3 className="text-sm sm:font-medium flex items-center gap-2">
+                <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-primary text-[10px] sm:text-xs text-primary-foreground">2</span>
                 {t('pm.uploadExcelFile')}
               </h3>
               <div className="flex items-center gap-4">
@@ -876,11 +972,12 @@ export default function PMTemplatesPage() {
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadProcessing}
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 >
                   {uploadProcessing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                   ) : (
-                    <Upload className="mr-2 h-4 w-4" />
+                    <Upload className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   )}
                   {t('pm.selectFile')}
                 </Button>
@@ -889,24 +986,24 @@ export default function PMTemplatesPage() {
 
             {/* Step 3: Validation Results */}
             {uploadResult && (
-              <div className="space-y-3">
-                <h3 className="font-medium flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">3</span>
+              <div className="space-y-2 sm:space-y-3">
+                <h3 className="text-sm sm:font-medium flex items-center gap-2">
+                  <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-primary text-[10px] sm:text-xs text-primary-foreground">3</span>
                   {t('pm.validationResults')}
                 </h3>
 
                 {/* Errors */}
                 {uploadResult.errors.length > 0 && (
-                  <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+                  <div className="rounded-lg border border-destructive bg-destructive/10 p-3 sm:p-4">
                     <div className="flex items-center gap-2 text-destructive mb-2">
-                      <AlertTriangle className="h-5 w-5" />
-                      <span className="font-medium">
+                      <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="font-medium text-xs sm:text-sm">
                         {t('pm.validationErrors', { count: uploadResult.errors.length })}
                       </span>
                     </div>
-                    <div className="max-h-40 overflow-y-auto space-y-1">
+                    <div className="max-h-32 sm:max-h-40 overflow-y-auto space-y-1">
                       {uploadResult.errors.map((error, idx) => (
-                        <div key={idx} className="text-sm">
+                        <div key={idx} className="text-xs sm:text-sm">
                           <span className="text-muted-foreground">[{error.sheet}]</span>{' '}
                           {error.row > 0 && <span className="text-muted-foreground">{t('pm.row')} {error.row}</span>}{' '}
                           {error.column !== '-' && <span className="text-muted-foreground">{t('pm.column')} {error.column}:</span>}{' '}
@@ -919,14 +1016,28 @@ export default function PMTemplatesPage() {
 
                 {/* Success Preview */}
                 {uploadResult.templates.length > 0 && (
-                  <div className="rounded-lg border border-green-500 bg-green-50 dark:bg-green-950/20 p-4">
+                  <div className="rounded-lg border border-green-500 bg-green-50 dark:bg-green-950/20 p-3 sm:p-4">
                     <div className="flex items-center gap-2 text-green-600 mb-2">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium">
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="font-medium text-xs sm:text-sm">
                         {t('pm.validTemplates', { count: uploadResult.templates.length })}
                       </span>
                     </div>
-                    <div className="max-h-40 overflow-y-auto">
+                    {/* 모바일 카드 뷰 */}
+                    <div className="sm:hidden max-h-40 overflow-y-auto space-y-2">
+                      {uploadResult.templates.map((template, idx) => (
+                        <div key={idx} className="bg-white dark:bg-gray-800 rounded p-2 text-xs">
+                          <div className="font-medium truncate">{template.name}</div>
+                          <div className="text-muted-foreground">{template.equipment_type_code}</div>
+                          <div className="flex gap-3 mt-1">
+                            <span>{t('pm.checklistItems')}: {template.checklist_items.length}</span>
+                            <span>{t('pm.requiredParts')}: {template.required_parts.length}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* 데스크톱 테이블 */}
+                    <div className="hidden sm:block max-h-40 overflow-y-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b">
@@ -954,8 +1065,8 @@ export default function PMTemplatesPage() {
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={closeBulkUploadDialog}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={closeBulkUploadDialog} className="h-9 sm:h-10">
               {t('common.cancel')}
             </Button>
             <Button
@@ -966,11 +1077,12 @@ export default function PMTemplatesPage() {
                 uploadResult.templates.length === 0 ||
                 uploadResult.errors.length > 0
               }
+              className="h-9 sm:h-10 text-xs sm:text-sm"
             >
               {uploadProcessing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
               ) : (
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
               )}
               {t('pm.uploadAndCreate', { count: uploadResult?.templates.length || 0 })}
             </Button>

@@ -134,51 +134,51 @@ export default function PMCalendarPage() {
     : []
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('pm.calendar')}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">{t('pm.calendar')}</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchSchedules}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {t('common.refresh')}
+          <Button variant="outline" size="sm" onClick={fetchSchedules} className="h-9 px-3">
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate('/pm/schedules')}>
-            <ListTodo className="mr-2 h-4 w-4" />
-            {t('pm.listView')}
+          <Button variant="outline" size="sm" onClick={() => navigate('/pm/schedules')} className="h-9 px-3">
+            <ListTodo className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('pm.listView')}</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Calendar */}
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <Button variant="ghost" size="icon" onClick={goToPreviousMonth}>
-              <ChevronLeft className="h-5 w-5" />
+          <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={goToPreviousMonth}>
+              <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
-            <div className="flex items-center gap-4">
-              <CardTitle>{monthName}</CardTitle>
-              <Button variant="outline" size="sm" onClick={goToToday}>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <CardTitle className="text-base sm:text-lg">{monthName}</CardTitle>
+              <Button variant="outline" size="sm" onClick={goToToday} className="h-7 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm">
                 {t('notification.today')}
               </Button>
             </div>
-            <Button variant="ghost" size="icon" onClick={goToNextMonth}>
-              <ChevronRight className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={goToNextMonth}>
+              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-6 pt-0">
             {loading ? (
-              <div className="flex h-96 items-center justify-center">
-                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+              <div className="flex h-64 sm:h-96 items-center justify-center">
+                <RefreshCw className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-primary" />
               </div>
             ) : (
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                 {/* Week days header */}
                 {weekDays.map((day) => (
                   <div
                     key={day}
-                    className="py-2 text-center text-sm font-medium text-muted-foreground"
+                    className="py-1 sm:py-2 text-center text-xs sm:text-sm font-medium text-muted-foreground"
                   >
                     {day}
                   </div>
@@ -188,7 +188,7 @@ export default function PMCalendarPage() {
                 {calendarDays.map((day, index) => (
                   <div
                     key={index}
-                    className={`min-h-[100px] cursor-pointer rounded-lg border p-1 transition-colors hover:bg-muted/50 ${
+                    className={`min-h-[60px] sm:min-h-[100px] cursor-pointer rounded-md sm:rounded-lg border p-0.5 sm:p-1 transition-colors active:bg-muted/50 sm:hover:bg-muted/50 ${
                       !day.isCurrentMonth ? 'opacity-40' : ''
                     } ${day.isToday ? 'border-primary bg-primary/5' : ''} ${
                       selectedDate === day.dateString ? 'ring-2 ring-primary' : ''
@@ -196,17 +196,17 @@ export default function PMCalendarPage() {
                     onClick={() => setSelectedDate(day.dateString)}
                   >
                     <div
-                      className={`mb-1 text-sm font-medium ${
+                      className={`mb-0.5 sm:mb-1 text-xs sm:text-sm font-medium ${
                         day.isToday ? 'text-primary' : ''
                       }`}
                     >
                       {day.date.getDate()}
                     </div>
-                    <div className="space-y-1">
-                      {day.schedules.slice(0, 3).map((schedule) => (
+                    <div className="space-y-0.5 sm:space-y-1">
+                      {day.schedules.slice(0, window.innerWidth < 640 ? 2 : 3).map((schedule) => (
                         <div
                           key={schedule.id}
-                          className={`truncate rounded px-1 py-0.5 text-xs ${getStatusColor(
+                          className={`truncate rounded px-0.5 sm:px-1 py-0.5 text-[10px] sm:text-xs ${getStatusColor(
                             schedule.status
                           )}`}
                           title={`${schedule.equipment?.equipment_code} - ${schedule.template?.name}`}
@@ -214,9 +214,9 @@ export default function PMCalendarPage() {
                           {schedule.equipment?.equipment_code}
                         </div>
                       ))}
-                      {day.schedules.length > 3 && (
-                        <div className="text-xs text-muted-foreground">
-                          +{day.schedules.length - 3}
+                      {day.schedules.length > (window.innerWidth < 640 ? 2 : 3) && (
+                        <div className="text-[10px] sm:text-xs text-muted-foreground">
+                          +{day.schedules.length - (window.innerWidth < 640 ? 2 : 3)}
                         </div>
                       )}
                     </div>
@@ -229,8 +229,8 @@ export default function PMCalendarPage() {
 
         {/* Selected Date Details */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">
               {selectedDate
                 ? (() => {
                     // selectedDate는 "YYYY-MM-DD" 형식 - parseLocalDate로 안전하게 파싱
@@ -243,22 +243,22 @@ export default function PMCalendarPage() {
                 : t('pm.scheduledDate')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             {!selectedDate ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {t('pm.selectScheduleToStartDesc')}
               </p>
             ) : selectedDateSchedules.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('pm.noPMToday')}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{t('pm.noPMToday')}</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {selectedDateSchedules.map((schedule) => (
                   <div
                     key={schedule.id}
-                    className="rounded-lg border p-3"
+                    className="rounded-lg border p-2 sm:p-3"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-sm sm:text-base truncate">
                         {schedule.equipment?.equipment_code}
                       </span>
                       <Badge
@@ -275,24 +275,24 @@ export default function PMCalendarPage() {
                         {t(`pm.status${schedule.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('')}`)}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
                       {schedule.equipment?.equipment_name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                       {schedule.template?.name}
                     </p>
                     {schedule.assigned_technician && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
                         {t('pm.assignedTechnician')}: {schedule.assigned_technician.name}
                       </p>
                     )}
                     {(schedule.status === 'scheduled' || schedule.status === 'overdue') && (
                       <Button
                         size="sm"
-                        className="mt-2 w-full"
+                        className="mt-2 w-full h-8 sm:h-9 text-xs sm:text-sm"
                         onClick={() => navigate(`/pm/execution?schedule=${schedule.id}`)}
                       >
-                        <Play className="mr-2 h-4 w-4" />
+                        <Play className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         {t('pm.startPM')}
                       </Button>
                     )}
@@ -306,27 +306,27 @@ export default function PMCalendarPage() {
 
       {/* Legend */}
       <Card>
-        <CardContent className="py-4">
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded bg-blue-100 border border-blue-300" />
-              <span className="text-sm">{t('pm.statusScheduled')}</span>
+        <CardContent className="py-3 sm:py-4 px-3 sm:px-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="h-3 w-3 sm:h-4 sm:w-4 rounded bg-blue-100 border border-blue-300" />
+              <span className="text-xs sm:text-sm">{t('pm.statusScheduled')}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded bg-yellow-100 border border-yellow-300" />
-              <span className="text-sm">{t('pm.statusInProgress')}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="h-3 w-3 sm:h-4 sm:w-4 rounded bg-yellow-100 border border-yellow-300" />
+              <span className="text-xs sm:text-sm">{t('pm.statusInProgress')}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded bg-green-100 border border-green-300" />
-              <span className="text-sm">{t('pm.statusCompleted')}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="h-3 w-3 sm:h-4 sm:w-4 rounded bg-green-100 border border-green-300" />
+              <span className="text-xs sm:text-sm">{t('pm.statusCompleted')}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded bg-red-100 border border-red-300" />
-              <span className="text-sm">{t('pm.statusOverdue')}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="h-3 w-3 sm:h-4 sm:w-4 rounded bg-red-100 border border-red-300" />
+              <span className="text-xs sm:text-sm">{t('pm.statusOverdue')}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded bg-gray-100 border border-gray-300" />
-              <span className="text-sm">{t('pm.statusCancelled')}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="h-3 w-3 sm:h-4 sm:w-4 rounded bg-gray-100 border border-gray-300" />
+              <span className="text-xs sm:text-sm">{t('pm.statusCancelled')}</span>
             </div>
           </div>
         </CardContent>

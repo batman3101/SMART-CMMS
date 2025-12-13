@@ -1730,9 +1730,33 @@ export const pmApi = {
       .single()
 
     const completedAt = new Date().toISOString()
-    const durationMinutes = execution?.started_at
-      ? Math.round((new Date(completedAt).getTime() - new Date(execution.started_at).getTime()) / (1000 * 60))
-      : 0
+
+    // Calculate duration with robust date parsing
+    let durationMinutes = 0
+    if (execution?.started_at) {
+      const startedAtStr = execution.started_at as string
+      let startedAtTime: Date
+
+      // Parse started_at - handle both ISO with Z and without timezone
+      if (startedAtStr.includes('Z') || startedAtStr.includes('+') || (startedAtStr.includes('-') && startedAtStr.lastIndexOf('-') > 9)) {
+        startedAtTime = new Date(startedAtStr)
+      } else {
+        // Parse as local time components
+        const cleanedStr = startedAtStr.replace(' ', 'T').slice(0, 16)
+        const [datePart, timePart] = cleanedStr.split('T')
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hour, minute] = (timePart || '00:00').split(':').map(Number)
+        startedAtTime = new Date(year, month - 1, day, hour, minute)
+      }
+
+      const completedAtTime = new Date(completedAt)
+      durationMinutes = Math.round((completedAtTime.getTime() - startedAtTime.getTime()) / (1000 * 60))
+
+      // Prevent negative duration
+      if (durationMinutes < 0) {
+        durationMinutes = 0
+      }
+    }
 
     const { data, error } = await getSupabase()
       .from('pm_executions')

@@ -192,49 +192,49 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('analytics.title')}</h1>
-        <Button variant="outline" onClick={fetchData}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          {t('common.refresh')}
+        <h1 className="text-xl sm:text-2xl font-bold">{t('analytics.title')}</h1>
+        <Button variant="outline" onClick={fetchData} size="sm" className="h-9 px-3">
+          <RefreshCw className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">{t('common.refresh')}</span>
         </Button>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap items-end gap-4">
+        <CardContent className="p-3 sm:p-6">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3 sm:gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-muted-foreground">
+              <label className="text-xs sm:text-sm font-medium text-muted-foreground">
                 {t('report.startDate')}
               </label>
               <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-[150px]"
+                className="w-full sm:w-[150px] h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-muted-foreground">
+              <label className="text-xs sm:text-sm font-medium text-muted-foreground">
                 {t('report.endDate')}
               </label>
               <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-[150px]"
+                className="w-full sm:w-[150px] h-9 sm:h-10 text-sm"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-muted-foreground">
+              <label className="text-xs sm:text-sm font-medium text-muted-foreground">
                 {t('equipment.building')}
               </label>
               <Select
                 value={building}
                 onChange={(e) => setBuilding(e.target.value)}
-                className="w-[150px]"
+                className="w-full sm:w-[150px] h-9 sm:h-10 text-sm"
               >
                 <option value="">{t('equipment.buildingAll')}</option>
                 <option value="A동">A동</option>
@@ -242,13 +242,13 @@ export default function AnalyticsPage() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-muted-foreground">
+              <label className="text-xs sm:text-sm font-medium text-muted-foreground">
                 {t('equipment.equipmentType')}
               </label>
               <Select
                 value={equipmentTypeId}
                 onChange={(e) => setEquipmentTypeId(e.target.value)}
-                className="w-[180px]"
+                className="w-full sm:w-[180px] h-9 sm:h-10 text-sm"
               >
                 <option value="">{t('common.all')}</option>
                 {equipmentTypes.map((type) => (
@@ -258,8 +258,8 @@ export default function AnalyticsPage() {
                 ))}
               </Select>
             </div>
-            <Button variant="outline" onClick={handleResetFilters}>
-              <Filter className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={handleResetFilters} size="sm" className="h-9 sm:h-10 col-span-2 sm:col-span-1">
+              <Filter className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
               {t('common.reset')}
             </Button>
           </div>
@@ -267,16 +267,16 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-5">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-                <Wrench className="h-6 w-6 text-purple-600" />
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-purple-100">
+                <Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('analytics.totalRepairs')}</p>
-                <p className="text-2xl font-bold text-purple-600">
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.totalRepairs')}</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">
                   {kpis?.totalRepairs || 0}
                 </p>
               </div>
@@ -284,53 +284,53 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-                <Clock className="h-6 w-6 text-yellow-600" />
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-yellow-100">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('analytics.mttr')}</p>
-                <p className="text-2xl font-bold text-yellow-600">{kpis?.mttr || 0}h</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                <Activity className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('analytics.availabilityRate')}</p>
-                <p className="text-2xl font-bold text-green-600">{kpis?.availability || 0}%</p>
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.mttr')}</p>
+                <p className="text-xl sm:text-2xl font-bold text-yellow-600">{kpis?.mttr || 0}h</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-100">
+                <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('analytics.emergencyRatio')}</p>
-                <p className="text-2xl font-bold text-red-600">{kpis?.emergencyRatio || 0}%</p>
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.availabilityRate')}</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600">{kpis?.availability || 0}%</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t('analytics.mtbf')}</p>
-                <p className="text-2xl font-bold text-blue-600">{kpis?.mtbf || 0}h</p>
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.emergencyRatio')}</p>
+                <p className="text-xl sm:text-2xl font-bold text-red-600">{kpis?.emergencyRatio || 0}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="col-span-2 md:col-span-1">
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-blue-100">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.mtbf')}</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">{kpis?.mtbf || 0}h</p>
               </div>
             </div>
           </CardContent>
@@ -338,18 +338,18 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
         {/* Failure by Equipment */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('analytics.failureByEquipment')}</CardTitle>
+          <CardHeader className="p-3 sm:p-6 pb-2">
+            <CardTitle className="text-sm sm:text-base">{t('analytics.failureByEquipment')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={failureRank} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="equipment_code" type="category" width={80} fontSize={12} />
+                <XAxis type="number" tick={{ fontSize: 10 }} />
+                <YAxis dataKey="equipment_code" type="category" width={60} tick={{ fontSize: 10 }} />
                 <Tooltip
                   formatter={(value: number, name: string) => [
                     name === 'failure_count'
@@ -373,20 +373,22 @@ export default function AnalyticsPage() {
 
         {/* Repair Type Distribution */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('analytics.repairTypeDistribution')}</CardTitle>
+          <CardHeader className="p-3 sm:p-6 pb-2">
+            <CardTitle className="text-sm sm:text-base">{t('analytics.repairTypeDistribution')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
+                  innerRadius={40}
+                  outerRadius={70}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={{ strokeWidth: 1 }}
+                  fontSize={10}
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -400,28 +402,28 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
         {/* Monthly Trend */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('analytics.monthlyTrend')}</CardTitle>
+          <CardHeader className="p-3 sm:p-6 pb-2">
+            <CardTitle className="text-sm sm:text-base">{t('analytics.monthlyTrend')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={monthlyTrend.map(item => ({
                 ...item,
                 month: getMonthLabel(item.monthIndex)
               }))}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
                 <Line
                   type="monotone"
                   dataKey="count"
                   stroke="#3B82F6"
-                  strokeWidth={3}
-                  dot={{ fill: '#3B82F6', strokeWidth: 2 }}
+                  strokeWidth={2}
+                  dot={{ fill: '#3B82F6', strokeWidth: 2, r: 3 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -430,15 +432,15 @@ export default function AnalyticsPage() {
 
         {/* Building Failure Stats */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('analytics.buildingFailureStats')}</CardTitle>
+          <CardHeader className="p-3 sm:p-6 pb-2">
+            <CardTitle className="text-sm sm:text-base">{t('analytics.buildingFailureStats')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={buildingStats}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="building" />
-                <YAxis />
+                <XAxis dataKey="building" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip
                   formatter={(value: number, name: string) => [
                     name === 'failure_count'
@@ -461,14 +463,14 @@ export default function AnalyticsPage() {
                 />
               </BarChart>
             </ResponsiveContainer>
-            <div className="mt-4 flex justify-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-blue-500" />
-                <span className="text-sm text-muted-foreground">{t('analytics.failureCount')}</span>
+            <div className="mt-3 sm:mt-4 flex flex-wrap justify-center gap-3 sm:gap-6">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-blue-500" />
+                <span className="text-xs sm:text-sm text-muted-foreground">{t('analytics.failureCount')}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                <span className="text-sm text-muted-foreground">{t('analytics.downtime')} ({t('analytics.minutes')})</span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-yellow-500" />
+                <span className="text-xs sm:text-sm text-muted-foreground">{t('analytics.downtime')} ({t('analytics.minutes')})</span>
               </div>
             </div>
           </CardContent>
@@ -477,11 +479,48 @@ export default function AnalyticsPage() {
 
       {/* Technician Performance */}
       <Card>
-        <CardHeader>
-          <CardTitle>{t('analytics.technicianPerformance')}</CardTitle>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-sm sm:text-base">{t('analytics.technicianPerformance')}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="p-3 sm:p-6 pt-0">
+          {/* 모바일 카드 뷰 */}
+          <div className="md:hidden space-y-3">
+            {sortedTechPerformance.map((tech) => (
+              <Card key={tech.technician_id} className="overflow-hidden">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">{tech.technician_name}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {tech.completed_count}{t('analytics.cases')}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <div>
+                      <span>{t('analytics.avgRepairTime')}: </span>
+                      <span className="font-medium">{tech.avg_repair_time}{t('analytics.minutes')}</span>
+                    </div>
+                    <div>
+                      <span className="text-yellow-500 text-sm">
+                        {'★'.repeat(Math.round(tech.avg_rating / 2))}
+                      </span>
+                      <span className="text-gray-300 text-sm">
+                        {'★'.repeat(5 - Math.round(tech.avg_rating / 2))}
+                      </span>
+                      <span className="ml-1">({tech.avg_rating})</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {sortedTechPerformance.length === 0 && (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                {t('common.noData')}
+              </div>
+            )}
+          </div>
+
+          {/* 데스크톱 테이블 뷰 */}
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -207,112 +207,115 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
-        <div className="flex gap-2">
+    <div className="space-y-4 md:space-y-6">
+      {/* 헤더: 모바일에서 세로 스택 */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl md:text-2xl font-bold">{t('dashboard.title')}</h1>
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={fetchDashboardData}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {t('common.refresh')}
+            <RefreshCw className="mr-1 md:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
           </Button>
-          <Button onClick={() => navigate('/maintenance')}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t('dashboard.startRepair')}
+          <Button size="sm" onClick={() => navigate('/maintenance')}>
+            <Plus className="mr-1 md:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">{t('dashboard.startRepair')}</span>
+            <span className="sm:hidden">{t('dashboard.repair')}</span>
           </Button>
-          <Button variant="destructive" onClick={() => navigate('/maintenance?type=EM')}>
-            <AlertTriangle className="mr-2 h-4 w-4" />
-            {t('dashboard.emergencyRepair')}
+          <Button variant="destructive" size="sm" onClick={() => navigate('/maintenance?type=EM')}>
+            <AlertTriangle className="mr-1 md:mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">{t('dashboard.emergencyRepair')}</span>
+            <span className="sm:hidden">{t('dashboard.emergency')}</span>
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Stats Cards - 모바일: 2열, 태블릿: 2열, 데스크톱: 4열 */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-              <Server className="h-6 w-6 text-blue-600" />
+          <CardContent className="flex items-center gap-2 p-3 sm:gap-4 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+              <Server className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('dashboard.totalEquipment')}</p>
-              <p className="text-2xl font-bold">{stats?.total_equipment || 0}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('dashboard.totalEquipment')}</p>
+              <p className="text-xl sm:text-2xl font-bold">{stats?.total_equipment || 0}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <PlayCircle className="h-6 w-6 text-green-600" />
+          <CardContent className="flex items-center gap-2 p-3 sm:gap-4 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
+              <PlayCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('dashboard.runningEquipment')}</p>
-              <p className="text-2xl font-bold">{stats?.running_equipment || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-              <Wrench className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('dashboard.repairEquipment')}</p>
-              <p className="text-2xl font-bold">{stats?.repair_equipment || 0}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('dashboard.runningEquipment')}</p>
+              <p className="text-xl sm:text-2xl font-bold">{stats?.running_equipment || 0}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <AlertTriangle className="h-6 w-6 text-red-600" />
+          <CardContent className="flex items-center gap-2 p-3 sm:gap-4 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-100">
+              <Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('dashboard.emergencyAlert')}</p>
-              <p className="text-2xl font-bold text-red-600">{stats?.emergency_count || 0}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('dashboard.repairEquipment')}</p>
+              <p className="text-xl sm:text-2xl font-bold">{stats?.repair_equipment || 0}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex items-center gap-2 p-3 sm:gap-4 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+              <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('dashboard.emergencyAlert')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">{stats?.emergency_count || 0}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - 모바일: 1열, 태블릿: 3열 */}
       {kpis && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 grid-cols-3 md:gap-4">
           <Card>
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">{t('analytics.mtbf')}</p>
-              <p className="text-3xl font-bold text-blue-600">{kpis.mtbf.toFixed(1)}h</p>
-              <p className="text-xs text-muted-foreground">Mean Time Between Failures</p>
+            <CardContent className="p-3 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.mtbf')}</p>
+              <p className="text-xl sm:text-3xl font-bold text-blue-600">{kpis.mtbf.toFixed(1)}h</p>
+              <p className="hidden sm:block text-xs text-muted-foreground">Mean Time Between Failures</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">{t('analytics.mttr')}</p>
-              <p className="text-3xl font-bold text-yellow-600">{kpis.mttr.toFixed(1)}h</p>
-              <p className="text-xs text-muted-foreground">Mean Time To Repair</p>
+            <CardContent className="p-3 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.mttr')}</p>
+              <p className="text-xl sm:text-3xl font-bold text-yellow-600">{kpis.mttr.toFixed(1)}h</p>
+              <p className="hidden sm:block text-xs text-muted-foreground">Mean Time To Repair</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">{t('analytics.availabilityRate')}</p>
-              <p className="text-3xl font-bold text-green-600">{kpis.availability.toFixed(1)}%</p>
-              <p className="text-xs text-muted-foreground">Equipment Availability Rate</p>
+            <CardContent className="p-3 sm:p-6">
+              <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.availabilityRate')}</p>
+              <p className="text-xl sm:text-3xl font-bold text-green-600">{kpis.availability.toFixed(1)}%</p>
+              <p className="hidden sm:block text-xs text-muted-foreground">Equipment Availability Rate</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Charts Row - 모바일: 1열, 데스크톱: 2열 */}
+      <div className="grid gap-3 md:gap-4 md:grid-cols-2">
         {/* Equipment Status Pie Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('dashboard.equipmentStatus')}</CardTitle>
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-lg">{t('dashboard.equipmentStatus')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <ResponsiveContainer width="100%" height={220} className="sm:!h-[300px]">
               <PieChart>
                 <Pie
                   data={statusDistribution.map(item => ({
@@ -321,11 +324,12 @@ export default function DashboardPage() {
                   }))}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
+                  innerRadius={40}
+                  outerRadius={70}
                   paddingAngle={2}
                   dataKey="value"
                   label={({ name, value }) => `${name}: ${value}`}
+                  labelLine={{ strokeWidth: 1 }}
                 >
                   {statusDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -339,21 +343,21 @@ export default function DashboardPage() {
 
         {/* Repair Type Bar Chart */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{t('dashboard.repairByType')}</CardTitle>
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-lg">{t('dashboard.repairByType')}</CardTitle>
             <div className="relative">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowDateFilterDropdown(!showDateFilterDropdown)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-8"
               >
-                <Calendar className="h-4 w-4" />
-                {getDateFilterLabel(repairDateFilter)}
-                <ChevronDown className="h-4 w-4" />
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="truncate max-w-[120px] sm:max-w-none">{getDateFilterLabel(repairDateFilter)}</span>
+                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
               {showDateFilterDropdown && (
-                <div className="absolute right-0 top-full z-50 mt-1 w-64 rounded-md border bg-popover p-2 shadow-lg">
+                <div className="absolute right-0 top-full z-50 mt-1 w-56 sm:w-64 rounded-md border bg-popover p-2 shadow-lg">
                   <div className="space-y-1">
                     <button
                       className={`w-full rounded px-3 py-2 text-left text-sm hover:bg-muted ${
@@ -411,8 +415,8 @@ export default function DashboardPage() {
               )}
             </div>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <ResponsiveContainer width="100%" height={220} className="sm:!h-[300px]">
               <BarChart data={repairTypeData.map(item => ({
                 ...item,
                 name: getRepairTypeLabel(item.code)
@@ -421,10 +425,10 @@ export default function DashboardPage() {
                 <XAxis
                   dataKey="name"
                   interval={0}
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 10 }}
                   tickMargin={5}
                 />
-                <YAxis />
+                <YAxis tick={{ fontSize: 10 }} width={30} />
                 <Tooltip />
                 <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -433,22 +437,22 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Trend and Recent Repairs */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Trend and Recent Repairs - 모바일: 1열, 데스크톱: 2열 */}
+      <div className="grid gap-3 md:gap-4 md:grid-cols-2">
         {/* Weekly Trend */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('dashboard.repairTrend')}</CardTitle>
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-lg">{t('dashboard.repairTrend')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <ResponsiveContainer width="100%" height={200} className="sm:!h-[250px]">
               <LineChart data={weeklyTrend.map(item => ({
                 ...item,
                 day: getDayLabel(item.dayIndex)
               }))}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} width={30} />
                 <Tooltip />
                 <Line
                   type="monotone"
@@ -464,28 +468,28 @@ export default function DashboardPage() {
 
         {/* 현재 진행 중인 수리 */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{t('dashboard.recentRepairs')}</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => navigate('/maintenance/history')}>
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-lg">{t('dashboard.recentRepairs')}</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => navigate('/maintenance/history')} className="w-fit">
               {t('dashboard.viewAll')}
             </Button>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="space-y-2 sm:space-y-3">
               {inProgressRecords.slice(0, 5).map((record) => (
                 <div
                   key={record.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
+                  className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border p-2 sm:p-3"
                 >
-                  <div>
-                    <p className="font-medium">{record.equipment?.equipment_code}</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm sm:text-base truncate">{record.equipment?.equipment_code}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
                       {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : ''} - {record.technician?.name}
                     </p>
                   </div>
                   <Badge
                     variant={record.status === 'completed' ? 'success' : 'warning'}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 w-fit text-xs"
                   >
                     {record.status === 'completed' ? (
                       <CheckCircle className="h-3 w-3" />
@@ -508,33 +512,33 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Technician Performance & Equipment Failure Rank */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Technician Performance & Equipment Failure Rank - 모바일: 1열 */}
+      <div className="grid gap-3 md:gap-4 md:grid-cols-2">
         {/* Technician Performance */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('dashboard.technicianPerformance')}</CardTitle>
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-lg">{t('dashboard.technicianPerformance')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full min-w-[400px] sm:min-w-0">
                 <thead>
-                  <tr className="border-b text-left text-sm text-muted-foreground">
-                    <th className="pb-3">{t('analytics.technician')}</th>
-                    <th className="pb-3 text-center">{t('analytics.completedCount')}</th>
-                    <th className="pb-3 text-center">{t('analytics.avgRepairTime')}</th>
-                    <th className="pb-3 text-center">{t('analytics.avgRating')}</th>
+                  <tr className="border-b text-left text-xs sm:text-sm text-muted-foreground">
+                    <th className="pb-2 sm:pb-3 pl-4 sm:pl-0">{t('analytics.technician')}</th>
+                    <th className="pb-2 sm:pb-3 text-center">{t('analytics.completedCount')}</th>
+                    <th className="pb-2 sm:pb-3 text-center">{t('analytics.avgRepairTime')}</th>
+                    <th className="pb-2 sm:pb-3 text-center pr-4 sm:pr-0">{t('analytics.avgRating')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {techPerformance.slice(0, 5).map((tech) => (
                     <tr key={tech.technician_id} className="border-b">
-                      <td className="py-3">
-                        <p className="font-medium">{tech.technician_name}</p>
+                      <td className="py-2 sm:py-3 pl-4 sm:pl-0">
+                        <p className="font-medium text-xs sm:text-sm">{tech.technician_name}</p>
                       </td>
-                      <td className="py-3 text-center">{tech.completed_count}{t('analytics.cases')}</td>
-                      <td className="py-3 text-center">{tech.avg_repair_time.toFixed(0)}{t('analytics.minutes')}</td>
-                      <td className="py-3 text-center">
+                      <td className="py-2 sm:py-3 text-center text-xs sm:text-sm">{tech.completed_count}{t('analytics.cases')}</td>
+                      <td className="py-2 sm:py-3 text-center text-xs sm:text-sm">{tech.avg_repair_time.toFixed(0)}{t('analytics.minutes')}</td>
+                      <td className="py-2 sm:py-3 text-center text-xs sm:text-sm pr-4 sm:pr-0">
                         <span className="text-yellow-500">★</span> {tech.avg_rating.toFixed(1)}
                       </td>
                     </tr>
@@ -547,28 +551,28 @@ export default function DashboardPage() {
 
         {/* Equipment Failure Rank */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('dashboard.failureTopEquipment')}</CardTitle>
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-2">
+            <CardTitle className="text-base sm:text-lg">{t('dashboard.failureTopEquipment')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="space-y-2 sm:space-y-3">
               {failureRank.map((item, index) => (
-                <div key={item.equipment_code} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div key={item.equipment_code} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <span
-                      className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                      className={`flex h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                         index < 3 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
                       }`}
                     >
                       {index + 1}
                     </span>
-                    <div>
-                      <p className="font-medium">{item.equipment_code}</p>
-                      <p className="text-xs text-muted-foreground">{getEquipmentNameFromRank(item)}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm sm:text-base truncate">{item.equipment_code}</p>
+                      <p className="text-xs text-muted-foreground truncate">{getEquipmentNameFromRank(item)}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-red-600">{item.failure_count}{t('dashboard.times')}</p>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-red-600 text-sm sm:text-base">{item.failure_count}{t('dashboard.times')}</p>
                     <p className="text-xs text-muted-foreground">
                       {t('dashboard.totalMinutes', { minutes: item.total_downtime_minutes })}
                     </p>

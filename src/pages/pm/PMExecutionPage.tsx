@@ -38,6 +38,27 @@ export default function PMExecutionPage() {
   const [notes, setNotes] = useState('')
   const [rating, setRating] = useState<number>(8)
 
+  // Helper function to parse date with robust timezone handling
+  const parseDateTime = (dateStr: string): Date => {
+    // If has timezone info (Z or +/-), parse directly
+    if (dateStr.includes('Z') || dateStr.includes('+') || (dateStr.includes('-') && dateStr.lastIndexOf('-') > 9)) {
+      return new Date(dateStr)
+    }
+    // Parse as local time components
+    const cleanedStr = dateStr.replace(' ', 'T').slice(0, 16)
+    const [datePart, timePart] = cleanedStr.split('T')
+    const [year, month, day] = datePart.split('-').map(Number)
+    const [hour, minute] = (timePart || '00:00').split(':').map(Number)
+    return new Date(year, month - 1, day, hour, minute)
+  }
+
+  // Calculate elapsed minutes with proper timezone handling
+  const getElapsedMinutes = (startedAt: string): number => {
+    const startTime = parseDateTime(startedAt)
+    const elapsed = Math.floor((Date.now() - startTime.getTime()) / 60000)
+    return elapsed >= 0 ? elapsed : 0
+  }
+
   useEffect(() => {
     if (scheduleId) {
       fetchData()
@@ -495,9 +516,7 @@ export default function PMExecutionPage() {
               <CardContent>
                 <p className="text-2xl font-bold text-primary">
                   {execution.started_at
-                    ? `${Math.floor(
-                        (Date.now() - new Date(execution.started_at).getTime()) / 60000
-                      )} ${t('pm.minutes')}`
+                    ? `${getElapsedMinutes(execution.started_at)} ${t('pm.minutes')}`
                     : '-'}
                 </p>
                 <p className="text-sm text-muted-foreground">

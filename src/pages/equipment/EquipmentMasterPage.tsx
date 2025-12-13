@@ -327,17 +327,17 @@ export default function EquipmentMasterPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('nav.equipmentMaster')}</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl sm:text-2xl font-bold">{t('nav.equipmentMaster')}</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {t('common.refresh')}
+          <Button variant="outline" size="sm" onClick={handleRefresh} className="h-9 px-3">
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
           </Button>
-          <Button onClick={handleAddNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t('equipment.register')}
+          <Button onClick={handleAddNew} size="sm" className="h-9 px-3">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('equipment.register')}</span>
           </Button>
         </div>
       </div>
@@ -351,9 +351,9 @@ export default function EquipmentMasterPage() {
         <TabsContent value="equipments" className="space-y-4">
           {/* 필터 */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-wrap gap-4">
-                <div className="min-w-[200px] flex-1">
+            <CardContent className="p-3 sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+                <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -363,12 +363,12 @@ export default function EquipmentMasterPage() {
                         setSearch(e.target.value)
                         setCurrentPage(1)
                       }}
-                      className="pl-9"
+                      className="pl-9 h-9 sm:h-10 text-sm"
                     />
                   </div>
                 </div>
                 <Select
-                  className="w-[180px]"
+                  className="w-full sm:w-[180px] h-9 sm:h-10 text-sm"
                   value={typeFilter}
                   onChange={(e) => {
                     setTypeFilter(e.target.value)
@@ -386,8 +386,59 @@ export default function EquipmentMasterPage() {
             </CardContent>
           </Card>
 
-          {/* 테이블 */}
-          <Card>
+          {/* 모바일 카드 뷰 */}
+          <div className="md:hidden space-y-3">
+            {paginatedEquipments.map((equipment) => (
+              <Card key={equipment.id} className="overflow-hidden">
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm">{equipment.equipment_code}</span>
+                        <Badge
+                          variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}
+                          className="text-xs"
+                        >
+                          {getStatusLabel(equipment.status)}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-1">
+                        {getEquipmentName(equipment)}
+                      </p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-muted-foreground">
+                        <span>{getEquipmentTypeName(equipment.equipment_type)}</span>
+                        <span>{equipment.building}</span>
+                        {equipment.manufacturer && <span>{equipment.manufacturer}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(equipment)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteClick(equipment)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {paginatedEquipments.length === 0 && (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                  {t('common.noSearchResults')}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* 데스크톱 테이블 */}
+          <Card className="hidden md:block">
             <CardContent className="pt-6">
               <Table className="table-fixed">
                 <TableHeader>
@@ -482,117 +533,151 @@ export default function EquipmentMasterPage() {
                   )}
                 </TableBody>
               </Table>
-
-              {/* 페이지네이션 */}
-              {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{' '}
-                    {Math.min(currentPage * ITEMS_PER_PAGE, sortedEquipments.length)} /{' '}
-                    {sortedEquipments.length}
-                  </p>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage((p) => p - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="flex items-center px-3 text-sm">
-                      {currentPage} / {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
+
+          {/* 페이지네이션 */}
+          {totalPages > 1 && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+                {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{' '}
+                {Math.min(currentPage * ITEMS_PER_PAGE, sortedEquipments.length)} /{' '}
+                {sortedEquipments.length}
+              </p>
+              <div className="flex justify-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="flex items-center px-2 sm:px-3 text-xs sm:text-sm">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="types" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings2 className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Settings2 className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('equipment.typeList')}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table className="table-fixed">
-                <TableHeader>
-                  <TableRow>
-                    <SortableTableHead
-                      sortKey="code"
-                      sortDirection={getTypeSortDirection('code')}
-                      onSort={requestTypeSort}
-                      className="w-[120px]"
-                    >
-                      {t('equipment.typeCode')}
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="name"
-                      sortDirection={getTypeSortDirection('name')}
-                      onSort={requestTypeSort}
-                      className="w-[200px]"
-                    >
-                      {t('equipment.typeName')}
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="category"
-                      sortDirection={getTypeSortDirection('category')}
-                      onSort={requestTypeSort}
-                      className="w-[100px]"
-                    >
-                      {t('equipment.typeCategory')}
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="is_active"
-                      sortDirection={getTypeSortDirection('is_active')}
-                      onSort={requestTypeSort}
-                      className="w-[80px]"
-                    >
-                      {t('equipment.typeStatus')}
-                    </SortableTableHead>
-                    <SortableTableHead
-                      sortKey="equipment_count"
-                      sortDirection={getTypeSortDirection('equipment_count')}
-                      onSort={requestTypeSort}
-                      className="w-[100px]"
-                    >
-                      {t('equipment.equipmentCount')}
-                    </SortableTableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedEquipmentTypes.map((type) => (
-                    <TableRow key={type.id}>
-                      <TableCell className="font-medium">{type.code}</TableCell>
-                      <TableCell className="truncate" title={getEquipmentTypeName(type)}>{getEquipmentTypeName(type)}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'}>
-                          {type.category === 'MAIN' ? t('equipment.mainEquipment') : t('equipment.subEquipment')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <Badge variant={type.is_active ? 'success' : 'secondary'}>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              {/* 모바일 카드 뷰 */}
+              <div className="md:hidden space-y-3">
+                {sortedEquipmentTypes.map((type) => (
+                  <div key={type.id} className="rounded-lg border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm">{type.code}</span>
+                          <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'} className="text-xs">
+                            {type.category === 'MAIN' ? t('equipment.mainEquipment') : t('equipment.subEquipment')}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-1">
+                          {getEquipmentTypeName(type)}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant={type.is_active ? 'success' : 'secondary'} className="text-xs">
                           {type.is_active ? t('equipment.active') : t('equipment.inactive')}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">{type.equipment_count}</TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {type.equipment_count} {t('equipment.equipmentUnit')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 데스크톱 테이블 */}
+              <div className="hidden md:block">
+                <Table className="table-fixed">
+                  <TableHeader>
+                    <TableRow>
+                      <SortableTableHead
+                        sortKey="code"
+                        sortDirection={getTypeSortDirection('code')}
+                        onSort={requestTypeSort}
+                        className="w-[120px]"
+                      >
+                        {t('equipment.typeCode')}
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="name"
+                        sortDirection={getTypeSortDirection('name')}
+                        onSort={requestTypeSort}
+                        className="w-[200px]"
+                      >
+                        {t('equipment.typeName')}
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="category"
+                        sortDirection={getTypeSortDirection('category')}
+                        onSort={requestTypeSort}
+                        className="w-[100px]"
+                      >
+                        {t('equipment.typeCategory')}
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="is_active"
+                        sortDirection={getTypeSortDirection('is_active')}
+                        onSort={requestTypeSort}
+                        className="w-[80px]"
+                      >
+                        {t('equipment.typeStatus')}
+                      </SortableTableHead>
+                      <SortableTableHead
+                        sortKey="equipment_count"
+                        sortDirection={getTypeSortDirection('equipment_count')}
+                        onSort={requestTypeSort}
+                        className="w-[100px]"
+                      >
+                        {t('equipment.equipmentCount')}
+                      </SortableTableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <p className="mt-4 text-sm text-muted-foreground">
+                  </TableHeader>
+                  <TableBody>
+                    {sortedEquipmentTypes.map((type) => (
+                      <TableRow key={type.id}>
+                        <TableCell className="font-medium">{type.code}</TableCell>
+                        <TableCell className="truncate" title={getEquipmentTypeName(type)}>{getEquipmentTypeName(type)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'}>
+                            {type.category === 'MAIN' ? t('equipment.mainEquipment') : t('equipment.subEquipment')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant={type.is_active ? 'success' : 'secondary'}>
+                            {type.is_active ? t('equipment.active') : t('equipment.inactive')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">{type.equipment_count}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="mt-4 text-xs sm:text-sm text-muted-foreground">
                 {t('equipment.typeNote')}
               </p>
             </CardContent>
@@ -602,18 +687,18 @@ export default function EquipmentMasterPage() {
 
       {/* 등록/수정 모달 */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{editingEquipment ? t('equipment.editEquipment') : t('equipment.register')}</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setIsModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
+          <Card className="w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[85vh] overflow-y-auto rounded-b-none sm:rounded-b-lg">
+            <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 sticky top-0 bg-card z-10 border-b">
+              <CardTitle className="text-base sm:text-lg">{editingEquipment ? t('equipment.editEquipment') : t('equipment.register')}</CardTitle>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsModalOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="equipment_code">
+                  <Label htmlFor="equipment_code" className="text-sm">
                     {t('equipment.equipmentCode')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
@@ -624,14 +709,15 @@ export default function EquipmentMasterPage() {
                     }
                     placeholder={t('equipment.codePlaceholder')}
                     disabled={!!editingEquipment}
+                    className="h-9 sm:h-10 text-sm"
                   />
                   {formErrors.equipment_code && (
-                    <p className="text-sm text-destructive">{formErrors.equipment_code}</p>
+                    <p className="text-xs sm:text-sm text-destructive">{formErrors.equipment_code}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="equipment_name">
+                  <Label htmlFor="equipment_name" className="text-sm">
                     {t('equipment.equipmentName')} <span className="text-destructive">*</span>
                   </Label>
                   <Input
@@ -641,14 +727,15 @@ export default function EquipmentMasterPage() {
                       setFormData((prev) => ({ ...prev, equipment_name: e.target.value }))
                     }
                     placeholder={t('equipment.namePlaceholder')}
+                    className="h-9 sm:h-10 text-sm"
                   />
                   {formErrors.equipment_name && (
-                    <p className="text-sm text-destructive">{formErrors.equipment_name}</p>
+                    <p className="text-xs sm:text-sm text-destructive">{formErrors.equipment_name}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="equipment_type_id">
+                  <Label htmlFor="equipment_type_id" className="text-sm">
                     {t('equipment.equipmentType')} <span className="text-destructive">*</span>
                   </Label>
                   <Select
@@ -657,6 +744,7 @@ export default function EquipmentMasterPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, equipment_type_id: e.target.value }))
                     }
+                    className="h-9 sm:h-10 text-sm"
                   >
                     <option value="">{t('common.select')}</option>
                     {equipmentTypes.map((type) => (
@@ -666,12 +754,12 @@ export default function EquipmentMasterPage() {
                     ))}
                   </Select>
                   {formErrors.equipment_type_id && (
-                    <p className="text-sm text-destructive">{formErrors.equipment_type_id}</p>
+                    <p className="text-xs sm:text-sm text-destructive">{formErrors.equipment_type_id}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="status">{t('equipment.status')}</Label>
+                  <Label htmlFor="status" className="text-sm">{t('equipment.status')}</Label>
                   <Select
                     id="status"
                     value={formData.status}
@@ -681,6 +769,7 @@ export default function EquipmentMasterPage() {
                         status: e.target.value as EquipmentStatus,
                       }))
                     }
+                    className="h-9 sm:h-10 text-sm"
                   >
                     {statusOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -691,13 +780,14 @@ export default function EquipmentMasterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="building">
+                  <Label htmlFor="building" className="text-sm">
                     {t('equipment.building')} <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     id="building"
                     value={formData.building}
                     onChange={(e) => setFormData((prev) => ({ ...prev, building: e.target.value }))}
+                    className="h-9 sm:h-10 text-sm"
                   >
                     <option value="">{t('common.select')}</option>
                     {buildings.map((building) => (
@@ -706,11 +796,11 @@ export default function EquipmentMasterPage() {
                       </option>
                     ))}
                   </Select>
-                  {formErrors.building && <p className="text-sm text-destructive">{formErrors.building}</p>}
+                  {formErrors.building && <p className="text-xs sm:text-sm text-destructive">{formErrors.building}</p>}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="install_date">{t('equipment.installDate')}</Label>
+                  <Label htmlFor="install_date" className="text-sm">{t('equipment.installDate')}</Label>
                   <Input
                     id="install_date"
                     type="date"
@@ -718,11 +808,12 @@ export default function EquipmentMasterPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, install_date: e.target.value }))
                     }
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="manufacturer">{t('equipment.manufacturer')}</Label>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="manufacturer" className="text-sm">{t('equipment.manufacturer')}</Label>
                   <Input
                     id="manufacturer"
                     value={formData.manufacturer}
@@ -730,20 +821,21 @@ export default function EquipmentMasterPage() {
                       setFormData((prev) => ({ ...prev, manufacturer: e.target.value }))
                     }
                     placeholder={t('equipment.manufacturerPlaceholder')}
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
 
               </div>
 
               {formErrors.submit && (
-                <p className="text-sm text-destructive">{formErrors.submit}</p>
+                <p className="text-xs sm:text-sm text-destructive">{formErrors.submit}</p>
               )}
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsModalOpen(false)} className="h-9 sm:h-10">
                   {t('common.cancel')}
                 </Button>
-                <Button onClick={handleSave} disabled={saving}>
+                <Button onClick={handleSave} disabled={saving} className="h-9 sm:h-10">
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -764,23 +856,23 @@ export default function EquipmentMasterPage() {
 
       {/* 삭제 확인 모달 */}
       {isDeleteModalOpen && editingEquipment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>{t('equipment.deleteEquipment')}</CardTitle>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4 sm:p-0">
+          <Card className="w-full sm:max-w-md rounded-t-lg sm:rounded-lg">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">{t('equipment.deleteEquipment')}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p>
+            <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+              <p className="text-sm sm:text-base">
                 {t('equipment.deleteConfirm', { code: editingEquipment.equipment_code, name: editingEquipment.equipment_name })}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {t('equipment.deleteWarning')}
               </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="h-9 sm:h-10">
                   {t('common.cancel')}
                 </Button>
-                <Button variant="destructive" onClick={handleDelete} disabled={saving}>
+                <Button variant="destructive" onClick={handleDelete} disabled={saving} className="h-9 sm:h-10">
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

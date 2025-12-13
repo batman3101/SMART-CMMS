@@ -368,31 +368,34 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('admin.settings')}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">{t('admin.settings')}</h1>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="general">
-            <Settings className="mr-2 h-4 w-4" />
-            {t('settings.general')}
+        <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="general" className="text-xs sm:text-sm">
+            <Settings className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">{t('settings.general')}</span>
+            <span className="sm:hidden">{t('settings.general').substring(0, 4)}</span>
           </TabsTrigger>
-          <TabsTrigger value="equipmentTypes">
-            <Cog className="mr-2 h-4 w-4" />
-            {t('settings.equipmentTypes')}
+          <TabsTrigger value="equipmentTypes" className="text-xs sm:text-sm">
+            <Cog className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">{t('settings.equipmentTypes')}</span>
+            <span className="sm:hidden">{t('equipment.equipment')}</span>
           </TabsTrigger>
-          <TabsTrigger value="repairTypes">
-            <Palette className="mr-2 h-4 w-4" />
-            {t('settings.repairTypes')}
+          <TabsTrigger value="repairTypes" className="text-xs sm:text-sm">
+            <Palette className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">{t('settings.repairTypes')}</span>
+            <span className="sm:hidden">{t('maintenance.repairType')}</span>
           </TabsTrigger>
         </TabsList>
 
         {/* General Settings Tab */}
-        <TabsContent value="general" className="space-y-6">
+        <TabsContent value="general" className="space-y-4 sm:space-y-6">
           <div className="flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
+            <Button onClick={handleSaveSettings} disabled={isSaving} size="sm" className="h-9 text-sm">
               {isSaving ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : saveSuccess ? (
@@ -406,42 +409,45 @@ export default function SettingsPage() {
 
           {/* General Settings */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('settings.general')}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>{t('settings.systemName')}</Label>
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">{t('settings.systemName')}</Label>
                   <Input
                     value={settings.system_name}
                     onChange={(e) => setSettings({ ...settings, system_name: e.target.value })}
+                    className="h-9 sm:h-10 text-sm"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     {t('settings.defaultLanguage')}
                   </Label>
                   <Select
                     value={settings.default_language}
                     onChange={(e) => setSettings({ ...settings, default_language: e.target.value })}
+                    className="h-9 sm:h-10 text-sm"
                   >
                     <option value="ko">한국어</option>
                     <option value="vi">Tiếng Việt</option>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     {t('settings.timezone')}
                   </Label>
                   <Select
                     value={settings.timezone}
                     onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+                    className="h-9 sm:h-10 text-sm"
                   >
                     <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (GMT+7)</option>
                     <option value="Asia/Seoul">Asia/Seoul (GMT+9)</option>
@@ -453,39 +459,39 @@ export default function SettingsPage() {
 
           {/* Notification Settings */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('settings.notifications')}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{t('settings.emergencyAlert')}</p>
-                  <p className="text-sm text-muted-foreground">{t('settings.emergencyAlertDesc')}</p>
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <div className="flex items-start sm:items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm sm:text-base">{t('settings.emergencyAlert')}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('settings.emergencyAlertDesc')}</p>
                 </div>
                 <input
                   type="checkbox"
                   checked={settings.emergency_alert}
                   onChange={(e) => setSettings({ ...settings, emergency_alert: e.target.checked })}
-                  className="h-4 w-4"
+                  className="h-4 w-4 shrink-0"
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{t('settings.longRepairWarning')}</p>
-                  <p className="text-sm text-muted-foreground">{t('settings.longRepairWarningDesc')}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm sm:text-base">{t('settings.longRepairWarning')}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('settings.longRepairWarningDesc')}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <Input
                     type="number"
                     value={settings.long_repair_threshold_hours}
                     onChange={(e) => setSettings({ ...settings, long_repair_threshold_hours: parseInt(e.target.value) || 0 })}
-                    className="w-20"
+                    className="w-16 sm:w-20 h-9 text-sm"
                     min={1}
                   />
-                  <span className="text-sm text-muted-foreground">{t('settings.hours')}</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">{t('settings.hours')}</span>
                 </div>
               </div>
             </CardContent>
@@ -493,50 +499,52 @@ export default function SettingsPage() {
 
           {/* AI Settings */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Bot className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('settings.aiSettings')}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{t('settings.enableAI')}</p>
-                  <p className="text-sm text-muted-foreground">{t('settings.enableAIDesc')}</p>
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <div className="flex items-start sm:items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm sm:text-base">{t('settings.enableAI')}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('settings.enableAIDesc')}</p>
                 </div>
                 <input
                   type="checkbox"
                   checked={settings.ai_enabled}
                   onChange={(e) => setSettings({ ...settings, ai_enabled: e.target.checked })}
-                  className="h-4 w-4"
+                  className="h-4 w-4 shrink-0"
                 />
               </div>
 
               {settings.ai_enabled && (
                 <>
-                  <div className="space-y-2">
-                    <Label>{t('settings.geminiApiKey')}</Label>
-                    <div className="flex gap-2">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-sm">{t('settings.geminiApiKey')}</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Input
                         type="password"
                         placeholder={t('settings.enterApiKey')}
                         value={settings.ai_api_key}
                         onChange={(e) => setSettings({ ...settings, ai_api_key: e.target.value })}
+                        className="h-9 sm:h-10 text-sm flex-1"
                       />
                       {!settings.ai_api_key && (
-                        <Badge variant="warning" className="flex items-center gap-1 whitespace-nowrap">
+                        <Badge variant="warning" className="flex items-center gap-1 whitespace-nowrap text-xs w-fit">
                           <AlertTriangle className="h-3 w-3" />
                           {t('settings.notConfigured')}
                         </Badge>
                       )}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>{t('settings.refreshInterval')}</Label>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-sm">{t('settings.refreshInterval')}</Label>
                     <Select
                       value={settings.ai_refresh_interval.toString()}
                       onChange={(e) => setSettings({ ...settings, ai_refresh_interval: parseInt(e.target.value) })}
+                      className="h-9 sm:h-10 text-sm w-full sm:w-auto"
                     >
                       <option value="1">1 {t('settings.hours')}</option>
                       <option value="2">2 {t('settings.hours')}</option>
@@ -553,44 +561,46 @@ export default function SettingsPage() {
 
           {/* Backup Settings */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Database className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('settings.backup')}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{t('settings.autoBackup')}</p>
-                  <p className="text-sm text-muted-foreground">{t('settings.autoBackupDesc')}</p>
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <div className="flex items-start sm:items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm sm:text-base">{t('settings.autoBackup')}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('settings.autoBackupDesc')}</p>
                 </div>
                 <input
                   type="checkbox"
                   checked={settings.backup_enabled}
                   onChange={(e) => setSettings({ ...settings, backup_enabled: e.target.checked })}
-                  className="h-4 w-4"
+                  className="h-4 w-4 shrink-0"
                 />
               </div>
 
               {settings.backup_enabled && (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{t('settings.backupSchedule')}</Label>
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-sm">{t('settings.backupSchedule')}</Label>
                     <Select
                       value={settings.backup_schedule}
                       onChange={(e) => setSettings({ ...settings, backup_schedule: e.target.value })}
+                      className="h-9 sm:h-10 text-sm"
                     >
                       <option value="daily">{t('settings.daily')}</option>
                       <option value="weekly">{t('settings.weekly')}</option>
                       <option value="monthly">{t('settings.monthly')}</option>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>{t('settings.retentionDays')}</Label>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-sm">{t('settings.retentionDays')}</Label>
                     <Select
                       value={settings.backup_retention_days.toString()}
                       onChange={(e) => setSettings({ ...settings, backup_retention_days: parseInt(e.target.value) })}
+                      className="h-9 sm:h-10 text-sm"
                     >
                       <option value="7">7 {t('settings.days')}</option>
                       <option value="14">14 {t('settings.days')}</option>
@@ -602,7 +612,7 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <Button variant="outline" onClick={handleBackupNow}>
+              <Button variant="outline" onClick={handleBackupNow} size="sm" className="h-9 text-sm">
                 <Database className="mr-2 h-4 w-4" />
                 {t('settings.backupNow')}
               </Button>
@@ -611,11 +621,11 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Equipment Types Tab */}
-        <TabsContent value="equipmentTypes" className="space-y-6">
+        <TabsContent value="equipmentTypes" className="space-y-4 sm:space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Cog className="h-5 w-5" />
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Cog className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('settings.equipmentTypes')}
               </CardTitle>
               <Button
@@ -624,80 +634,88 @@ export default function SettingsPage() {
                   setEquipmentTypeForm(defaultEquipmentTypeForm)
                   setShowEquipmentTypeForm(true)
                 }}
+                size="sm"
+                className="h-9 text-sm w-full sm:w-auto"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 {t('settings.addEquipmentType')}
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               {/* Equipment Type Form */}
               {showEquipmentTypeForm && (
-                <Card className="mb-6 border-primary">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-lg">
+                <Card className="mb-4 sm:mb-6 border-primary">
+                  <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 pb-2">
+                    <CardTitle className="text-sm sm:text-lg">
                       {editingEquipmentType ? t('settings.editEquipmentType') : t('settings.addEquipmentType')}
                     </CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => setShowEquipmentTypeForm(false)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowEquipmentTypeForm(false)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>{t('settings.code')} *</Label>
+                  <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-4 pt-0">
+                    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.code')} *</Label>
                         <Input
                           value={equipmentTypeForm.code}
                           onChange={(e) => setEquipmentTypeForm({ ...equipmentTypeForm, code: e.target.value.toUpperCase() })}
                           placeholder="CNC"
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.category')} *</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.category')} *</Label>
                         <Select
                           value={equipmentTypeForm.category}
                           onChange={(e) => setEquipmentTypeForm({ ...equipmentTypeForm, category: e.target.value as 'MAIN' | 'SUB' })}
+                          className="h-9 sm:h-10 text-sm"
                         >
                           <option value="MAIN">{t('settings.categoryMain')}</option>
                           <option value="SUB">{t('settings.categorySub')}</option>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.name')} *</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.name')} *</Label>
                         <Input
                           value={equipmentTypeForm.name}
                           onChange={(e) => setEquipmentTypeForm({ ...equipmentTypeForm, name: e.target.value })}
                           placeholder="CNC Milling Machine"
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.nameKo')}</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.nameKo')}</Label>
                         <Input
                           value={equipmentTypeForm.name_ko}
                           onChange={(e) => setEquipmentTypeForm({ ...equipmentTypeForm, name_ko: e.target.value })}
                           placeholder="CNC 밀링 머신"
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.nameVi')}</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.nameVi')}</Label>
                         <Input
                           value={equipmentTypeForm.name_vi}
                           onChange={(e) => setEquipmentTypeForm({ ...equipmentTypeForm, name_vi: e.target.value })}
                           placeholder="Máy phay CNC"
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.description')}</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.description')}</Label>
                         <Input
                           value={equipmentTypeForm.description}
                           onChange={(e) => setEquipmentTypeForm({ ...equipmentTypeForm, description: e.target.value })}
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setShowEquipmentTypeForm(false)}>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" size="sm" className="h-9 text-sm" onClick={() => setShowEquipmentTypeForm(false)}>
                         {t('common.cancel')}
                       </Button>
-                      <Button onClick={handleSaveEquipmentType} disabled={isSaving}>
+                      <Button size="sm" className="h-9 text-sm" onClick={handleSaveEquipmentType} disabled={isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('common.save')}
                       </Button>
@@ -706,67 +724,117 @@ export default function SettingsPage() {
                 </Card>
               )}
 
-              {/* Equipment Types Table */}
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('settings.code')}</TableHead>
-                    <TableHead>{t('settings.name')}</TableHead>
-                    <TableHead>{t('settings.nameKo')}</TableHead>
-                    <TableHead>{t('settings.nameVi')}</TableHead>
-                    <TableHead>{t('settings.category')}</TableHead>
-                    <TableHead>{t('common.status')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {equipmentTypes.map((type) => (
-                    <TableRow key={type.id}>
-                      <TableCell className="font-medium">{type.code}</TableCell>
-                      <TableCell>{type.name}</TableCell>
-                      <TableCell>{type.name_ko || '-'}</TableCell>
-                      <TableCell>{type.name_vi || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'}>
-                          {type.category === 'MAIN' ? t('settings.categoryMain') : t('settings.categorySub')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={type.is_active ? 'success' : 'secondary'}>
-                          {type.is_active ? t('admin.active') : t('admin.inactive')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleEditEquipmentType(type)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteEquipmentType(type)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {equipmentTypes.length === 0 && (
+              {/* Equipment Types Table - Desktop */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground">
-                        {t('common.noData')}
-                      </TableCell>
+                      <TableHead>{t('settings.code')}</TableHead>
+                      <TableHead>{t('settings.name')}</TableHead>
+                      <TableHead>{t('settings.nameKo')}</TableHead>
+                      <TableHead>{t('settings.nameVi')}</TableHead>
+                      <TableHead>{t('settings.category')}</TableHead>
+                      <TableHead>{t('common.status')}</TableHead>
+                      <TableHead className="text-right">{t('common.actions')}</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {equipmentTypes.map((type) => (
+                      <TableRow key={type.id}>
+                        <TableCell className="font-medium">{type.code}</TableCell>
+                        <TableCell>{type.name}</TableCell>
+                        <TableCell>{type.name_ko || '-'}</TableCell>
+                        <TableCell>{type.name_vi || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'}>
+                            {type.category === 'MAIN' ? t('settings.categoryMain') : t('settings.categorySub')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={type.is_active ? 'success' : 'secondary'}>
+                            {type.is_active ? t('admin.active') : t('admin.inactive')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditEquipmentType(type)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteEquipmentType(type)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {equipmentTypes.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
+                          {t('common.noData')}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Equipment Types - Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {equipmentTypes.length === 0 ? (
+                  <div className="py-6 text-center text-muted-foreground text-sm">
+                    {t('common.noData')}
+                  </div>
+                ) : (
+                  equipmentTypes.map((type) => (
+                    <Card key={type.id} className="overflow-hidden">
+                      <CardContent className="p-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm">{type.code}</p>
+                            <p className="text-xs text-muted-foreground truncate">{type.name}</p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditEquipmentType(type)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteEquipmentType(type)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                          <div>
+                            <span className="text-muted-foreground">{t('settings.nameKo')}: </span>
+                            <span>{type.name_ko || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">{t('settings.nameVi')}: </span>
+                            <span>{type.name_vi || '-'}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={type.category === 'MAIN' ? 'default' : 'secondary'} className="text-xs">
+                            {type.category === 'MAIN' ? t('settings.categoryMain') : t('settings.categorySub')}
+                          </Badge>
+                          <Badge variant={type.is_active ? 'success' : 'secondary'} className="text-xs">
+                            {type.is_active ? t('admin.active') : t('admin.inactive')}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Repair Types Tab */}
-        <TabsContent value="repairTypes" className="space-y-6">
+        <TabsContent value="repairTypes" className="space-y-4 sm:space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Palette className="h-4 w-4 sm:h-5 sm:w-5" />
                 {t('settings.repairTypes')}
               </CardTitle>
               <Button
@@ -775,62 +843,68 @@ export default function SettingsPage() {
                   setRepairTypeForm(defaultRepairTypeForm)
                   setShowRepairTypeForm(true)
                 }}
+                size="sm"
+                className="h-9 text-sm w-full sm:w-auto"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 {t('settings.addRepairType')}
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               {/* Repair Type Form */}
               {showRepairTypeForm && (
-                <Card className="mb-6 border-primary">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-lg">
+                <Card className="mb-4 sm:mb-6 border-primary">
+                  <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 pb-2">
+                    <CardTitle className="text-sm sm:text-lg">
                       {editingRepairType ? t('settings.editRepairType') : t('settings.addRepairType')}
                     </CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => setShowRepairTypeForm(false)}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowRepairTypeForm(false)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>{t('settings.code')} *</Label>
+                  <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-4 pt-0">
+                    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.code')} *</Label>
                         <Input
                           value={repairTypeForm.code}
                           onChange={(e) => setRepairTypeForm({ ...repairTypeForm, code: e.target.value.toUpperCase() })}
                           placeholder="PM"
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.color')}</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.color')}</Label>
                         <div className="flex gap-2">
                           <Input
                             type="color"
                             value={repairTypeForm.color}
                             onChange={(e) => setRepairTypeForm({ ...repairTypeForm, color: e.target.value })}
-                            className="h-9 w-14 p-1"
+                            className="h-9 w-12 sm:w-14 p-1"
                           />
                           <Input
                             value={repairTypeForm.color}
                             onChange={(e) => setRepairTypeForm({ ...repairTypeForm, color: e.target.value })}
                             placeholder="#3B82F6"
+                            className="h-9 sm:h-10 text-sm flex-1"
                           />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.name')} *</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.name')} *</Label>
                         <Input
                           value={repairTypeForm.name}
                           onChange={(e) => setRepairTypeForm({ ...repairTypeForm, name: e.target.value })}
                           placeholder="Preventive Maintenance"
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.priority')}</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.priority')}</Label>
                         <Select
                           value={repairTypeForm.priority.toString()}
                           onChange={(e) => setRepairTypeForm({ ...repairTypeForm, priority: parseInt(e.target.value) })}
+                          className="h-9 sm:h-10 text-sm"
                         >
                           <option value="1">1 - {t('settings.priorityHighest')}</option>
                           <option value="2">2 - {t('settings.priorityHigh')}</option>
@@ -839,35 +913,38 @@ export default function SettingsPage() {
                           <option value="5">5 - {t('settings.priorityLowest')}</option>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.nameKo')}</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.nameKo')}</Label>
                         <Input
                           value={repairTypeForm.name_ko}
                           onChange={(e) => setRepairTypeForm({ ...repairTypeForm, name_ko: e.target.value })}
                           placeholder="정기 유지보수"
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t('settings.nameVi')}</Label>
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">{t('settings.nameVi')}</Label>
                         <Input
                           value={repairTypeForm.name_vi}
                           onChange={(e) => setRepairTypeForm({ ...repairTypeForm, name_vi: e.target.value })}
                           placeholder="Bảo trì định kỳ"
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label>{t('settings.description')}</Label>
+                      <div className="space-y-1.5 sm:space-y-2 col-span-1 sm:col-span-2">
+                        <Label className="text-sm">{t('settings.description')}</Label>
                         <Input
                           value={repairTypeForm.description}
                           onChange={(e) => setRepairTypeForm({ ...repairTypeForm, description: e.target.value })}
+                          className="h-9 sm:h-10 text-sm"
                         />
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setShowRepairTypeForm(false)}>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" size="sm" className="h-9 text-sm" onClick={() => setShowRepairTypeForm(false)}>
                         {t('common.cancel')}
                       </Button>
-                      <Button onClick={handleSaveRepairType} disabled={isSaving}>
+                      <Button size="sm" className="h-9 text-sm" onClick={handleSaveRepairType} disabled={isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('common.save')}
                       </Button>
@@ -876,60 +953,116 @@ export default function SettingsPage() {
                 </Card>
               )}
 
-              {/* Repair Types Table */}
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('settings.color')}</TableHead>
-                    <TableHead>{t('settings.code')}</TableHead>
-                    <TableHead>{t('settings.name')}</TableHead>
-                    <TableHead>{t('settings.nameKo')}</TableHead>
-                    <TableHead>{t('settings.nameVi')}</TableHead>
-                    <TableHead>{t('settings.priority')}</TableHead>
-                    <TableHead>{t('common.status')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {repairTypes.map((type) => (
-                    <TableRow key={type.id}>
-                      <TableCell>
-                        <div
-                          className="h-6 w-6 rounded"
-                          style={{ backgroundColor: type.color || '#6B7280' }}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{type.code}</TableCell>
-                      <TableCell>{type.name}</TableCell>
-                      <TableCell>{type.name_ko || '-'}</TableCell>
-                      <TableCell>{type.name_vi || '-'}</TableCell>
-                      <TableCell>{type.priority}</TableCell>
-                      <TableCell>
-                        <Badge variant={type.is_active ? 'success' : 'secondary'}>
-                          {type.is_active ? t('admin.active') : t('admin.inactive')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleEditRepairType(type)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteRepairType(type)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {repairTypes.length === 0 && (
+              {/* Repair Types Table - Desktop */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground">
-                        {t('common.noData')}
-                      </TableCell>
+                      <TableHead>{t('settings.color')}</TableHead>
+                      <TableHead>{t('settings.code')}</TableHead>
+                      <TableHead>{t('settings.name')}</TableHead>
+                      <TableHead>{t('settings.nameKo')}</TableHead>
+                      <TableHead>{t('settings.nameVi')}</TableHead>
+                      <TableHead>{t('settings.priority')}</TableHead>
+                      <TableHead>{t('common.status')}</TableHead>
+                      <TableHead className="text-right">{t('common.actions')}</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {repairTypes.map((type) => (
+                      <TableRow key={type.id}>
+                        <TableCell>
+                          <div
+                            className="h-6 w-6 rounded"
+                            style={{ backgroundColor: type.color || '#6B7280' }}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{type.code}</TableCell>
+                        <TableCell>{type.name}</TableCell>
+                        <TableCell>{type.name_ko || '-'}</TableCell>
+                        <TableCell>{type.name_vi || '-'}</TableCell>
+                        <TableCell>{type.priority}</TableCell>
+                        <TableCell>
+                          <Badge variant={type.is_active ? 'success' : 'secondary'}>
+                            {type.is_active ? t('admin.active') : t('admin.inactive')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditRepairType(type)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteRepairType(type)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {repairTypes.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground">
+                          {t('common.noData')}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Repair Types - Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {repairTypes.length === 0 ? (
+                  <div className="py-6 text-center text-muted-foreground text-sm">
+                    {t('common.noData')}
+                  </div>
+                ) : (
+                  repairTypes.map((type) => (
+                    <Card key={type.id} className="overflow-hidden">
+                      <CardContent className="p-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div
+                              className="h-5 w-5 rounded shrink-0"
+                              style={{ backgroundColor: type.color || '#6B7280' }}
+                            />
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm">{type.code}</p>
+                              <p className="text-xs text-muted-foreground truncate">{type.name}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditRepairType(type)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteRepairType(type)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                          <div>
+                            <span className="text-muted-foreground">{t('settings.nameKo')}: </span>
+                            <span>{type.name_ko || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">{t('settings.nameVi')}: </span>
+                            <span>{type.name_vi || '-'}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {t('settings.priority')} {type.priority}
+                          </Badge>
+                          <Badge variant={type.is_active ? 'success' : 'secondary'} className="text-xs">
+                            {type.is_active ? t('admin.active') : t('admin.inactive')}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -937,10 +1070,10 @@ export default function SettingsPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>{t('settings.confirmDeleteTitle')}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">{t('settings.confirmDeleteTitle')}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               {deleteTarget && (
                 <>
                   <span className="font-semibold text-foreground">{deleteTarget.name}</span>
@@ -949,9 +1082,11 @@ export default function SettingsPage() {
               )}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 flex-col-reverse sm:flex-row">
             <Button
               variant="outline"
+              size="sm"
+              className="h-9 text-sm w-full sm:w-auto"
               onClick={() => {
                 setShowDeleteDialog(false)
                 setDeleteTarget(null)
@@ -962,6 +1097,8 @@ export default function SettingsPage() {
             </Button>
             <Button
               variant="destructive"
+              size="sm"
+              className="h-9 text-sm w-full sm:w-auto"
               onClick={handleConfirmDelete}
               disabled={isDeleting}
             >

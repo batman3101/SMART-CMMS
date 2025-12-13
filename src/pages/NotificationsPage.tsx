@@ -139,10 +139,15 @@ export default function NotificationsPage() {
   }
 
   const handleTogglePushEnabled = async (enabled: boolean) => {
-    if (enabled && permissionStatus !== 'granted') {
-      const permission = await pushNotificationService.requestPermission()
-      setPermissionStatus(permission)
-      if (permission !== 'granted') return
+    if (enabled) {
+      if (permissionStatus !== 'granted') {
+        const permission = await pushNotificationService.requestPermission()
+        setPermissionStatus(permission)
+        if (permission !== 'granted') return
+      } else {
+        // 권한이 이미 granted인 경우에도 FCM 토큰 등록
+        await pushNotificationService.registerFCMToken()
+      }
     }
     setPushSettings({ enabled })
   }

@@ -49,12 +49,19 @@ export default function NotificationsPage() {
 
   const unreadCount = getUnreadCount()
 
-  // 권한 상태 확인
+  // 권한 상태 확인 및 FCM 토큰 자동 등록
   useEffect(() => {
     if (pushNotificationService.isSupported()) {
-      setPermissionStatus(pushNotificationService.getPermissionStatus())
+      const currentPermission = pushNotificationService.getPermissionStatus()
+      setPermissionStatus(currentPermission)
+
+      // 권한이 granted이고 푸시가 활성화되어 있으면 FCM 토큰 자동 등록
+      // (기존 사용자들의 토큰이 등록 안 된 경우를 위한 자동 복구)
+      if (currentPermission === 'granted' && pushSettings.enabled) {
+        pushNotificationService.registerFCMToken()
+      }
     }
-  }, [])
+  }, [pushSettings.enabled])
 
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {

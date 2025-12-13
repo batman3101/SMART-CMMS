@@ -455,7 +455,7 @@ export default function NotificationsPage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <p className={`font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                  {getNotificationTitle(notification.type)}
+                                  {notification.title || getNotificationTitle(notification.type)}
                                 </p>
                                 {getTypeBadge(notification.type)}
                                 {!notification.read && (
@@ -463,7 +463,7 @@ export default function NotificationsPage() {
                                 )}
                               </div>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                {getNotificationMessage(notification.type, notification.equipment_code)}
+                                {notification.message || getNotificationMessage(notification.type, notification.equipment_code)}
                               </p>
                               {notification.equipment_code && (
                                 <p className="mt-2 text-xs">

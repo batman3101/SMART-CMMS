@@ -29,5 +29,8 @@
     "deny": [],
     "ask": []
   },
-  "enableAllProjectMcpServers": true
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase-smart-cmms"
+  ]
 }

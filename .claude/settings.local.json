@@ -24,7 +24,10 @@
       "mcp__supabase-smart-cmms__list_migrations",
       "Bash(git check-ignore:*)",
       "mcp__supabase-smart-cmms__list_edge_functions",
-      "mcp__supabase-smart-cmms__get_logs"
+      "mcp__supabase-smart-cmms__get_logs",
+      "Bash(cat:*)",
+      "Bash(wc:*)",
+      "Bash(dir /b \"C:\\Work Drive\\APP\\SMART-CMMS\\supabase\")"
     ],
     "deny": [],
     "ask": []

@@ -27,7 +27,10 @@
       "mcp__supabase-smart-cmms__get_logs",
       "Bash(cat:*)",
       "Bash(wc:*)",
-      "Bash(dir /b \"C:\\Work Drive\\APP\\SMART-CMMS\\supabase\")"
+      "Bash(dir /b \"C:\\Work Drive\\APP\\SMART-CMMS\\supabase\")",
+      "mcp__supabase-smart-cmms__get_project_url",
+      "mcp__supabase-smart-cmms__get_publishable_keys",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

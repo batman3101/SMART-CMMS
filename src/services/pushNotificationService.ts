@@ -9,6 +9,8 @@
  */
 
 import { useNotificationStore, NotificationType } from '@/stores/notificationStore'
+import { useAuthStore } from '@/stores/authStore'
+import { supabase } from '@/lib/supabase'
 import {
   initializeFirebase,
   initializeMessaging,
@@ -158,8 +160,8 @@ class PushNotificationService {
         this.fcmToken = token
         useNotificationStore.getState().setFcmToken(token)
 
-        // TODO: 서버에 FCM 토큰 등록
-        // await this.sendTokenToServer(token)
+        // 서버에 FCM 토큰 등록
+        await this.sendTokenToServer(token)
 
         console.log('[PushNotificationService] FCM 토큰 등록됨')
         return token
@@ -173,29 +175,86 @@ class PushNotificationService {
   }
 
   /**
-   * 서버에 FCM 토큰 전송 (Supabase 연동 시 사용)
+   * 서버에 FCM 토큰 저장
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async sendTokenToServer(_token: string, _userId?: string): Promise<void> {
-    console.log('[PushNotificationService] 서버에 FCM 토큰 전송 (Supabase 연동 필요)')
+  async sendTokenToServer(token: string, userId?: string): Promise<void> {
+    try {
+      // 사용자 ID 가져오기
+      const currentUserId = userId || useAuthStore.getState().user?.id
+      if (!currentUserId) {
+        console.warn('[PushNotificationService] 사용자 ID가 없어 토큰을 저장할 수 없습니다.')
+        return
+      }
 
-    // Supabase 연동 시 아래 코드 활성화
-    /*
-    await supabase
-      .from('push_tokens')
-      .upsert({
-        user_id: _userId,
-        token: _token,
-        platform: 'web',
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' })
-    */
+      if (!supabase) {
+        console.warn('[PushNotificationService] Supabase가 연결되지 않았습니다.')
+        return
+      }
+
+      // 디바이스 정보 수집
+      const deviceInfo = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+      }
+
+      // 기존 토큰 확인 (같은 토큰이 있으면 업데이트, 없으면 삽입)
+      const { data: existingToken } = await supabase
+        .from('user_fcm_tokens')
+        .select('id')
+        .eq('fcm_token', token)
+        .single()
+
+      if (existingToken) {
+        // 기존 토큰 업데이트
+        const { error } = await supabase
+          .from('user_fcm_tokens')
+          .update({
+            user_id: currentUserId,
+            is_active: true,
+            device_info: deviceInfo,
+            updated_at: new Date().toISOString(),
+            last_used_at: new Date().toISOString(),
+          })
+          .eq('id', existingToken.id)
+
+        if (error) {
+          throw error
+        }
+        console.log('[PushNotificationService] FCM 토큰 업데이트 완료')
+      } else {
+        // 새 토큰 삽입
+        const { error } = await supabase
+          .from('user_fcm_tokens')
+          .insert({
+            user_id: currentUserId,
+            fcm_token: token,
+            device_type: 'web',
+            device_info: deviceInfo,
+            is_active: true,
+          })
+
+        if (error) {
+          throw error
+        }
+        console.log('[PushNotificationService] FCM 토큰 저장 완료')
+      }
+    } catch (error) {
+      console.error('[PushNotificationService] FCM 토큰 저장 실패:', error)
+    }
   }
 
   /**
    * 푸시 알림 구독 해제
    */
   async unsubscribe(): Promise<void> {
+    // 서버에서 FCM 토큰 비활성화
+    if (this.fcmToken) {
+      await this.removeTokenFromServer(this.fcmToken)
+    }
+
     // 포그라운드 리스너 해제
     if (this.unsubscribeForeground) {
       this.unsubscribeForeground()
@@ -208,10 +267,35 @@ class PushNotificationService {
     useNotificationStore.getState().setIsSubscribed(false)
     useNotificationStore.getState().setPushSettings({ enabled: false })
 
-    // TODO: 서버에서 FCM 토큰 삭제
-    // await this.removeTokenFromServer()
-
     console.log('[PushNotificationService] 알림 구독 해제됨')
+  }
+
+  /**
+   * 서버에서 FCM 토큰 비활성화
+   */
+  async removeTokenFromServer(token: string): Promise<void> {
+    try {
+      if (!supabase) {
+        console.warn('[PushNotificationService] Supabase가 연결되지 않았습니다.')
+        return
+      }
+
+      const { error } = await supabase
+        .from('user_fcm_tokens')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('fcm_token', token)
+
+      if (error) {
+        throw error
+      }
+
+      console.log('[PushNotificationService] FCM 토큰 비활성화 완료')
+    } catch (error) {
+      console.error('[PushNotificationService] FCM 토큰 비활성화 실패:', error)
+    }
   }
 
   /**

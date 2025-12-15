@@ -681,6 +681,8 @@
     "noOverduePM": "지연된 PM이 없습니다",
     "startPM": "PM 시작",
     "completePM": "PM 완료",
+    "progressSaved": "진행 상태가 저장되었습니다",
+    "requiredItemsNotChecked": "필수 점검 항목을 모두 체크해주세요",
     "viewDetail": "상세 보기",
     "scheduledDate": "예정일",
     "assignedTechnician": "담당자",

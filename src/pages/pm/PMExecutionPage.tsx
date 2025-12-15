@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { pmApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
+import { useToast } from '@/components/ui/toast'
 import type { PMSchedule, PMExecution, PMChecklistResult } from '@/types'
 
 export default function PMExecutionPage() {
@@ -35,6 +36,7 @@ export default function PMExecutionPage() {
   const [searchParams] = useSearchParams()
   const scheduleId = searchParams.get('schedule')
   const { user } = useAuthStore()
+  const { addToast } = useToast()
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -131,7 +133,7 @@ export default function PMExecutionPage() {
     try {
       const { data, error } = await pmApi.startExecution(scheduleId, user.id)
       if (error) {
-        alert(error)
+        addToast({ type: 'error', title: t('common.error'), message: error })
         return
       }
       if (data) {
@@ -211,9 +213,10 @@ export default function PMExecutionPage() {
         findings_severity: findingsSeverity,
         notes,
       })
-      alert(t('common.success'))
+      addToast({ type: 'success', title: t('common.success'), message: t('pm.progressSaved') })
     } catch (error) {
       console.error('Failed to save progress:', error)
+      addToast({ type: 'error', title: t('common.error'), message: t('common.error') })
     } finally {
       setSaving(false)
     }
@@ -229,7 +232,11 @@ export default function PMExecutionPage() {
     )
 
     if (uncheckedRequired.length > 0) {
-      alert(t('pm.checklist') + ': ' + uncheckedRequired.map(i => i.description).join(', '))
+      addToast({
+        type: 'warning',
+        title: t('pm.checklist'),
+        message: t('pm.requiredItemsNotChecked')
+      })
       return
     }
 
@@ -245,16 +252,17 @@ export default function PMExecutionPage() {
       })
 
       if (error) {
-        alert(error)
+        addToast({ type: 'error', title: t('common.error'), message: error })
         return
       }
 
       if (data) {
-        alert(t('pm.completePM') + ' - ' + t('common.success'))
+        addToast({ type: 'success', title: t('pm.completePM'), message: t('common.success') })
         navigate('/pm')
       }
     } catch (error) {
       console.error('Failed to complete PM:', error)
+      addToast({ type: 'error', title: t('common.error'), message: t('common.error') })
     } finally {
       setSaving(false)
     }

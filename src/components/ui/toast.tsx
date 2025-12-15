@@ -56,8 +56,8 @@ function ToastContainer() {
   const { toasts, removeToast } = useToast()
 
   return (
-    <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
-      <div className="flex flex-col gap-3 pointer-events-auto">
+    <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center p-4">
+      <div className="flex flex-col gap-3 pointer-events-auto w-full max-w-md">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
         ))}
@@ -109,7 +109,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   return (
     <div
       className={`
-        min-w-[320px] max-w-[420px] rounded-lg border-2 shadow-2xl p-4
+        w-full rounded-lg border-2 shadow-2xl p-4
         transform transition-all duration-200 ease-out
         ${bgColors[toast.type]}
         ${isVisible && !isLeaving ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}

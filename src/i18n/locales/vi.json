@@ -681,6 +681,8 @@
     "noOverduePM": "Không có PM quá hạn",
     "startPM": "Bắt đầu PM",
     "completePM": "Hoàn thành PM",
+    "progressSaved": "Tiến độ đã được lưu",
+    "requiredItemsNotChecked": "Vui lòng kiểm tra tất cả các mục bắt buộc",
     "viewDetail": "Xem chi tiết",
     "scheduledDate": "Ngày dự kiến",
     "assignedTechnician": "Kỹ thuật viên phụ trách",

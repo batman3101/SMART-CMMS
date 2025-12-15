@@ -426,15 +426,20 @@ export default function PMExecutionPage() {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                           <div
                             className="flex items-center gap-3 flex-1 cursor-pointer min-h-[44px]"
-                            onClick={() => handleChecklistChange(item.id, !result?.is_checked)}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleChecklistChange(item.id, !result?.is_checked)
+                            }}
                           >
-                            <Checkbox
-                              checked={result?.is_checked || false}
-                              onCheckedChange={(checked: boolean | 'indeterminate') =>
-                                handleChecklistChange(item.id, checked === true)
-                              }
-                              className="h-5 w-5"
-                            />
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={result?.is_checked || false}
+                                onCheckedChange={(checked: boolean | 'indeterminate') =>
+                                  handleChecklistChange(item.id, checked === true)
+                                }
+                                className="h-5 w-5"
+                              />
+                            </div>
                             <span
                               className={`text-sm sm:text-base ${
                                 result?.is_checked ? 'text-muted-foreground line-through' : ''
@@ -448,21 +453,26 @@ export default function PMExecutionPage() {
                           </div>
                           <div
                             className="flex items-center gap-2 pl-8 sm:pl-0 min-h-[44px] cursor-pointer"
-                            onClick={() => handleIssueChange(item.id, !result?.has_issue, {
-                              description: typeof item.description === 'string' ? item.description : String(item.description),
-                              inspection_area: item.inspection_area,
-                            })}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleIssueChange(item.id, !result?.has_issue, {
+                                description: typeof item.description === 'string' ? item.description : String(item.description),
+                                inspection_area: item.inspection_area,
+                              })
+                            }}
                           >
-                            <Checkbox
-                              checked={result?.has_issue || false}
-                              onCheckedChange={(checked: boolean | 'indeterminate') =>
-                                handleIssueChange(item.id, checked === true, {
-                                  description: typeof item.description === 'string' ? item.description : String(item.description),
-                                  inspection_area: item.inspection_area,
-                                })
-                              }
-                              className="h-5 w-5"
-                            />
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={result?.has_issue || false}
+                                onCheckedChange={(checked: boolean | 'indeterminate') =>
+                                  handleIssueChange(item.id, checked === true, {
+                                    description: typeof item.description === 'string' ? item.description : String(item.description),
+                                    inspection_area: item.inspection_area,
+                                  })
+                                }
+                                className="h-5 w-5"
+                              />
+                            </div>
                             <Label className="text-sm text-muted-foreground cursor-pointer">
                               {t('pm.hasIssue')}
                             </Label>

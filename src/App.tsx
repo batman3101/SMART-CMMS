@@ -79,6 +79,7 @@ function App() {
         {/* Equipment Management */}
         <Route path="equipment">
           <Route index element={<EquipmentListPage />} />
+          <Route path="list" element={<EquipmentListPage />} />
           <Route path="master" element={<EquipmentMasterPage />} />
           <Route path="bulk-upload" element={<EquipmentBulkUploadPage />} />
         </Route>
@@ -86,6 +87,7 @@ function App() {
         {/* Maintenance Management */}
         <Route path="maintenance">
           <Route index element={<MaintenanceInputPage />} />
+          <Route path="input" element={<MaintenanceInputPage />} />
           <Route path="history" element={<MaintenanceHistoryPage />} />
           <Route path="monitor" element={<MaintenanceMonitorPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
@@ -112,6 +114,7 @@ function App() {
         {/* AI Insights */}
         <Route path="ai">
           <Route index element={<AIInsightPage />} />
+          <Route path="insights" element={<AIInsightPage />} />
           <Route path="chat" element={<AIChatPage />} />
         </Route>
 

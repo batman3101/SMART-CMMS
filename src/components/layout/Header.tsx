@@ -191,7 +191,7 @@ export default function Header() {
 
           {/* 알림 드롭다운 */}
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm rounded-lg border bg-background shadow-lg">
+            <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[calc(100vw-2rem)] sm:absolute sm:left-auto sm:translate-x-0 sm:right-0 sm:top-full sm:mt-2 sm:w-80 max-w-sm rounded-lg border bg-background shadow-lg z-50">
               {/* 헤더 */}
               <div className="flex items-center justify-between border-b px-4 py-3">
                 <h3 className="font-semibold">{t('notification.title')}</h3>

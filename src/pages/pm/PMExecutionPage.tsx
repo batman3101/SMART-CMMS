@@ -8,6 +8,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
   CheckCircle,
   AlertTriangle,
   Play,
@@ -37,6 +45,14 @@ export default function PMExecutionPage() {
   const [findingsSeverity, setFindingsSeverity] = useState<'none' | 'minor' | 'major' | 'critical'>('none')
   const [notes, setNotes] = useState('')
   const [rating, setRating] = useState<number>(8)
+
+  // Issue confirmation dialog state
+  const [issueDialogOpen, setIssueDialogOpen] = useState(false)
+  const [pendingIssueItem, setPendingIssueItem] = useState<{
+    itemId: string
+    description: string
+    inspectionArea?: string
+  } | null>(null)
 
   // Helper function to parse date with robust timezone handling
   const parseDateTime = (dateStr: string): Date => {
@@ -136,12 +152,50 @@ export default function PMExecutionPage() {
     )
   }
 
-  const handleIssueChange = (itemId: string, hasIssue: boolean) => {
+  const handleIssueChange = (itemId: string, hasIssue: boolean, item?: { description: string; inspection_area?: string }) => {
+    if (hasIssue && item) {
+      // Open confirmation dialog before marking as issue
+      setPendingIssueItem({
+        itemId,
+        description: item.description,
+        inspectionArea: item.inspection_area,
+      })
+      setIssueDialogOpen(true)
+    } else {
+      // Uncheck issue - just update state
+      setChecklistResults((prev) =>
+        prev.map((result) =>
+          result.item_id === itemId ? { ...result, has_issue: false } : result
+        )
+      )
+    }
+  }
+
+  const confirmIssueAndCreateRepair = () => {
+    if (!pendingIssueItem || !schedule) return
+
+    // Mark the item as having an issue
     setChecklistResults((prev) =>
       prev.map((result) =>
-        result.item_id === itemId ? { ...result, has_issue: hasIssue } : result
+        result.item_id === pendingIssueItem.itemId ? { ...result, has_issue: true } : result
       )
     )
+
+    // Close dialog
+    setIssueDialogOpen(false)
+
+    // Build symptom from inspection area and description
+    const symptom = pendingIssueItem.inspectionArea
+      ? `[${pendingIssueItem.inspectionArea}] ${pendingIssueItem.description}`
+      : pendingIssueItem.description
+
+    // Navigate to maintenance input with PM context
+    navigate(`/maintenance/input?from_pm=${schedule.id}&equipment=${schedule.equipment_id}&symptom=${encodeURIComponent(symptom)}`)
+  }
+
+  const cancelIssueDialog = () => {
+    setIssueDialogOpen(false)
+    setPendingIssueItem(null)
   }
 
   const handleSaveProgress = async () => {
@@ -397,7 +451,10 @@ export default function PMExecutionPage() {
                             <Checkbox
                               checked={result?.has_issue || false}
                               onCheckedChange={(checked: boolean | 'indeterminate') =>
-                                handleIssueChange(item.id, checked === true)
+                                handleIssueChange(item.id, checked === true, {
+                                  description: typeof item.description === 'string' ? item.description : String(item.description),
+                                  inspection_area: item.inspection_area,
+                                })
                               }
                             />
                           </div>
@@ -572,6 +629,40 @@ export default function PMExecutionPage() {
           )}
         </div>
       </div>
+
+      {/* Issue Confirmation Dialog */}
+      <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              {t('pm.issueFound')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('pm.issueFoundDesc')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              {pendingIssueItem?.inspectionArea && (
+                <Badge variant="outline" className="mb-2">
+                  {pendingIssueItem.inspectionArea}
+                </Badge>
+              )}
+              <p className="text-sm">{pendingIssueItem?.description}</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={cancelIssueDialog}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={confirmIssueAndCreateRepair}>
+              <Wrench className="mr-2 h-4 w-4" />
+              {t('pm.createRepairFromPM')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -205,12 +205,21 @@ export default function PMTemplatesPage() {
       is_active: template.is_active,
     })
     setChecklistItems(
-      template.checklist_items.map((item, idx) => ({
-        id: `item-${idx}`,
-        inspection_area: item.inspection_area || '',
-        description: item.description,
-        is_required: item.is_required,
-      }))
+      template.checklist_items.map((item, idx) => {
+        // Handle case where description might be an object
+        const desc = typeof item.description === 'object'
+          ? (item.description as Record<string, string>)?.ko || (item.description as Record<string, string>)?.vi || JSON.stringify(item.description)
+          : item.description
+        const inspArea = typeof item.inspection_area === 'object'
+          ? (item.inspection_area as Record<string, string>)?.ko || (item.inspection_area as Record<string, string>)?.vi || ''
+          : (item.inspection_area || '')
+        return {
+          id: `item-${idx}`,
+          inspection_area: inspArea,
+          description: desc,
+          is_required: item.is_required,
+        }
+      })
     )
     setNewItemDescription('')
     setNewItemInspectionArea('')
@@ -229,12 +238,21 @@ export default function PMTemplatesPage() {
       is_active: true,
     })
     setChecklistItems(
-      template.checklist_items.map((item, idx) => ({
-        id: `item-${idx}`,
-        inspection_area: item.inspection_area || '',
-        description: item.description,
-        is_required: item.is_required,
-      }))
+      template.checklist_items.map((item, idx) => {
+        // Handle case where description might be an object
+        const desc = typeof item.description === 'object'
+          ? (item.description as Record<string, string>)?.ko || (item.description as Record<string, string>)?.vi || JSON.stringify(item.description)
+          : item.description
+        const inspArea = typeof item.inspection_area === 'object'
+          ? (item.inspection_area as Record<string, string>)?.ko || (item.inspection_area as Record<string, string>)?.vi || ''
+          : (item.inspection_area || '')
+        return {
+          id: `item-${idx}`,
+          inspection_area: inspArea,
+          description: desc,
+          is_required: item.is_required,
+        }
+      })
     )
     setNewItemDescription('')
     setNewItemInspectionArea('')
@@ -708,7 +726,7 @@ export default function PMTemplatesPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="w-full max-w-2xl max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-full max-w-2xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">
               {editingTemplate ? t('pm.editTemplate') : t('pm.createTemplate')}

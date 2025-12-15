@@ -740,6 +740,8 @@
     "checklistExecution": "체크리스트 수행",
     "checkItem": "항목 확인",
     "hasIssue": "이상 발견",
+    "issueFound": "이상 발견",
+    "issueFoundDesc": "해당 점검 항목에서 이상이 발견되었습니다. 수리 작업을 등록하시겠습니까?",
     "issueNotes": "이상 내용",
     "findings": "발견 사항",
     "findingsSeverity": "심각도",

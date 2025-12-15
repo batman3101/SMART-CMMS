@@ -740,6 +740,8 @@
     "checklistExecution": "Thực hiện kiểm tra",
     "checkItem": "Xác nhận mục",
     "hasIssue": "Phát hiện vấn đề",
+    "issueFound": "Phát hiện vấn đề",
+    "issueFoundDesc": "Đã phát hiện vấn đề trong mục kiểm tra này. Bạn có muốn đăng ký công việc sửa chữa không?",
     "issueNotes": "Ghi chú vấn đề",
     "findings": "Phát hiện",
     "findingsSeverity": "Mức độ nghiêm trọng",

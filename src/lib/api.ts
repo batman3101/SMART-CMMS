@@ -1666,7 +1666,7 @@ export const pmApi = {
     // Get schedule info
     const { data: schedule } = await getSupabase()
       .from('pm_schedules')
-      .select('equipment_id')
+      .select('equipment_id, assigned_technician_id')
       .eq('id', scheduleId)
       .single()
 
@@ -1674,19 +1674,25 @@ export const pmApi = {
       return { data: null, error: 'Schedule not found' }
     }
 
-    // Update schedule status
+    // Use existing assigned technician if set, otherwise use current user
+    const executingTechnicianId = schedule.assigned_technician_id || technicianId
+
+    // Update schedule status (preserve assigned_technician_id if already set)
     await getSupabase()
       .from('pm_schedules')
-      .update({ status: 'in_progress', assigned_technician_id: technicianId })
+      .update({
+        status: 'in_progress',
+        assigned_technician_id: executingTechnicianId
+      })
       .eq('id', scheduleId)
 
-    // Create execution
+    // Create execution with the correct technician
     const { data, error } = await getSupabase()
       .from('pm_executions')
       .insert({
         schedule_id: scheduleId,
         equipment_id: schedule.equipment_id,
-        technician_id: technicianId,
+        technician_id: executingTechnicianId,
         started_at: new Date().toISOString(),
         status: 'in_progress',
         checklist_results: [],

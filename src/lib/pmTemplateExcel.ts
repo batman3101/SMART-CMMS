@@ -3,6 +3,41 @@ import type { PMTemplate, PMIntervalType, PMChecklistItem, PMRequiredPart, Equip
 
 export type ExcelLanguage = 'ko' | 'vi'
 
+/**
+ * ExcelJS 셀 값을 문자열로 안전하게 추출
+ * Rich Text, 객체 등 다양한 형태를 처리
+ */
+function getCellValueAsString(cellValue: ExcelJS.CellValue): string {
+  if (cellValue === null || cellValue === undefined) {
+    return ''
+  }
+
+  // Rich Text 객체인 경우
+  if (typeof cellValue === 'object' && 'richText' in cellValue) {
+    const richText = cellValue as ExcelJS.CellRichTextValue
+    return richText.richText.map(rt => rt.text).join('')
+  }
+
+  // 일반 객체인 경우 (Date 등)
+  if (typeof cellValue === 'object') {
+    if (cellValue instanceof Date) {
+      return cellValue.toISOString()
+    }
+    // 다른 객체는 text 속성이 있으면 추출
+    if ('text' in cellValue && typeof (cellValue as { text: unknown }).text === 'string') {
+      return (cellValue as { text: string }).text
+    }
+    // result 속성 (formula 결과)
+    if ('result' in cellValue) {
+      return getCellValueAsString((cellValue as { result: ExcelJS.CellValue }).result)
+    }
+    return ''
+  }
+
+  // 문자열, 숫자, boolean 등
+  return String(cellValue)
+}
+
 // 주기 유형 한글 매핑
 const INTERVAL_TYPE_KO: Record<string, PMIntervalType> = {
   '일간': 'daily',
@@ -397,10 +432,10 @@ export async function uploadPMTemplateExcel(
     templateSheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return // 헤더 건너뛰기
 
-      const name = String(row.getCell(1).value || '').trim()
-      const description = String(row.getCell(2).value || '').trim()
-      const equipmentTypeCode = String(row.getCell(3).value || '').trim().toUpperCase()
-      const intervalTypeStr = String(row.getCell(4).value || '').trim()
+      const name = getCellValueAsString(row.getCell(1).value).trim()
+      const description = getCellValueAsString(row.getCell(2).value).trim()
+      const equipmentTypeCode = getCellValueAsString(row.getCell(3).value).trim().toUpperCase()
+      const intervalTypeStr = getCellValueAsString(row.getCell(4).value).trim()
       const intervalValue = Number(row.getCell(5).value) || 0
       const estimatedDuration = Number(row.getCell(6).value) || 60
 
@@ -490,11 +525,11 @@ export async function uploadPMTemplateExcel(
       checklistSheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return // 헤더 건너뛰기
 
-        const templateName = String(row.getCell(1).value || '').trim()
+        const templateName = getCellValueAsString(row.getCell(1).value).trim()
         const order = Number(row.getCell(2).value) || rowNumber - 1
-        const inspectionArea = String(row.getCell(3).value || '').trim()
-        const description = String(row.getCell(4).value || '').trim()
-        const isRequiredStr = String(row.getCell(5).value || 'Y').trim().toUpperCase()
+        const inspectionArea = getCellValueAsString(row.getCell(3).value).trim()
+        const description = getCellValueAsString(row.getCell(4).value).trim()
+        const isRequiredStr = getCellValueAsString(row.getCell(5).value || 'Y').trim().toUpperCase()
 
         // 빈 행 또는 힌트 행 건너뛰기
         if (!templateName || templateName.startsWith('※')) return
@@ -532,9 +567,9 @@ export async function uploadPMTemplateExcel(
       partsSheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return // 헤더 건너뛰기
 
-        const templateName = String(row.getCell(1).value || '').trim()
-        const partCode = String(row.getCell(2).value || '').trim()
-        const partName = String(row.getCell(3).value || '').trim()
+        const templateName = getCellValueAsString(row.getCell(1).value).trim()
+        const partCode = getCellValueAsString(row.getCell(2).value).trim()
+        const partName = getCellValueAsString(row.getCell(3).value).trim()
         const quantity = Number(row.getCell(4).value) || 1
 
         // 빈 행 건너뛰기

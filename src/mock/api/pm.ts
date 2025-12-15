@@ -450,15 +450,17 @@ export const mockPMApi = {
       return { data: null, error: '이미 완료된 PM입니다.' }
     }
 
-    const technician = mockUsers.find(u => u.id === technicianId)
+    // Use existing assigned technician if set, otherwise use current user
+    const executingTechnicianId = schedule.assigned_technician_id || technicianId
+    const technician = mockUsers.find(u => u.id === executingTechnicianId)
     if (!technician) {
       return { data: null, error: '담당자를 찾을 수 없습니다.' }
     }
 
-    // Update schedule status
+    // Update schedule status (preserve assigned_technician_id if already set)
     updatePMSchedule(scheduleId, {
       status: 'in_progress',
-      assigned_technician_id: technicianId,
+      assigned_technician_id: executingTechnicianId,
       assigned_technician: technician,
     })
 
@@ -467,7 +469,7 @@ export const mockPMApi = {
       schedule,
       equipment_id: schedule.equipment_id,
       equipment: schedule.equipment,
-      technician_id: technicianId,
+      technician_id: executingTechnicianId,
       technician,
       started_at: new Date().toISOString(),
       checklist_results: [],

@@ -51,11 +51,11 @@ const LABELS = {
     equipmentTypeCode: '설비유형코드 *',
     intervalType: '주기유형 *',
     intervalValue: '주기값 *',
-    inspectionArea: '점검 부위',
     estimatedDuration: '예상소요시간(분)',
     intervalHint: '※ 주기유형: 일간/주간/월간/분기/연간 중 선택',
     // Checklist sheet
     order: '순서',
+    inspectionArea: '점검 부위',
     checklistItem: '체크항목 *',
     isRequired: '필수여부',
     requiredHint: '※ 필수여부: Y(필수) 또는 N(선택)',
@@ -85,11 +85,11 @@ const LABELS = {
     equipmentTypeCode: 'Mã loại thiết bị *',
     intervalType: 'Loại chu kỳ *',
     intervalValue: 'Giá trị chu kỳ *',
-    inspectionArea: 'Khu vực kiểm tra',
     estimatedDuration: 'Thời gian dự kiến (phút)',
     intervalHint: '※ Loại chu kỳ: Hàng ngày/Hàng tuần/Hàng tháng/Hàng quý/Hàng năm',
     // Checklist sheet
     order: 'Thứ tự',
+    inspectionArea: 'Khu vực kiểm tra',
     checklistItem: 'Mục kiểm tra *',
     isRequired: 'Bắt buộc',
     requiredHint: '※ Bắt buộc: Y(Có) hoặc N(Không)',
@@ -127,7 +127,6 @@ export interface ParsedTemplate {
   equipment_type_code: string
   interval_type: PMIntervalType
   interval_value: number
-  inspection_area?: string
   estimated_duration: number
   checklist_items: (Omit<PMChecklistItem, 'id'> & {
     description_ko?: string
@@ -171,7 +170,6 @@ export async function downloadPMTemplateExcel(
     { header: L.equipmentTypeCode, key: 'equipment_type_code', width: 22 },
     { header: L.intervalType, key: 'interval_type', width: 18 },
     { header: L.intervalValue, key: 'interval_value', width: 14 },
-    { header: L.inspectionArea, key: 'inspection_area', width: 25 },
     { header: L.estimatedDuration, key: 'estimated_duration', width: 20 },
   ]
 
@@ -199,7 +197,6 @@ export async function downloadPMTemplateExcel(
     equipment_type_code: 'CNC',
     interval_type: intervalTypes[2], // monthly
     interval_value: 1,
-    inspection_area: language === 'ko' ? '스핀들, 윤활계통' : 'Trục chính, Hệ thống bôi trơn',
     estimated_duration: 60,
   })
 
@@ -224,6 +221,7 @@ export async function downloadPMTemplateExcel(
   checklistSheet.columns = [
     { header: L.templateName, key: 'template_name', width: 35 },
     { header: L.order, key: 'order', width: 10 },
+    { header: L.inspectionArea, key: 'inspection_area', width: 25 },
     { header: L.checklistItem, key: 'description', width: 55 },
     { header: L.isRequired, key: 'is_required', width: 14 },
   ]
@@ -248,18 +246,21 @@ export async function downloadPMTemplateExcel(
   checklistSheet.addRow({
     template_name: L.exampleTemplateName,
     order: 1,
+    inspection_area: language === 'ko' ? '스핀들' : 'Trục chính',
     description: L.exampleChecklist1,
     is_required: 'Y',
   })
   checklistSheet.addRow({
     template_name: L.exampleTemplateName,
     order: 2,
+    inspection_area: language === 'ko' ? '에어 시스템' : 'Hệ thống khí',
     description: L.exampleChecklist2,
     is_required: 'Y',
   })
   checklistSheet.addRow({
     template_name: L.exampleTemplateName,
     order: 3,
+    inspection_area: language === 'ko' ? '쿨런트 시스템' : 'Hệ thống làm mát',
     description: L.exampleChecklist3,
     is_required: 'N',
   })
@@ -268,6 +269,7 @@ export async function downloadPMTemplateExcel(
   const checklistHintRow = checklistSheet.addRow({
     template_name: L.requiredHint,
     order: '',
+    inspection_area: '',
     description: '',
     is_required: '',
   })
@@ -400,8 +402,7 @@ export async function uploadPMTemplateExcel(
       const equipmentTypeCode = String(row.getCell(3).value || '').trim().toUpperCase()
       const intervalTypeStr = String(row.getCell(4).value || '').trim()
       const intervalValue = Number(row.getCell(5).value) || 0
-      const inspectionArea = String(row.getCell(6).value || '').trim()
-      const estimatedDuration = Number(row.getCell(7).value) || 60
+      const estimatedDuration = Number(row.getCell(6).value) || 60
 
       // 빈 행 또는 힌트 행 건너뛰기
       if (!name || name.startsWith('※')) return
@@ -473,7 +474,6 @@ export async function uploadPMTemplateExcel(
         equipment_type_code: equipmentTypeCode,
         interval_type: intervalType,
         interval_value: intervalValue,
-        inspection_area: inspectionArea || undefined,
         estimated_duration: estimatedDuration > 0 ? estimatedDuration : 60,
         checklist_items: [],
         required_parts: [],
@@ -492,8 +492,9 @@ export async function uploadPMTemplateExcel(
 
         const templateName = String(row.getCell(1).value || '').trim()
         const order = Number(row.getCell(2).value) || rowNumber - 1
-        const description = String(row.getCell(3).value || '').trim()
-        const isRequiredStr = String(row.getCell(4).value || 'Y').trim().toUpperCase()
+        const inspectionArea = String(row.getCell(3).value || '').trim()
+        const description = String(row.getCell(4).value || '').trim()
+        const isRequiredStr = String(row.getCell(5).value || 'Y').trim().toUpperCase()
 
         // 빈 행 또는 힌트 행 건너뛰기
         if (!templateName || templateName.startsWith('※')) return
@@ -514,6 +515,7 @@ export async function uploadPMTemplateExcel(
 
         template.checklist_items.push({
           order,
+          inspection_area: inspectionArea || undefined,
           description,
           description_ko: language === 'ko' ? description : undefined,
           description_vi: language === 'vi' ? description : undefined,
@@ -627,7 +629,6 @@ export async function exportPMTemplatesToExcel(
     { header: L.equipmentTypeCode, key: 'equipment_type_code', width: 22 },
     { header: L.intervalType, key: 'interval_type', width: 18 },
     { header: L.intervalValue, key: 'interval_value', width: 14 },
-    { header: L.inspectionArea, key: 'inspection_area', width: 25 },
     { header: L.estimatedDuration, key: 'estimated_duration', width: 20 },
   ]
 
@@ -651,7 +652,6 @@ export async function exportPMTemplatesToExcel(
       equipment_type_code: equipmentTypeIdMap.get(template.equipment_type_id) || '',
       interval_type: intervalTypeToStr[template.interval_type],
       interval_value: template.interval_value,
-      inspection_area: template.inspection_area || '',
       estimated_duration: template.estimated_duration,
     })
   })
@@ -661,6 +661,7 @@ export async function exportPMTemplatesToExcel(
   checklistSheet.columns = [
     { header: L.templateName, key: 'template_name', width: 35 },
     { header: L.order, key: 'order', width: 10 },
+    { header: L.inspectionArea, key: 'inspection_area', width: 25 },
     { header: L.checklistItem, key: 'description', width: 55 },
     { header: L.isRequired, key: 'is_required', width: 14 },
   ]
@@ -683,6 +684,7 @@ export async function exportPMTemplatesToExcel(
       checklistSheet.addRow({
         template_name: displayName,
         order: item.order,
+        inspection_area: item.inspection_area || '',
         description: displayItemDesc,
         is_required: item.is_required ? 'Y' : 'N',
       })

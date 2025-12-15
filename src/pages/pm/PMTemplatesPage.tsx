@@ -52,6 +52,7 @@ import type { PMTemplate, PMIntervalType } from '@/types'
 
 interface ChecklistItem {
   id: string
+  inspection_area?: string
   description: string
   is_required: boolean
 }
@@ -109,12 +110,12 @@ export default function PMTemplatesPage() {
     equipment_type_id: '',
     interval_type: 'monthly' as PMIntervalType,
     interval_value: 1,
-    inspection_area: '',
     estimated_duration: 60,
     is_active: true,
   })
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([])
   const [newItemDescription, setNewItemDescription] = useState('')
+  const [newItemInspectionArea, setNewItemInspectionArea] = useState('')
 
   useEffect(() => {
     fetchData()
@@ -183,11 +184,12 @@ export default function PMTemplatesPage() {
       equipment_type_id: '',
       interval_type: 'monthly',
       interval_value: 1,
-      inspection_area: '',
       estimated_duration: 60,
       is_active: true,
     })
     setChecklistItems([])
+    setNewItemDescription('')
+    setNewItemInspectionArea('')
     setIsDialogOpen(true)
   }
 
@@ -199,17 +201,19 @@ export default function PMTemplatesPage() {
       equipment_type_id: template.equipment_type_id,
       interval_type: template.interval_type,
       interval_value: template.interval_value,
-      inspection_area: template.inspection_area || '',
       estimated_duration: template.estimated_duration,
       is_active: template.is_active,
     })
     setChecklistItems(
       template.checklist_items.map((item, idx) => ({
         id: `item-${idx}`,
+        inspection_area: item.inspection_area || '',
         description: item.description,
         is_required: item.is_required,
       }))
     )
+    setNewItemDescription('')
+    setNewItemInspectionArea('')
     setIsDialogOpen(true)
   }
 
@@ -221,17 +225,19 @@ export default function PMTemplatesPage() {
       equipment_type_id: template.equipment_type_id,
       interval_type: template.interval_type,
       interval_value: template.interval_value,
-      inspection_area: template.inspection_area || '',
       estimated_duration: template.estimated_duration,
       is_active: true,
     })
     setChecklistItems(
       template.checklist_items.map((item, idx) => ({
         id: `item-${idx}`,
+        inspection_area: item.inspection_area || '',
         description: item.description,
         is_required: item.is_required,
       }))
     )
+    setNewItemDescription('')
+    setNewItemInspectionArea('')
     setIsDialogOpen(true)
   }
 
@@ -241,11 +247,13 @@ export default function PMTemplatesPage() {
       ...checklistItems,
       {
         id: `item-${Date.now()}`,
+        inspection_area: newItemInspectionArea.trim() || undefined,
         description: newItemDescription.trim(),
         is_required: true,
       },
     ])
     setNewItemDescription('')
+    setNewItemInspectionArea('')
   }
 
   const removeChecklistItem = (id: string) => {
@@ -267,6 +275,7 @@ export default function PMTemplatesPage() {
         checklist_items: checklistItems.map((item, index) => ({
           id: item.id,
           order: index + 1,
+          inspection_area: item.inspection_area || undefined,
           description: item.description,
           is_required: item.is_required,
         })),
@@ -404,11 +413,11 @@ export default function PMTemplatesPage() {
             equipment_type_id: template.equipment_type_id,
             interval_type: template.interval_type,
             interval_value: template.interval_value,
-            inspection_area: template.inspection_area,
             estimated_duration: template.estimated_duration,
             checklist_items: template.checklist_items.map((item, idx) => ({
               id: `item-${Date.now()}-${idx}`,
               order: item.order,
+              inspection_area: item.inspection_area,
               description: item.description,
               description_ko: item.description_ko,
               description_vi: item.description_vi,
@@ -555,10 +564,6 @@ export default function PMTemplatesPage() {
                           <span className="text-muted-foreground/70">{t('pm.pmInterval')}: </span>
                           <span>{getIntervalLabel(template.interval_type, template.interval_value)}</span>
                         </div>
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground/70">{t('pm.inspectionArea')}: </span>
-                          <span>{template.inspection_area || '-'}</span>
-                        </div>
                         <div>
                           <span className="text-muted-foreground/70">{t('pm.checklistItems')}: </span>
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0">{template.checklist_items.length}</Badge>
@@ -617,7 +622,6 @@ export default function PMTemplatesPage() {
                       <TableHead>{t('pm.templateName')}</TableHead>
                       <TableHead>{t('equipment.equipmentType')}</TableHead>
                       <TableHead>{t('pm.pmInterval')}</TableHead>
-                      <TableHead>{t('pm.inspectionArea')}</TableHead>
                       <TableHead className="text-center">{t('pm.checklistItems')}</TableHead>
                       <TableHead>{t('pm.estimatedDuration')}</TableHead>
                       <TableHead className="text-center">{t('equipment.status')}</TableHead>
@@ -640,9 +644,6 @@ export default function PMTemplatesPage() {
                         <TableCell>{getEquipmentTypeName(template.equipment_type_id)}</TableCell>
                         <TableCell>
                           {getIntervalLabel(template.interval_type, template.interval_value)}
-                        </TableCell>
-                        <TableCell className="max-w-[150px] truncate" title={template.inspection_area || '-'}>
-                          {template.inspection_area || '-'}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">{template.checklist_items.length}</Badge>
@@ -692,7 +693,7 @@ export default function PMTemplatesPage() {
                     ))}
                     {filteredTemplates.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                           {t('common.noSearchResults')}
                         </TableCell>
                       </TableRow>
@@ -808,31 +809,28 @@ export default function PMTemplatesPage() {
               </div>
             </div>
 
-            {/* Inspection Area */}
-            <div className="space-y-1.5 sm:space-y-2">
-              <label className="text-xs sm:text-sm font-medium">{t('pm.inspectionArea')}</label>
-              <Input
-                value={formData.inspection_area}
-                onChange={(e) => setFormData({ ...formData, inspection_area: e.target.value })}
-                placeholder={t('pm.inspectionAreaPlaceholder')}
-                className="h-9 sm:h-10"
-              />
-            </div>
-
             {/* Checklist */}
             <div className="space-y-2 sm:space-y-3">
               <label className="text-xs sm:text-sm font-medium">{t('pm.checklist')}</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
-                  value={newItemDescription}
-                  onChange={(e) => setNewItemDescription(e.target.value)}
-                  placeholder={t('pm.checklistItemPlaceholder')}
-                  onKeyPress={(e) => e.key === 'Enter' && addChecklistItem()}
-                  className="h-9 sm:h-10 text-sm"
+                  value={newItemInspectionArea}
+                  onChange={(e) => setNewItemInspectionArea(e.target.value)}
+                  placeholder={t('pm.inspectionAreaPlaceholder')}
+                  className="h-9 sm:h-10 text-sm sm:w-1/3"
                 />
-                <Button type="button" onClick={addChecklistItem} className="h-9 sm:h-10 px-3">
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2 flex-1">
+                  <Input
+                    value={newItemDescription}
+                    onChange={(e) => setNewItemDescription(e.target.value)}
+                    placeholder={t('pm.checklistItemPlaceholder')}
+                    onKeyPress={(e) => e.key === 'Enter' && addChecklistItem()}
+                    className="h-9 sm:h-10 text-sm"
+                  />
+                  <Button type="button" onClick={addChecklistItem} className="h-9 sm:h-10 px-3 shrink-0">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {checklistItems.length > 0 && (
@@ -846,7 +844,14 @@ export default function PMTemplatesPage() {
                     >
                       <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <span className="text-xs sm:text-sm text-muted-foreground shrink-0">{index + 1}.</span>
-                        <span className="text-xs sm:text-sm truncate">{item.description}</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 min-w-0 flex-1">
+                          {item.inspection_area && (
+                            <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 py-0 shrink-0 w-fit">
+                              {item.inspection_area}
+                            </Badge>
+                          )}
+                          <span className="text-xs sm:text-sm truncate">{item.description}</span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         <Button

@@ -516,49 +516,47 @@ export default function DashboardPage() {
       <div className="grid gap-3 md:gap-4 md:grid-cols-2">
         {/* Technician Performance */}
         <Card>
-          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-2">
+          <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
             <CardTitle className="text-base sm:text-lg">{t('dashboard.technicianPerformance')}</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full min-w-[400px] sm:min-w-0">
-                <thead>
-                  <tr className="border-b text-left text-xs sm:text-sm text-muted-foreground">
-                    <th className="pb-2 sm:pb-3 pl-4 sm:pl-0">{t('analytics.technician')}</th>
-                    <th className="pb-2 sm:pb-3 text-center">{t('analytics.completedCount')}</th>
-                    <th className="pb-2 sm:pb-3 text-center">{t('analytics.avgRepairTime')}</th>
-                    <th className="pb-2 sm:pb-3 text-center pr-4 sm:pr-0">{t('analytics.avgRating')}</th>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b text-left text-[10px] sm:text-sm text-muted-foreground">
+                  <th className="pb-2 sm:pb-3 pr-1">{t('analytics.technician')}</th>
+                  <th className="pb-2 sm:pb-3 text-center whitespace-nowrap px-1">{t('analytics.completedCount')}</th>
+                  <th className="pb-2 sm:pb-3 text-center whitespace-nowrap px-1">{t('analytics.avgRepairTime')}</th>
+                  <th className="pb-2 sm:pb-3 text-center whitespace-nowrap pl-1">{t('analytics.avgRating')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {techPerformance.slice(0, 5).map((tech) => (
+                  <tr key={tech.technician_id} className="border-b">
+                    <td className="py-2 sm:py-3 pr-1">
+                      <p className="font-medium text-[11px] sm:text-sm truncate max-w-[80px] sm:max-w-none">{tech.technician_name}</p>
+                    </td>
+                    <td className="py-2 sm:py-3 text-center text-[11px] sm:text-sm whitespace-nowrap px-1">{tech.completed_count}{t('analytics.cases')}</td>
+                    <td className="py-2 sm:py-3 text-center text-[11px] sm:text-sm whitespace-nowrap px-1">{tech.avg_repair_time.toFixed(0)}{t('analytics.minutes')}</td>
+                    <td className="py-2 sm:py-3 text-center text-[11px] sm:text-sm whitespace-nowrap pl-1">
+                      <span className="text-yellow-500">★</span>{tech.avg_rating.toFixed(1)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {techPerformance.slice(0, 5).map((tech) => (
-                    <tr key={tech.technician_id} className="border-b">
-                      <td className="py-2 sm:py-3 pl-4 sm:pl-0">
-                        <p className="font-medium text-xs sm:text-sm">{tech.technician_name}</p>
-                      </td>
-                      <td className="py-2 sm:py-3 text-center text-xs sm:text-sm">{tech.completed_count}{t('analytics.cases')}</td>
-                      <td className="py-2 sm:py-3 text-center text-xs sm:text-sm">{tech.avg_repair_time.toFixed(0)}{t('analytics.minutes')}</td>
-                      <td className="py-2 sm:py-3 text-center text-xs sm:text-sm pr-4 sm:pr-0">
-                        <span className="text-yellow-500">★</span> {tech.avg_rating.toFixed(1)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
 
         {/* Equipment Failure Rank */}
         <Card>
-          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-2">
+          <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
             <CardTitle className="text-base sm:text-lg">{t('dashboard.failureTopEquipment')}</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             <div className="space-y-2 sm:space-y-3">
               {failureRank.map((item, index) => (
                 <div key={item.equipment_code} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span
                       className={`flex h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                         index < 3 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
@@ -566,15 +564,15 @@ export default function DashboardPage() {
                     >
                       {index + 1}
                     </span>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm sm:text-base truncate">{item.equipment_code}</p>
-                      <p className="text-xs text-muted-foreground truncate">{getEquipmentNameFromRank(item)}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-[11px] sm:text-base truncate">{item.equipment_code}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{getEquipmentNameFromRank(item)}</p>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="font-bold text-red-600 text-sm sm:text-base">{item.failure_count}{t('dashboard.times')}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t('dashboard.totalMinutes', { minutes: item.total_downtime_minutes })}
+                  <div className="text-right flex-shrink-0 ml-1">
+                    <p className="font-bold text-red-600 text-[11px] sm:text-base whitespace-nowrap">{item.failure_count}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+                      총 {item.total_downtime_minutes}분
                     </p>
                   </div>
                 </div>

@@ -135,32 +135,32 @@ export default function PartsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('parts.title')}</h1>
-        <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          {t('common.refresh')}
+        <h1 className="text-xl sm:text-2xl font-bold">{t('parts.title')}</h1>
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading} className="h-9 px-3">
+          <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">{t('common.refresh')}</span>
         </Button>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="relative flex-1 min-w-[200px]">
+        <CardContent className="p-3 sm:p-6">
+          <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-3 sm:gap-4">
+            <div className="relative sm:flex-1 sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={t('parts.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-9 sm:h-10 text-sm"
               />
             </div>
             <Select
               value={categoryFilter}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-[200px]"
+              className="w-full sm:w-[200px] h-9 sm:h-10 text-sm"
             >
               <option value="all">{t('parts.allCategories')}</option>
               {categories.map((category) => (
@@ -185,18 +185,18 @@ export default function PartsPage() {
         </Card>
       )}
 
-      {/* Parts Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
+      {/* Parts Table - Desktop */}
+      <Card className="hidden md:block">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Package className="h-4 w-4 sm:h-5 sm:w-5" />
             {t('parts.list')}
-            <Badge variant="secondary" className="ml-2">
+            <Badge variant="secondary" className="ml-2 text-xs">
               {t('parts.totalCount', { count: totalCount })}
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -298,18 +298,104 @@ export default function PartsPage() {
         </CardContent>
       </Card>
 
+      {/* Parts - Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            <span className="text-sm font-medium">{t('parts.list')}</span>
+            <Badge variant="secondary" className="text-xs">
+              {totalCount}
+            </Badge>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : parts.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              {searchQuery || categoryFilter !== 'all'
+                ? t('common.noSearchResults')
+                : t('common.noData')}
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {sortedData.map((part) => (
+              <Card key={part.part_id} className="overflow-hidden">
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-mono text-xs text-muted-foreground">{part.part_code}</p>
+                      <p className="font-medium text-sm truncate">{part.part_name}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="text-xs">
+                        {part.category || '-'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{t('parts.currentStock')}</span>
+                    <span className="font-medium">{part.current_stock ?? 0}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Mobile Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-center text-xs text-muted-foreground">
+                  {t('parts.pageInfo', {
+                    current: currentPage,
+                    total: totalPages,
+                    count: totalCount,
+                  })}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-9 text-xs"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    {t('common.previous')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-9 text-xs"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    {t('common.next')}
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">{t('parts.totalParts')}</p>
-            <p className="text-2xl font-bold">{totalCount}</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">{t('parts.totalParts')}</p>
+            <p className="text-lg sm:text-2xl font-bold">{totalCount}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">{t('parts.categories')}</p>
-            <p className="text-2xl font-bold text-blue-600">{categories.length}</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">{t('parts.categories')}</p>
+            <p className="text-lg sm:text-2xl font-bold text-blue-600">{categories.length}</p>
           </CardContent>
         </Card>
       </div>

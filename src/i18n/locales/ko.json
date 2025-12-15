@@ -704,6 +704,8 @@
     "intervalQuarterly": "분기",
     "intervalYearly": "연간",
     "estimatedDuration": "예상 소요시간",
+    "inspectionArea": "점검 부위",
+    "inspectionAreaPlaceholder": "점검 부위를 입력하세요 (예: 스핀들, 윤활계통)",
     "checklist": "체크리스트",
     "checklistItem": "점검 항목",
     "checklistItems": "체크리스트 항목",

@@ -704,6 +704,8 @@
     "intervalQuarterly": "Hàng quý",
     "intervalYearly": "Hàng năm",
     "estimatedDuration": "Thời gian dự kiến",
+    "inspectionArea": "Khu vực kiểm tra",
+    "inspectionAreaPlaceholder": "Nhập khu vực kiểm tra (ví dụ: Trục chính, Hệ thống bôi trơn)",
     "checklist": "Danh sách kiểm tra",
     "checklistItem": "Mục kiểm tra",
     "checklistItems": "Các mục kiểm tra",

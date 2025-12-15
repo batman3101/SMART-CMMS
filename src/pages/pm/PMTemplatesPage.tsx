@@ -109,6 +109,7 @@ export default function PMTemplatesPage() {
     equipment_type_id: '',
     interval_type: 'monthly' as PMIntervalType,
     interval_value: 1,
+    inspection_area: '',
     estimated_duration: 60,
     is_active: true,
   })
@@ -182,6 +183,7 @@ export default function PMTemplatesPage() {
       equipment_type_id: '',
       interval_type: 'monthly',
       interval_value: 1,
+      inspection_area: '',
       estimated_duration: 60,
       is_active: true,
     })
@@ -197,6 +199,7 @@ export default function PMTemplatesPage() {
       equipment_type_id: template.equipment_type_id,
       interval_type: template.interval_type,
       interval_value: template.interval_value,
+      inspection_area: template.inspection_area || '',
       estimated_duration: template.estimated_duration,
       is_active: template.is_active,
     })
@@ -218,6 +221,7 @@ export default function PMTemplatesPage() {
       equipment_type_id: template.equipment_type_id,
       interval_type: template.interval_type,
       interval_value: template.interval_value,
+      inspection_area: template.inspection_area || '',
       estimated_duration: template.estimated_duration,
       is_active: true,
     })
@@ -400,6 +404,7 @@ export default function PMTemplatesPage() {
             equipment_type_id: template.equipment_type_id,
             interval_type: template.interval_type,
             interval_value: template.interval_value,
+            inspection_area: template.inspection_area,
             estimated_duration: template.estimated_duration,
             checklist_items: template.checklist_items.map((item, idx) => ({
               id: `item-${Date.now()}-${idx}`,
@@ -550,6 +555,10 @@ export default function PMTemplatesPage() {
                           <span className="text-muted-foreground/70">{t('pm.pmInterval')}: </span>
                           <span>{getIntervalLabel(template.interval_type, template.interval_value)}</span>
                         </div>
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground/70">{t('pm.inspectionArea')}: </span>
+                          <span>{template.inspection_area || '-'}</span>
+                        </div>
                         <div>
                           <span className="text-muted-foreground/70">{t('pm.checklistItems')}: </span>
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0">{template.checklist_items.length}</Badge>
@@ -608,6 +617,7 @@ export default function PMTemplatesPage() {
                       <TableHead>{t('pm.templateName')}</TableHead>
                       <TableHead>{t('equipment.equipmentType')}</TableHead>
                       <TableHead>{t('pm.pmInterval')}</TableHead>
+                      <TableHead>{t('pm.inspectionArea')}</TableHead>
                       <TableHead className="text-center">{t('pm.checklistItems')}</TableHead>
                       <TableHead>{t('pm.estimatedDuration')}</TableHead>
                       <TableHead className="text-center">{t('equipment.status')}</TableHead>
@@ -630,6 +640,9 @@ export default function PMTemplatesPage() {
                         <TableCell>{getEquipmentTypeName(template.equipment_type_id)}</TableCell>
                         <TableCell>
                           {getIntervalLabel(template.interval_type, template.interval_value)}
+                        </TableCell>
+                        <TableCell className="max-w-[150px] truncate" title={template.inspection_area || '-'}>
+                          {template.inspection_area || '-'}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">{template.checklist_items.length}</Badge>
@@ -679,7 +692,7 @@ export default function PMTemplatesPage() {
                     ))}
                     {filteredTemplates.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                        <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                           {t('common.noSearchResults')}
                         </TableCell>
                       </TableRow>
@@ -793,6 +806,17 @@ export default function PMTemplatesPage() {
                   className="h-9 sm:h-10"
                 />
               </div>
+            </div>
+
+            {/* Inspection Area */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-xs sm:text-sm font-medium">{t('pm.inspectionArea')}</label>
+              <Input
+                value={formData.inspection_area}
+                onChange={(e) => setFormData({ ...formData, inspection_area: e.target.value })}
+                placeholder={t('pm.inspectionAreaPlaceholder')}
+                className="h-9 sm:h-10"
+              />
             </div>
 
             {/* Checklist */}

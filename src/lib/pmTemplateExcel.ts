@@ -51,6 +51,7 @@ const LABELS = {
     equipmentTypeCode: '설비유형코드 *',
     intervalType: '주기유형 *',
     intervalValue: '주기값 *',
+    inspectionArea: '점검 부위',
     estimatedDuration: '예상소요시간(분)',
     intervalHint: '※ 주기유형: 일간/주간/월간/분기/연간 중 선택',
     // Checklist sheet
@@ -84,6 +85,7 @@ const LABELS = {
     equipmentTypeCode: 'Mã loại thiết bị *',
     intervalType: 'Loại chu kỳ *',
     intervalValue: 'Giá trị chu kỳ *',
+    inspectionArea: 'Khu vực kiểm tra',
     estimatedDuration: 'Thời gian dự kiến (phút)',
     intervalHint: '※ Loại chu kỳ: Hàng ngày/Hàng tuần/Hàng tháng/Hàng quý/Hàng năm',
     // Checklist sheet
@@ -125,6 +127,7 @@ export interface ParsedTemplate {
   equipment_type_code: string
   interval_type: PMIntervalType
   interval_value: number
+  inspection_area?: string
   estimated_duration: number
   checklist_items: (Omit<PMChecklistItem, 'id'> & {
     description_ko?: string
@@ -168,6 +171,7 @@ export async function downloadPMTemplateExcel(
     { header: L.equipmentTypeCode, key: 'equipment_type_code', width: 22 },
     { header: L.intervalType, key: 'interval_type', width: 18 },
     { header: L.intervalValue, key: 'interval_value', width: 14 },
+    { header: L.inspectionArea, key: 'inspection_area', width: 25 },
     { header: L.estimatedDuration, key: 'estimated_duration', width: 20 },
   ]
 
@@ -195,6 +199,7 @@ export async function downloadPMTemplateExcel(
     equipment_type_code: 'CNC',
     interval_type: intervalTypes[2], // monthly
     interval_value: 1,
+    inspection_area: language === 'ko' ? '스핀들, 윤활계통' : 'Trục chính, Hệ thống bôi trơn',
     estimated_duration: 60,
   })
 
@@ -395,7 +400,8 @@ export async function uploadPMTemplateExcel(
       const equipmentTypeCode = String(row.getCell(3).value || '').trim().toUpperCase()
       const intervalTypeStr = String(row.getCell(4).value || '').trim()
       const intervalValue = Number(row.getCell(5).value) || 0
-      const estimatedDuration = Number(row.getCell(6).value) || 60
+      const inspectionArea = String(row.getCell(6).value || '').trim()
+      const estimatedDuration = Number(row.getCell(7).value) || 60
 
       // 빈 행 또는 힌트 행 건너뛰기
       if (!name || name.startsWith('※')) return
@@ -467,6 +473,7 @@ export async function uploadPMTemplateExcel(
         equipment_type_code: equipmentTypeCode,
         interval_type: intervalType,
         interval_value: intervalValue,
+        inspection_area: inspectionArea || undefined,
         estimated_duration: estimatedDuration > 0 ? estimatedDuration : 60,
         checklist_items: [],
         required_parts: [],
@@ -620,6 +627,7 @@ export async function exportPMTemplatesToExcel(
     { header: L.equipmentTypeCode, key: 'equipment_type_code', width: 22 },
     { header: L.intervalType, key: 'interval_type', width: 18 },
     { header: L.intervalValue, key: 'interval_value', width: 14 },
+    { header: L.inspectionArea, key: 'inspection_area', width: 25 },
     { header: L.estimatedDuration, key: 'estimated_duration', width: 20 },
   ]
 
@@ -643,6 +651,7 @@ export async function exportPMTemplatesToExcel(
       equipment_type_code: equipmentTypeIdMap.get(template.equipment_type_id) || '',
       interval_type: intervalTypeToStr[template.interval_type],
       interval_value: template.interval_value,
+      inspection_area: template.inspection_area || '',
       estimated_duration: template.estimated_duration,
     })
   })

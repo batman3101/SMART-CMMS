@@ -343,6 +343,7 @@ export interface PMTemplate {
   equipment_type?: EquipmentType
   interval_type: PMIntervalType
   interval_value: number              // 주기 값 (예: 3개월마다 = monthly, 3)
+  inspection_area?: string            // 점검 부위 (Inspection Area/Part)
   estimated_duration: number          // 예상 소요시간 (분)
   checklist_items: PMChecklistItem[]
   required_parts: PMRequiredPart[]

@@ -108,7 +108,10 @@ export default function PMExecutionPage() {
         if (existingExecution) {
           const exec = existingExecution as PMExecution
           setExecution(exec)
-          setChecklistResults(exec.checklist_results)
+          // Only use saved checklist_results if it has items, otherwise keep template-initialized results
+          if (exec.checklist_results && exec.checklist_results.length > 0) {
+            setChecklistResults(exec.checklist_results)
+          }
           if (exec.findings) setFindings(exec.findings)
           if (exec.findings_severity) setFindingsSeverity(exec.findings_severity)
           if (exec.notes) setNotes(exec.notes)

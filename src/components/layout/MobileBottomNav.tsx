@@ -155,9 +155,9 @@ export function MobileBottomNav() {
 
       {/* 더보기 메뉴 - 전체 화면 */}
       {isMoreOpen && (
-        <div className="fixed inset-0 z-[60] bg-background md:hidden">
+        <div className="fixed inset-0 z-[60] bg-background md:hidden flex flex-col">
           {/* 헤더 */}
-          <div className="flex h-14 items-center justify-between border-b px-4">
+          <div className="flex h-14 flex-shrink-0 items-center justify-between border-b px-4">
             <h2 className="text-lg font-semibold">{t('nav.allMenus', '전체 메뉴')}</h2>
             <button
               onClick={() => setIsMoreOpen(false)}
@@ -167,8 +167,8 @@ export function MobileBottomNav() {
             </button>
           </div>
 
-          {/* 메뉴 콘텐츠 */}
-          <div className="h-[calc(100vh-14rem)] overflow-y-auto px-4 py-4">
+          {/* 메뉴 콘텐츠 - flex-1로 남은 공간 모두 사용 */}
+          <div className="flex-1 overflow-y-auto px-4 py-4">
             {(['main', 'analytics', 'ai', 'admin'] as const).map((category) => {
               const items = groupedItems[category]
               if (!items || items.length === 0) return null
@@ -208,7 +208,7 @@ export function MobileBottomNav() {
           </div>
 
           {/* 하단 네비게이션 (전체 메뉴 화면 내) */}
-          <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
+          <div className="flex-shrink-0 border-t bg-background">
             <div className="flex h-16 items-center justify-around">
               {mainNavItems.map((item) => {
                 const Icon = item.icon

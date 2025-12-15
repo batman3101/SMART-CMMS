@@ -1792,28 +1792,47 @@ export const pmApi = {
     const weekLater = new Date()
     weekLater.setDate(weekLater.getDate() + 7)
     const monthStart = today.slice(0, 8) + '01'
+    const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
 
     const { data: schedules } = await getSupabase()
       .from('pm_schedules')
       .select('status, scheduled_date')
 
+    // 금주 예정: 오늘부터 7일 이내의 scheduled/in_progress PM
     const upcomingScheduled = schedules?.filter(s =>
       s.scheduled_date >= today &&
       s.scheduled_date <= weekLater.toISOString().split('T')[0] &&
       (s.status === 'scheduled' || s.status === 'in_progress')
     ).length || 0
 
+    // 이번 달 완료: 이번 달에 완료된 PM
     const completedThisMonth = schedules?.filter(s =>
       s.scheduled_date >= monthStart &&
+      s.scheduled_date <= monthEnd &&
       s.status === 'completed'
     ).length || 0
 
+    // 지연: overdue 상태인 PM
     const overdueCount = schedules?.filter(s => s.status === 'overdue').length || 0
-    const totalScheduled = schedules?.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length || 0
 
-    // Calculate compliance rate
-    const totalEvaluated = completedThisMonth + overdueCount
-    const complianceRate = totalEvaluated > 0 ? Math.round((completedThisMonth / totalEvaluated) * 100) : 100
+    // 예정된 PM: 오늘 이후의 scheduled/in_progress PM (오늘 포함)
+    const totalScheduled = schedules?.filter(s =>
+      s.scheduled_date >= today &&
+      (s.status === 'scheduled' || s.status === 'in_progress')
+    ).length || 0
+
+    // PM 준수율 계산: 이번 달 기준 (완료 / (완료 + 지연)) * 100
+    // 이번 달 지연된 PM 수
+    const overdueThisMonth = schedules?.filter(s =>
+      s.scheduled_date >= monthStart &&
+      s.scheduled_date <= monthEnd &&
+      s.status === 'overdue'
+    ).length || 0
+
+    const totalEvaluatedThisMonth = completedThisMonth + overdueThisMonth
+    const complianceRate = totalEvaluatedThisMonth > 0
+      ? Math.round((completedThisMonth / totalEvaluatedThisMonth) * 100)
+      : (completedThisMonth > 0 ? 100 : 0)
 
     const stats = {
       total_scheduled: totalScheduled,

@@ -17,11 +17,11 @@ export default function MainLayout() {
   useFirebaseMessaging()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden max-w-[100vw]">
       <Sidebar />
       <div
         className={cn(
-          "transition-all duration-300",
+          "transition-all duration-300 overflow-x-hidden",
           // 모바일: 마진 없음, 데스크톱: 사이드바 너비만큼 마진
           "ml-0 md:ml-16",
           !sidebarCollapsed && "md:ml-64",
@@ -30,7 +30,7 @@ export default function MainLayout() {
         )}
       >
         <Header />
-        <main className="p-4 md:p-6">
+        <main className="p-3 md:p-6 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

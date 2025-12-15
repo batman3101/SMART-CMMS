@@ -58,11 +58,20 @@
     @apply border-border;
   }
 
+  /* Prevent horizontal scroll on mobile */
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
   /* Default font for English and Vietnamese */
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans-en);
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
   }
 
   /* Korean language font */
@@ -73,5 +82,27 @@
   /* Ensure Inter for Vietnamese */
   html[lang="vi"] body {
     font-family: var(--font-sans-en);
+  }
+
+  /* Prevent horizontal scroll on all containers */
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+  }
+
+  /* Mobile-specific overflow prevention */
+  @media (max-width: 768px) {
+    html, body, #root {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+    }
+
+    /* Ensure all direct children don't overflow */
+    body > *, #root > * {
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
   }
 }

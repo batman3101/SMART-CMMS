@@ -21,7 +21,6 @@ import {
   User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useAuthStore } from '@/stores/authStore'
 
 interface NavItem {
@@ -154,32 +153,32 @@ export function MobileBottomNav() {
         <div className="h-safe-area-inset-bottom bg-background" />
       </nav>
 
-      {/* 더보기 메뉴 시트 */}
-      <Sheet open={isMoreOpen} onOpenChange={setIsMoreOpen}>
-        <SheetContent side="bottom" className="h-[80vh] rounded-t-xl">
-          <SheetHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <SheetTitle>{t('nav.allMenus', '전체 메뉴')}</SheetTitle>
-              <button
-                onClick={() => setIsMoreOpen(false)}
-                className="rounded-full p-2 hover:bg-muted"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </SheetHeader>
+      {/* 더보기 메뉴 - 전체 화면 */}
+      {isMoreOpen && (
+        <div className="fixed inset-0 z-[60] bg-background md:hidden">
+          {/* 헤더 */}
+          <div className="flex h-14 items-center justify-between border-b px-4">
+            <h2 className="text-lg font-semibold">{t('nav.allMenus', '전체 메뉴')}</h2>
+            <button
+              onClick={() => setIsMoreOpen(false)}
+              className="rounded-full p-2 hover:bg-muted"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-          <div className="overflow-y-auto pb-safe">
+          {/* 메뉴 콘텐츠 */}
+          <div className="h-[calc(100vh-14rem)] overflow-y-auto px-4 py-4">
             {(['main', 'analytics', 'ai', 'admin'] as const).map((category) => {
               const items = groupedItems[category]
               if (!items || items.length === 0) return null
 
               return (
                 <div key={category} className="mb-6">
-                  <h3 className="mb-2 px-2 text-xs font-semibold uppercase text-muted-foreground">
+                  <h3 className="mb-3 text-xs font-semibold uppercase text-muted-foreground">
                     {getCategoryLabel(category)}
                   </h3>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-3">
                     {items.map((item) => {
                       const Icon = item.icon
                       const active = location.pathname === item.path
@@ -207,8 +206,40 @@ export function MobileBottomNav() {
               )
             })}
           </div>
-        </SheetContent>
-      </Sheet>
+
+          {/* 하단 네비게이션 (전체 메뉴 화면 내) */}
+          <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
+            <div className="flex h-16 items-center justify-around">
+              {mainNavItems.map((item) => {
+                const Icon = item.icon
+                const active = item.path === null
+
+                return (
+                  <button
+                    key={item.labelKey}
+                    onClick={() => {
+                      if (item.path === null) {
+                        setIsMoreOpen(false)
+                      } else {
+                        navigate(item.path)
+                        setIsMoreOpen(false)
+                      }
+                    }}
+                    className={cn(
+                      'flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors',
+                      active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <Icon className={cn('h-5 w-5', active && 'text-primary')} />
+                    <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="h-safe-area-inset-bottom bg-background" />
+          </div>
+        </div>
+      )}
     </>
   )
 }

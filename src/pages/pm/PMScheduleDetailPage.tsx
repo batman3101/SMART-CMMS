@@ -106,19 +106,19 @@ export default function PMScheduleDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/pm/schedules')}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/pm/schedules')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{t('pm.scheduleDetail')}</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold">{t('pm.scheduleDetail')}</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {schedule.equipment?.equipment_code} - {schedule.equipment?.equipment_name}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pl-12 sm:pl-0">
           {getStatusBadge(schedule.status)}
           {getPriorityBadge(schedule.priority)}
         </div>

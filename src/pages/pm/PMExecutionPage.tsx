@@ -304,14 +304,14 @@ export default function PMExecutionPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate(-1)}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{t('pm.execution')}</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold">{t('pm.execution')}</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {schedule.equipment?.equipment_code} - {schedule.equipment?.equipment_name}
             </p>
           </div>
@@ -343,7 +343,7 @@ export default function PMExecutionPage() {
               <CardTitle>{schedule.template?.name}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">{t('pm.scheduledDate')}:</span>
                   <span className="ml-2 font-medium">{schedule.scheduled_date}</span>
@@ -423,31 +423,36 @@ export default function PMExecutionPage() {
                           result?.has_issue ? 'border-red-300 bg-red-50' : ''
                         }`}
                       >
-                        <div className="flex items-start gap-4">
-                          <Checkbox
-                            id={item.id}
-                            checked={result?.is_checked || false}
-                            onCheckedChange={(checked: boolean | 'indeterminate') =>
-                              handleChecklistChange(item.id, checked === true)
-                            }
-                          />
-                          <div className="flex-1">
-                            <Label
-                              htmlFor={item.id}
-                              className={`cursor-pointer ${
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                          <div
+                            className="flex items-center gap-3 flex-1 cursor-pointer min-h-[44px]"
+                            onClick={() => handleChecklistChange(item.id, !result?.is_checked)}
+                          >
+                            <Checkbox
+                              checked={result?.is_checked || false}
+                              onCheckedChange={(checked: boolean | 'indeterminate') =>
+                                handleChecklistChange(item.id, checked === true)
+                              }
+                              className="h-5 w-5"
+                            />
+                            <span
+                              className={`text-sm sm:text-base ${
                                 result?.is_checked ? 'text-muted-foreground line-through' : ''
                               }`}
                             >
-                              {index + 1}. {item.description}
+                              {index + 1}. {typeof item.description === 'object' ? JSON.stringify(item.description) : item.description}
                               {item.is_required && (
                                 <span className="ml-1 text-destructive">*</span>
                               )}
-                            </Label>
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Label className="text-sm text-muted-foreground">
-                              {t('pm.hasIssue')}
-                            </Label>
+                          <div
+                            className="flex items-center gap-2 pl-8 sm:pl-0 min-h-[44px] cursor-pointer"
+                            onClick={() => handleIssueChange(item.id, !result?.has_issue, {
+                              description: typeof item.description === 'string' ? item.description : String(item.description),
+                              inspection_area: item.inspection_area,
+                            })}
+                          >
                             <Checkbox
                               checked={result?.has_issue || false}
                               onCheckedChange={(checked: boolean | 'indeterminate') =>
@@ -456,7 +461,11 @@ export default function PMExecutionPage() {
                                   inspection_area: item.inspection_area,
                                 })
                               }
+                              className="h-5 w-5"
                             />
+                            <Label className="text-sm text-muted-foreground cursor-pointer">
+                              {t('pm.hasIssue')}
+                            </Label>
                           </div>
                         </div>
                       </div>

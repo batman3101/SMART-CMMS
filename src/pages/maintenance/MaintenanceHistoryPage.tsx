@@ -32,11 +32,18 @@ import type { MaintenanceRecord, RepairType, User, Equipment } from '@/types'
 const ITEMS_PER_PAGE = 15
 
 export default function MaintenanceHistoryPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const location = useLocation()
 
   // Get equipmentId from navigation state
   const passedEquipmentId = (location.state as { equipmentId?: string })?.equipmentId
+
+  // Helper to get repair type name based on language
+  const getRepairTypeName = (type: RepairType | undefined): string => {
+    if (!type) return '-'
+    if (i18n.language === 'vi') return type.name_vi || type.name
+    return type.name_ko || type.name
+  }
 
   const [loading, setLoading] = useState(true)
   const [records, setRecords] = useState<MaintenanceRecord[]>([])
@@ -129,7 +136,7 @@ export default function MaintenanceHistoryPage() {
     { key: 'date', direction: 'desc' },
     (item, key) => {
       if (key === 'equipment_code') return item.equipment?.equipment_code || ''
-      if (key === 'repair_type_name') return item.repair_type?.code ? getRepairTypeLabel(item.repair_type.code) : ''
+      if (key === 'repair_type_name') return getRepairTypeName(item.repair_type)
       if (key === 'technician_name') return item.technician?.name || ''
       return item[key as keyof MaintenanceRecord]
     }
@@ -187,7 +194,7 @@ export default function MaintenanceHistoryPage() {
         [
           escapeCsvValue(r.record_no),
           escapeCsvValue(r.equipment?.equipment_code),
-          escapeCsvValue(r.repair_type?.code ? getRepairTypeLabel(r.repair_type.code) : ''),
+          escapeCsvValue(getRepairTypeName(r.repair_type)),
           escapeCsvValue(r.technician?.name),
           escapeCsvValue(r.start_time),
           escapeCsvValue(r.end_time),
@@ -210,20 +217,6 @@ export default function MaintenanceHistoryPage() {
     document.body.removeChild(link)
     URL.revokeObjectURL(url) // 메모리 누수 방지
   }
-
-  // Repair type translation helper
-  const getRepairTypeLabel = (code: string): string => {
-    const codeMap: Record<string, string> = {
-      PM: t('maintenance.typePM'),
-      BR: t('maintenance.typeBR'),
-      PD: t('maintenance.typePD'),
-      QA: t('maintenance.typeQA'),
-      EM: t('maintenance.typeEM'),
-    }
-    return codeMap[code] || code
-  }
-
-  const { i18n } = useTranslation()
 
   const getLocale = () => {
     return i18n.language === 'vi' ? 'vi-VN' : 'ko-KR'
@@ -313,7 +306,7 @@ export default function MaintenanceHistoryPage() {
                 <option value="">{t('maintenance.repairType')}</option>
                 {repairTypes.map((type) => (
                   <option key={type.id} value={type.id}>
-                    {type.name}
+                    {getRepairTypeName(type)}
                   </option>
                 ))}
               </Select>
@@ -384,7 +377,7 @@ export default function MaintenanceHistoryPage() {
                     }}
                     className="text-xs"
                   >
-                    {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : '-'}
+                    {getRepairTypeName(record.repair_type)}
                   </Badge>
                   <Badge variant={record.status === 'completed' ? 'success' : 'warning'} className="text-xs">
                     {record.status === 'completed'
@@ -524,7 +517,7 @@ export default function MaintenanceHistoryPage() {
                         color: 'white',
                       }}
                     >
-                      {record.repair_type?.code ? getRepairTypeLabel(record.repair_type.code) : '-'}
+                      {getRepairTypeName(record.repair_type)}
                     </Badge>
                   </TableCell>
                   <TableCell>{record.technician?.name || '-'}</TableCell>
@@ -629,8 +622,8 @@ export default function MaintenanceHistoryPage() {
 
       {/* 상세 정보 모달 */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
-          <Card className="w-full sm:max-w-2xl max-h-[90vh] overflow-auto rounded-b-none sm:rounded-b-lg">
+        <div className="fixed inset-0 z-50 bg-black/50 sm:flex sm:items-center sm:justify-center">
+          <Card className="fixed inset-0 sm:relative sm:inset-auto sm:w-full sm:max-w-2xl sm:max-h-[90vh] overflow-auto rounded-none sm:rounded-lg">
             <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 sticky top-0 bg-card z-10 border-b">
               <CardTitle className="text-base sm:text-lg">{t('maintenance.repairDetail')}</CardTitle>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSelectedRecord(null)}>
@@ -664,7 +657,7 @@ export default function MaintenanceHistoryPage() {
                     }}
                     className="text-xs"
                   >
-                    {selectedRecord.repair_type?.code ? getRepairTypeLabel(selectedRecord.repair_type.code) : ''}
+                    {getRepairTypeName(selectedRecord.repair_type)}
                   </Badge>
                 </div>
                 <div>

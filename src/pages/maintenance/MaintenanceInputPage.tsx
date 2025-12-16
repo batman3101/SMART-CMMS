@@ -109,6 +109,11 @@ export default function MaintenanceInputPage() {
     return type.name_ko || type.name
   }, [i18n.language])
 
+  const getRepairTypeName = useCallback((type: RepairType) => {
+    if (i18n.language === 'vi') return type.name_vi || type.name
+    return type.name_ko || type.name
+  }, [i18n.language])
+
   // 데이터 로드
   useEffect(() => {
     const fetchData = async () => {
@@ -522,7 +527,7 @@ export default function MaintenanceInputPage() {
                       <option value="">{t('maintenance.repairTypeSelect')}</option>
                       {repairTypes.map((type) => (
                         <option key={type.id} value={type.id}>
-                          {type.name} ({type.code})
+                          {getRepairTypeName(type)} ({type.code})
                         </option>
                       ))}
                     </Select>
@@ -798,7 +803,7 @@ export default function MaintenanceInputPage() {
                     {selectedRepairType.code}
                   </div>
                   <div>
-                    <p className="font-medium">{selectedRepairType.name}</p>
+                    <p className="font-medium">{getRepairTypeName(selectedRepairType)}</p>
                     <p className="text-sm text-muted-foreground">
                       {t('pm.priority')}: {selectedRepairType.priority}
                     </p>

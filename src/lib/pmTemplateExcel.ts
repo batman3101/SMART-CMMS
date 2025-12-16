@@ -56,6 +56,18 @@ const INTERVAL_TYPE_VI: Record<string, PMIntervalType> = {
   'Hàng năm': 'yearly',
 }
 
+// 모든 언어의 주기 유형 통합 매핑 (업로드 검증용)
+const INTERVAL_TYPE_ALL: Record<string, PMIntervalType> = {
+  ...INTERVAL_TYPE_KO,
+  ...INTERVAL_TYPE_VI,
+  // 영어도 허용
+  'daily': 'daily',
+  'weekly': 'weekly',
+  'monthly': 'monthly',
+  'quarterly': 'quarterly',
+  'yearly': 'yearly',
+}
+
 const INTERVAL_TYPE_TO_KO: Record<PMIntervalType, string> = {
   daily: '일간',
   weekly: '주간',
@@ -398,7 +410,8 @@ export async function uploadPMTemplateExcel(
   const templates: ParsedTemplate[] = []
 
   const L = LABELS[language]
-  const intervalTypeMap = language === 'ko' ? INTERVAL_TYPE_KO : INTERVAL_TYPE_VI
+  // 모든 언어의 주기유형을 허용 (한글/베트남어/영어 Excel 파일 모두 지원)
+  const intervalTypeMap = INTERVAL_TYPE_ALL
 
   try {
     const workbook = new ExcelJS.Workbook()
@@ -411,10 +424,17 @@ export async function uploadPMTemplateExcel(
       equipmentTypeMap.set(type.code.toUpperCase(), type)
     })
 
+    // 시트 이름 찾기 헬퍼 (양쪽 언어 모두 지원)
+    const findSheet = (koName: string, viName: string, fallbackIndex: number) => {
+      return workbook.getWorksheet(koName)
+        || workbook.getWorksheet(viName)
+        || workbook.getWorksheet(fallbackIndex)
+    }
+
     // ============================================
     // Sheet 1: 템플릿 기본정보 파싱
     // ============================================
-    const templateSheet = workbook.getWorksheet(L.sheetTemplate) || workbook.getWorksheet(1)
+    const templateSheet = findSheet(LABELS.ko.sheetTemplate, LABELS.vi.sheetTemplate, 1)
     if (!templateSheet) {
       errors.push({
         sheet: L.sheetTemplate,
@@ -520,7 +540,7 @@ export async function uploadPMTemplateExcel(
     // ============================================
     // Sheet 2: 체크리스트 파싱
     // ============================================
-    const checklistSheet = workbook.getWorksheet(L.sheetChecklist) || workbook.getWorksheet(2)
+    const checklistSheet = findSheet(LABELS.ko.sheetChecklist, LABELS.vi.sheetChecklist, 2)
     if (checklistSheet) {
       checklistSheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return // 헤더 건너뛰기
@@ -562,7 +582,7 @@ export async function uploadPMTemplateExcel(
     // ============================================
     // Sheet 3: 필요부품 파싱
     // ============================================
-    const partsSheet = workbook.getWorksheet(L.sheetParts) || workbook.getWorksheet(3)
+    const partsSheet = findSheet(LABELS.ko.sheetParts, LABELS.vi.sheetParts, 3)
     if (partsSheet) {
       partsSheet.eachRow((row, rowNumber) => {
         if (rowNumber === 1) return // 헤더 건너뛰기

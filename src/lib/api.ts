@@ -714,6 +714,12 @@ export const statisticsApi = {
       .select('status')
       .eq('is_active', true)
 
+    // Get in-progress maintenance records (all dates)
+    const { data: inProgressRecords } = await getSupabase()
+      .from('maintenance_records')
+      .select('id')
+      .eq('status', 'in_progress')
+
     // Get today's records
     const today = new Date().toISOString().split('T')[0]
     const { data: todayRecords } = await getSupabase()
@@ -721,11 +727,15 @@ export const statisticsApi = {
       .select('status, repair_type:repair_types(code)')
       .eq('date', today)
 
+    const totalEquipment = equipments?.length || 0
+    const inProgressCount = inProgressRecords?.length || 0
+    const standbyCount = equipments?.filter(e => e.status === 'standby').length || 0
+
     const stats: DashboardStats = {
-      total_equipment: equipments?.length || 0,
-      running_equipment: equipments?.filter(e => e.status === 'normal').length || 0,
-      repair_equipment: equipments?.filter(e => ['repair', 'pm'].includes(e.status)).length || 0,
-      standby_equipment: equipments?.filter(e => e.status === 'standby').length || 0,
+      total_equipment: totalEquipment,
+      running_equipment: totalEquipment - inProgressCount - standbyCount,
+      repair_equipment: inProgressCount,
+      standby_equipment: standbyCount,
       today_repairs: todayRecords?.length || 0,
       completed_repairs: todayRecords?.filter(r => r.status === 'completed').length || 0,
       emergency_count: todayRecords?.filter(r => (r.repair_type as RepairTypeJoin)?.code === 'EM').length || 0,
@@ -786,6 +796,12 @@ export const statisticsApi = {
       return { data: null, error: 'Failed to fetch equipment data' }
     }
 
+    // Get in-progress maintenance records to determine actual repair status
+    const { data: inProgressRecords } = await getSupabase()
+      .from('maintenance_records')
+      .select('id')
+      .eq('status', 'in_progress')
+
     const statusColors: Record<string, string> = {
       normal: '#10B981',
       pm: '#3B82F6',
@@ -795,15 +811,27 @@ export const statisticsApi = {
     }
 
     const statusCounts: Record<string, number> = {}
+
+    // Count equipment statuses
     equipments.forEach(eq => {
       statusCounts[eq.status] = (statusCounts[eq.status] || 0) + 1
     })
 
-    const distribution = Object.entries(statusCounts).map(([status, value]) => ({
-      status,
-      value,
-      color: statusColors[status] || '#9CA3AF',
-    }))
+    // Adjust for in-progress repairs
+    const inProgressCount = inProgressRecords?.length || 0
+    if (inProgressCount > 0) {
+      // Subtract from normal count and add to repair count
+      statusCounts['normal'] = Math.max(0, (statusCounts['normal'] || 0) - inProgressCount)
+      statusCounts['repair'] = (statusCounts['repair'] || 0) + inProgressCount
+    }
+
+    const distribution = Object.entries(statusCounts)
+      .filter(([_, value]) => value > 0) // Only include statuses with count > 0
+      .map(([status, value]) => ({
+        status,
+        value,
+        color: statusColors[status] || '#9CA3AF',
+      }))
 
     return { data: distribution, error: null }
   },
@@ -1586,6 +1614,33 @@ export const pmApi = {
       .single()
 
     return { data, error: error?.message || null }
+  },
+
+  async deleteSchedule(id: string): Promise<{ success: boolean; error: string | null }> {
+    // 실행 중이거나 완료된 일정은 삭제 불가
+    const { data: schedule } = await getSupabase()
+      .from('pm_schedules')
+      .select('status')
+      .eq('id', id)
+      .single()
+
+    if (schedule?.status === 'in_progress' || schedule?.status === 'completed') {
+      return { success: false, error: 'Cannot delete in-progress or completed schedule' }
+    }
+
+    // 관련 실행 기록 삭제
+    await getSupabase()
+      .from('pm_executions')
+      .delete()
+      .eq('schedule_id', id)
+
+    // 일정 삭제
+    const { error } = await getSupabase()
+      .from('pm_schedules')
+      .delete()
+      .eq('id', id)
+
+    return { success: !error, error: error?.message || null }
   },
 
   async getComplianceStats(months?: number): Promise<{ data: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] | null; error: string | null }> {

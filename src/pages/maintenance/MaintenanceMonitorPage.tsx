@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/toast'
 import {
@@ -62,7 +61,6 @@ export default function MaintenanceMonitorPage() {
   const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null)
   const [completeForm, setCompleteForm] = useState({
     repair_content: '',
-    end_time: new Date().toISOString().slice(0, 16),
     rating: 8,
   })
   const [submitting, setSubmitting] = useState(false)
@@ -162,7 +160,6 @@ export default function MaintenanceMonitorPage() {
     setSelectedRecord(record)
     setCompleteForm({
       repair_content: '',
-      end_time: new Date().toISOString().slice(0, 16),
       rating: 8,
     })
     setShowCompleteModal(true)
@@ -173,32 +170,15 @@ export default function MaintenanceMonitorPage() {
 
     setSubmitting(true)
     try {
-      // Calculate duration with proper timezone handling
-      // Parse start_time - ensure it's treated as a proper date object
-      const startTime = new Date(selectedRecord.start_time)
+      // 버튼 클릭 시점의 현재 시간을 완료 시간으로 사용
+      const endTime = new Date()
+      const endTimeStr = endTime.toISOString().slice(0, 16)
 
-      // Parse end_time - the form value is in 'YYYY-MM-DDTHH:mm' format (local time)
-      // We need to ensure consistent parsing
-      const endTimeStr = completeForm.end_time
-      let endTime: Date
-
-      // If end_time doesn't have timezone info, parse it as local time
-      if (endTimeStr.includes('Z') || endTimeStr.includes('+') || endTimeStr.includes('-', 10)) {
-        endTime = new Date(endTimeStr)
-      } else {
-        // Parse as local time by appending the local date/time components
-        const [datePart, timePart] = endTimeStr.split('T')
-        const [year, month, day] = datePart.split('-').map(Number)
-        const [hour, minute] = timePart.split(':').map(Number)
-        endTime = new Date(year, month - 1, day, hour, minute)
-      }
-
-      // Similarly, ensure start_time is properly parsed
-      // If start_time from DB doesn't have timezone, treat it as local time
+      // Parse start_time with proper timezone handling
       let parsedStartTime: Date
       const startTimeStr = selectedRecord.start_time
       if (startTimeStr.includes('Z') || startTimeStr.includes('+') || (startTimeStr.includes('-') && startTimeStr.lastIndexOf('-') > 9)) {
-        parsedStartTime = startTime
+        parsedStartTime = new Date(startTimeStr)
       } else {
         // Parse as local time
         const cleanedStr = startTimeStr.replace(' ', 'T').slice(0, 16)
@@ -208,22 +188,11 @@ export default function MaintenanceMonitorPage() {
         parsedStartTime = new Date(year, month - 1, day, hour, minute)
       }
 
-      let durationMinutes = Math.round((endTime.getTime() - parsedStartTime.getTime()) / (1000 * 60))
-
-      // Prevent negative duration - this shouldn't happen if dates are correct
-      if (durationMinutes < 0) {
-        addToast({
-          type: 'error',
-          title: t('common.error'),
-          message: t('maintenance.endTimeBeforeStart')
-        })
-        setSubmitting(false)
-        return
-      }
+      const durationMinutes = Math.round((endTime.getTime() - parsedStartTime.getTime()) / (1000 * 60))
 
       const { data, error } = await maintenanceApi.completeRecord(selectedRecord.id, {
         repair_content: completeForm.repair_content,
-        end_time: completeForm.end_time,
+        end_time: endTimeStr,
         rating: completeForm.rating,
         duration_minutes: durationMinutes,
       })
@@ -510,8 +479,8 @@ export default function MaintenanceMonitorPage() {
 
       {/* 완료 처리 모달 */}
       {showCompleteModal && selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
-          <Card className="w-full sm:max-w-lg max-h-[90vh] overflow-auto rounded-b-none sm:rounded-b-lg">
+        <div className="fixed inset-0 z-50 bg-black/50 sm:flex sm:items-center sm:justify-center">
+          <Card className="fixed inset-0 sm:relative sm:inset-auto sm:w-full sm:max-w-lg sm:max-h-[90vh] overflow-auto rounded-none sm:rounded-lg">
             <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 sticky top-0 bg-card z-10 border-b">
               <CardTitle className="text-base sm:text-lg">{t('maintenance.completeModal')}</CardTitle>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowCompleteModal(false)}>
@@ -534,19 +503,6 @@ export default function MaintenanceMonitorPage() {
                     minute: '2-digit',
                   })}
                 </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="endTime" className="text-sm">{t('maintenance.endTime')}</Label>
-                <Input
-                  id="endTime"
-                  type="datetime-local"
-                  className="h-9 sm:h-10 text-sm"
-                  value={completeForm.end_time}
-                  onChange={(e) =>
-                    setCompleteForm((prev) => ({ ...prev, end_time: e.target.value }))
-                  }
-                />
               </div>
 
               <div className="space-y-2">

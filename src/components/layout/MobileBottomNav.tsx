@@ -19,6 +19,9 @@ import {
   ClipboardList,
   FileText,
   User,
+  Timer,
+  ListChecks,
+  FileCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
@@ -51,8 +54,11 @@ const moreMenuItems: MoreMenuItem[] = [
   { icon: Settings2, labelKey: 'nav.equipmentList', path: '/equipment/list', category: 'main' },
   { icon: FileText, labelKey: 'nav.equipmentMaster', path: '/equipment/master', category: 'main' },
   { icon: Wrench, labelKey: 'nav.maintenanceInput', path: '/maintenance/input', category: 'main' },
+  { icon: Timer, labelKey: 'nav.maintenanceMonitor', path: '/maintenance/monitor', category: 'main' },
   { icon: ClipboardList, labelKey: 'nav.maintenanceHistory', path: '/maintenance/history', category: 'main' },
   { icon: Calendar, labelKey: 'nav.pmCalendar', path: '/pm/calendar', category: 'main' },
+  { icon: ListChecks, labelKey: 'nav.pmSchedules', path: '/pm/schedules', category: 'main' },
+  { icon: FileCheck, labelKey: 'nav.pmTemplates', path: '/pm/templates', category: 'main' },
   { icon: Package, labelKey: 'nav.parts', path: '/parts', category: 'main' },
   { icon: Bell, labelKey: 'nav.notifications', path: '/maintenance/notifications', category: 'main' },
   // 분석

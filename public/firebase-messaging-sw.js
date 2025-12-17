@@ -5,21 +5,10 @@
  * 주의: Firebase 설정을 여기에도 포함해야 합니다.
  * importScripts로 Firebase SDK를 로드합니다.
  *
- * @version 2.1.0 - 알림 클릭 경로 수정 (/maintenance/notifications)
+ * @version 2.2.0 - importScripts 순서 수정
  */
 
-// Service Worker 즉시 활성화
-self.addEventListener('install', () => {
-  console.log('[Firebase SW] 설치됨 - 즉시 활성화')
-  self.skipWaiting()
-})
-
-self.addEventListener('activate', (event) => {
-  console.log('[Firebase SW] 활성화됨')
-  event.waitUntil(clients.claim())
-})
-
-// Firebase SDK 로드 (CDN)
+// Firebase SDK 로드 (CDN) - 반드시 맨 처음에 호출해야 함
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js')
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js')
 
@@ -43,6 +32,17 @@ try {
 } catch (error) {
   console.error('[Firebase SW] 초기화 실패:', error)
 }
+
+// Service Worker 즉시 활성화
+self.addEventListener('install', () => {
+  console.log('[Firebase SW] 설치됨 - 즉시 활성화')
+  self.skipWaiting()
+})
+
+self.addEventListener('activate', (event) => {
+  console.log('[Firebase SW] 활성화됨')
+  event.waitUntil(clients.claim())
+})
 
 // 백그라운드 메시지 처리
 if (messaging) {

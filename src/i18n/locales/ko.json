@@ -613,6 +613,8 @@
     "hoursAgo": "{{hours}}시간 전",
     "daysAgo": "{{days}}일 전",
     "pushSettings": "푸시 알림 설정",
+    "settings": "알림 설정",
+    "readAll": "모두 읽음",
     "permissionStatus": "알림 권한 상태",
     "permissionGranted": "알림 권한이 허용되었습니다",
     "permissionDenied": "알림 권한이 거부되었습니다. 브라우저 설정에서 변경해주세요.",

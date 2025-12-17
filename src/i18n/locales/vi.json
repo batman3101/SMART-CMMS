@@ -613,6 +613,8 @@
     "hoursAgo": "{{hours}} giờ trước",
     "daysAgo": "{{days}} ngày trước",
     "pushSettings": "Cài đặt thông báo đẩy",
+    "settings": "Cài đặt",
+    "readAll": "Đã đọc",
     "permissionStatus": "Trạng thái quyền thông báo",
     "permissionGranted": "Quyền thông báo đã được cấp",
     "permissionDenied": "Quyền thông báo bị từ chối. Vui lòng thay đổi trong cài đặt trình duyệt.",

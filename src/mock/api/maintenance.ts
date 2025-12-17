@@ -153,6 +153,7 @@ export const mockMaintenanceApi = {
       duration_minutes: null,
       rating: null,
       status: 'in_progress',
+      used_parts: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }

@@ -237,6 +237,7 @@
     "noUsedParts": "사용된 부품이 없습니다. 필요시 부품을 추가하세요.",
     "addPart": "부품 추가",
     "startTime": "수리 시작시간",
+    "autoSetOnSubmit": "등록 시 자동 설정",
     "endTime": "수리 완료시간",
     "repairContent": "수리 내용",
     "rating": "완료 평점",

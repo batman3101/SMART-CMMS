@@ -44,7 +44,9 @@
       "Bash(npm info:*)",
       "Bash(xxd:*)",
       "Bash(ls:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npx supabase:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

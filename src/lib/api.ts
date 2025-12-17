@@ -391,6 +391,7 @@ export const maintenanceApi = {
     technician_id: string
     symptom?: string
     start_time: string
+    used_parts?: { part_code: string; part_name: string; quantity: number }[]
   }): Promise<{ data: MaintenanceRecord | null; error: string | null }> {
     // Generate record_no
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
@@ -403,6 +404,7 @@ export const maintenanceApi = {
         ...record,
         record_no,
         status: 'in_progress',
+        used_parts: record.used_parts || [],
       })
       .select(`
         *,

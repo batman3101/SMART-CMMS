@@ -342,13 +342,31 @@ export default function MaintenanceInputPage() {
 
     setSubmitting(true)
     try {
+      // 버튼 클릭 시점의 현재 시간을 수리 시작 시간으로 사용
+      const now = new Date()
+      const currentStartTime = now.toISOString().slice(0, 16)
+      const currentDate = now.toISOString().split('T')[0]
+
+      // 화면에 표시된 시간도 업데이트
+      setFormData((prev) => ({ ...prev, start_time: currentStartTime, date: currentDate }))
+
+      // 부품 정보 변환 (코드, 이름, 수량만 저장)
+      const usedParts = parts
+        .filter((p) => p.code && p.name && p.qty > 0)
+        .map((p) => ({
+          part_code: p.code,
+          part_name: p.name,
+          quantity: p.qty,
+        }))
+
       const { data, error } = await maintenanceApi.createRecord({
-        date: formData.date,
+        date: currentDate,
         equipment_id: formData.equipment_id,
         repair_type_id: formData.repair_type_id,
         technician_id: formData.technician_id || user?.id || '',
-        start_time: formData.start_time,
+        start_time: currentStartTime,
         symptom: formData.symptom || undefined,
+        used_parts: usedParts.length > 0 ? usedParts : undefined,
       })
 
       if (error) {
@@ -534,7 +552,12 @@ export default function MaintenanceInputPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="startTime">{t('maintenance.startTime')}</Label>
+                    <Label htmlFor="startTime" className="flex items-center gap-2">
+                      {t('maintenance.startTime')}
+                      <span className="text-xs text-muted-foreground font-normal">
+                        ({t('maintenance.autoSetOnSubmit')})
+                      </span>
+                    </Label>
                     <Input
                       id="startTime"
                       type="datetime-local"
@@ -542,6 +565,8 @@ export default function MaintenanceInputPage() {
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, start_time: e.target.value }))
                       }
+                      className="bg-muted/50"
+                      readOnly
                     />
                   </div>
                 </div>

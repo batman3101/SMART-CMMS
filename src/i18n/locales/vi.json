@@ -237,6 +237,7 @@
     "noUsedParts": "Chưa có phụ tùng. Thêm phụ tùng nếu cần.",
     "addPart": "Thêm phụ tùng",
     "startTime": "Thời gian bắt đầu",
+    "autoSetOnSubmit": "Tự động khi đăng ký",
     "endTime": "Thời gian hoàn thành",
     "repairContent": "Nội dung sửa chữa",
     "rating": "Đánh giá",

@@ -112,6 +112,12 @@ export interface RepairType {
 // Maintenance types
 export type MaintenanceStatus = 'in_progress' | 'completed'
 
+export interface MaintenanceUsedPart {
+  part_code: string
+  part_name: string
+  quantity: number
+}
+
 export interface MaintenanceRecord {
   id: string
   record_no: string
@@ -129,6 +135,7 @@ export interface MaintenanceRecord {
   duration_minutes: number | null
   rating: number | null
   status: MaintenanceStatus
+  used_parts: MaintenanceUsedPart[] | null
   created_at: string
   updated_at: string
 }

@@ -57,6 +57,7 @@ const generateMaintenanceRecords = (): MaintenanceRecord[] => {
         duration_minutes: isCompleted ? durationMinutes : null,
         rating: isCompleted ? Math.floor(Math.random() * 4) + 7 : null, // 7-10점
         status: isCompleted ? 'completed' : 'in_progress',
+        used_parts: null,
         created_at: startTime.toISOString(),
         updated_at: (endTime || startTime).toISOString(),
       })

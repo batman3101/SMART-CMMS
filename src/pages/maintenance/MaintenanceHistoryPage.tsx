@@ -222,9 +222,27 @@ export default function MaintenanceHistoryPage() {
     return i18n.language === 'vi' ? 'vi-VN' : 'ko-KR'
   }
 
-  const formatTime = (dateTimeString: string) => {
+  // 날짜+시간 포맷 (시작/완료 시간 컬럼용)
+  const formatDateTime = (dateTimeString: string) => {
     const date = new Date(dateTimeString)
-    return date.toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' })
+    return date.toLocaleString(getLocale(), {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  // 날짜+시간 포맷 (상세 정보용 - 년도 포함)
+  const formatDateTimeFull = (dateTimeString: string) => {
+    const date = new Date(dateTimeString)
+    return date.toLocaleString(getLocale(), {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   const formatDate = (dateString: string) => {
@@ -393,8 +411,7 @@ export default function MaintenanceHistoryPage() {
                 {record.equipment?.equipment_code} - {getEquipmentName(record.equipment)}
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>{formatDate(record.date)}</span>
-                <span>{formatTime(record.start_time)} ~ {record.end_time ? formatTime(record.end_time) : '-'}</span>
+                <span>{formatDateTime(record.start_time)} ~ {record.end_time ? formatDateTime(record.end_time) : '-'}</span>
                 {record.duration_minutes && (
                   <span>{record.duration_minutes}{t('maintenance.minuteUnit')}</span>
                 )}
@@ -521,8 +538,8 @@ export default function MaintenanceHistoryPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>{record.technician?.name || '-'}</TableCell>
-                  <TableCell>{formatTime(record.start_time)}</TableCell>
-                  <TableCell>{record.end_time ? formatTime(record.end_time) : '-'}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDateTime(record.start_time)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{record.end_time ? formatDateTime(record.end_time) : '-'}</TableCell>
                   <TableCell>
                     {record.duration_minutes ? `${record.duration_minutes}${t('maintenance.minuteUnit')}` : '-'}
                   </TableCell>
@@ -675,18 +692,18 @@ export default function MaintenanceHistoryPage() {
               {/* 시간 정보 */}
               <div className="rounded-lg bg-muted p-3 sm:p-4">
                 <h4 className="mb-2 font-medium text-sm sm:text-base">{t('maintenance.timeInfo')}</h4>
-                <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
                   <div>
                     <p className="text-muted-foreground">{t('maintenance.startTime')}</p>
-                    <p className="font-medium">{formatTime(selectedRecord.start_time)}</p>
+                    <p className="font-medium">{formatDateTimeFull(selectedRecord.start_time)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">{t('maintenance.endTime')}</p>
                     <p className="font-medium">
-                      {selectedRecord.end_time ? formatTime(selectedRecord.end_time) : '-'}
+                      {selectedRecord.end_time ? formatDateTimeFull(selectedRecord.end_time) : '-'}
                     </p>
                   </div>
-                  <div>
+                  <div className="col-span-2 sm:col-span-1">
                     <p className="text-muted-foreground">{t('maintenance.duration')}</p>
                     <p className="font-medium">
                       {selectedRecord.duration_minutes
@@ -702,6 +719,33 @@ export default function MaintenanceHistoryPage() {
                 <div>
                   <h4 className="mb-2 font-medium text-sm sm:text-base">{t('maintenance.symptom')}</h4>
                   <p className="rounded-lg border p-2 sm:p-3 text-xs sm:text-sm">{selectedRecord.symptom}</p>
+                </div>
+              )}
+
+              {/* 사용된 부품 */}
+              {selectedRecord.used_parts && selectedRecord.used_parts.length > 0 && (
+                <div>
+                  <h4 className="mb-2 font-medium text-sm sm:text-base">{t('maintenance.usedParts')}</h4>
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full text-xs sm:text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-2 sm:px-3 py-2 text-left font-medium">{t('parts.partCode')}</th>
+                          <th className="px-2 sm:px-3 py-2 text-left font-medium">{t('parts.partName')}</th>
+                          <th className="px-2 sm:px-3 py-2 text-center font-medium">{t('parts.quantity')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedRecord.used_parts.map((part, index) => (
+                          <tr key={index} className="border-t">
+                            <td className="px-2 sm:px-3 py-2 font-mono text-xs">{part.part_code}</td>
+                            <td className="px-2 sm:px-3 py-2">{part.part_name}</td>
+                            <td className="px-2 sm:px-3 py-2 text-center">{part.quantity}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 

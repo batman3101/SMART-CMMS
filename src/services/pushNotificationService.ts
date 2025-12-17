@@ -379,7 +379,7 @@ class PushNotificationService {
       body: message || `${equipmentCode} 설비에서 긴급수리가 요청되었습니다.`,
       tag: `emergency-${equipmentCode}-${Date.now()}`,
       requireInteraction: true,
-      data: { url: '/maintenance/monitoring', type: 'emergency' },
+      data: { url: '/maintenance/monitor', type: 'emergency' },
     })
   }
 
@@ -393,7 +393,7 @@ class PushNotificationService {
     this.showNotification('장시간 수리 경고', {
       body: `${equipmentCode} 수리가 ${Math.floor(duration / 60)}시간을 초과했습니다.`,
       tag: `long-repair-${equipmentCode}`,
-      data: { url: '/maintenance/monitoring', type: 'long_repair' },
+      data: { url: '/maintenance/monitor', type: 'long_repair' },
     })
   }
 
@@ -421,7 +421,7 @@ class PushNotificationService {
     this.showNotification('PM 일정 알림', {
       body: `${equipmentCode} 설비의 정기 점검 일정이 ${scheduledDate}입니다.`,
       tag: `pm-${equipmentCode}`,
-      data: { url: '/maintenance', type: 'pm_schedule' },
+      data: { url: '/pm', type: 'pm_schedule' },
     })
   }
 

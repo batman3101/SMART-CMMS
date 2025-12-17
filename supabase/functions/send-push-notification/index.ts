@@ -164,7 +164,7 @@ async function sendFCMNotification(
             tag: data?.tag || `notification-${Date.now()}`,
           },
           fcm_options: {
-            link: data?.url || '/',
+            link: data?.url || '/maintenance/notifications',
           },
         },
         data: data ? Object.fromEntries(

@@ -5,7 +5,7 @@
  * 주의: Firebase 설정을 여기에도 포함해야 합니다.
  * importScripts로 Firebase SDK를 로드합니다.
  *
- * @version 2.0.0 - 알림 클릭 시 페이지 이동 기능 추가
+ * @version 2.1.0 - 알림 클릭 경로 수정 (/maintenance/notifications)
  */
 
 // Service Worker 즉시 활성화
@@ -124,7 +124,7 @@ self.addEventListener('notificationclick', (event) => {
         path = '/pm'
         break
       default:
-        path = '/notifications'
+        path = '/maintenance/notifications'
     }
   }
 

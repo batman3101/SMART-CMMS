@@ -1,6 +1,7 @@
 /**
  * Service Worker for Push Notifications
  * 웹 푸시 알림 처리
+ * @version 2.1.0 - 알림 클릭 경로 수정 (/maintenance/notifications)
  */
 
 // Service Worker 설치
@@ -157,6 +158,6 @@ function getUrlFromNotification(data, action) {
     case 'pm_schedule':
       return '/pm'
     default:
-      return '/notifications'
+      return '/maintenance/notifications'
   }
 }

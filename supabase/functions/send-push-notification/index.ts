@@ -1,15 +1,18 @@
 /**
  * Supabase Edge Function: send-push-notification
- * FCM을 통해 푸시 알림을 전송하는 서버사이드 함수
+ * FCM v1 API를 통해 푸시 알림을 전송하는 서버사이드 함수
  *
  * 환경 변수 필요:
- * - FCM_SERVER_KEY: Firebase Cloud Messaging 서버 키
+ * - FIREBASE_PROJECT_ID: Firebase 프로젝트 ID
+ * - FIREBASE_CLIENT_EMAIL: Firebase 서비스 계정 이메일
+ * - FIREBASE_PRIVATE_KEY: Firebase 서비스 계정 비공개 키
  * - SUPABASE_URL: Supabase 프로젝트 URL
  * - SUPABASE_SERVICE_ROLE_KEY: Supabase 서비스 롤 키
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { create } from 'https://deno.land/x/djwt@v2.8/mod.ts'
 
 // CORS 헤더
 const corsHeaders = {
@@ -60,18 +63,62 @@ interface PushNotificationRequest {
   }
 }
 
-// FCM 응답 타입
-interface FCMResponse {
-  success: number
-  failure: number
-  results?: Array<{
-    message_id?: string
-    error?: string
-  }>
+/**
+ * Firebase 서비스 계정으로 OAuth 2.0 액세스 토큰 획득
+ */
+async function getAccessToken(): Promise<string> {
+  const clientEmail = Deno.env.get('FIREBASE_CLIENT_EMAIL')
+  const privateKey = Deno.env.get('FIREBASE_PRIVATE_KEY')?.replace(/\\n/g, '\n')
+
+  if (!clientEmail || !privateKey) {
+    throw new Error('Firebase 서비스 계정 환경 변수가 설정되지 않았습니다.')
+  }
+
+  const now = Math.floor(Date.now() / 1000)
+  const payload = {
+    iss: clientEmail,
+    sub: clientEmail,
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+  }
+
+  // PEM 형식의 비공개 키 파싱
+  const pemHeader = '-----BEGIN PRIVATE KEY-----'
+  const pemFooter = '-----END PRIVATE KEY-----'
+  const pemContents = privateKey.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '')
+  const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0))
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    binaryKey,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+
+  const jwt = await create({ alg: 'RS256', typ: 'JWT' }, payload, cryptoKey)
+
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  })
+
+  if (!tokenResponse.ok) {
+    throw new Error(`OAuth 토큰 요청 실패: ${await tokenResponse.text()}`)
+  }
+
+  const { access_token } = await tokenResponse.json()
+  return access_token
 }
 
 /**
- * FCM HTTP v1 API를 통해 푸시 알림 전송
+ * FCM v1 API를 통해 푸시 알림 전송
  */
 async function sendFCMNotification(
   tokens: string[],
@@ -79,10 +126,10 @@ async function sendFCMNotification(
   data: PushNotificationRequest['data'],
   options: PushNotificationRequest['options']
 ): Promise<{ success: number; failure: number; errors: string[] }> {
-  const FCM_SERVER_KEY = Deno.env.get('FCM_SERVER_KEY')
+  const projectId = Deno.env.get('FIREBASE_PROJECT_ID')
 
-  if (!FCM_SERVER_KEY) {
-    throw new Error('FCM_SERVER_KEY 환경 변수가 설정되지 않았습니다.')
+  if (!projectId) {
+    throw new Error('FIREBASE_PROJECT_ID 환경 변수가 설정되지 않았습니다.')
   }
 
   const results = {
@@ -96,61 +143,65 @@ async function sendFCMNotification(
     return results
   }
 
-  // FCM 레거시 HTTP API 사용 (다중 토큰 지원)
-  const fcmPayload = {
-    registration_ids: tokens.slice(0, 1000), // FCM은 최대 1000개 토큰 지원
-    notification: {
-      title: notification.title,
-      body: notification.body,
-      icon: '/A symbol BLUE-02.png',
-      badge: '/A symbol BLUE-02.png',
-      click_action: data?.url || '/',
-      ...(notification.image && { image: notification.image }),
-    },
-    data: {
-      ...data,
-      click_action: data?.url || '/',
-    },
-    priority: options?.priority || 'high',
-    ...(options?.ttl && { time_to_live: options.ttl }),
-    ...(options?.collapse_key && { collapse_key: options.collapse_key }),
-  }
+  // OAuth 2.0 액세스 토큰 획득
+  const accessToken = await getAccessToken()
+  const fcmUrl = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`
 
-  try {
-    const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `key=${FCM_SERVER_KEY}`,
-        'Content-Type': 'application/json',
+  // 각 토큰에 대해 개별 전송 (FCM v1 API는 개별 전송만 지원)
+  for (const token of tokens) {
+    const message = {
+      message: {
+        token,
+        notification: {
+          title: notification.title,
+          body: notification.body,
+          ...(notification.image && { image: notification.image }),
+        },
+        webpush: {
+          notification: {
+            icon: '/A symbol BLUE-02.png',
+            badge: '/A symbol BLUE-02.png',
+            tag: data?.tag || `notification-${Date.now()}`,
+          },
+          fcm_options: {
+            link: data?.url || '/',
+          },
+        },
+        data: data ? Object.fromEntries(
+          Object.entries(data).map(([k, v]) => [k, String(v || '')])
+        ) : undefined,
+        android: {
+          priority: options?.priority === 'normal' ? 'normal' : 'high',
+          ...(options?.collapse_key && { collapse_key: options.collapse_key }),
+        },
       },
-      body: JSON.stringify(fcmPayload),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`FCM API 오류: ${response.status} - ${errorText}`)
     }
 
-    const fcmResponse: FCMResponse = await response.json()
-    results.success = fcmResponse.success
-    results.failure = fcmResponse.failure
-
-    // 실패한 토큰 기록
-    if (fcmResponse.results) {
-      fcmResponse.results.forEach((result, index) => {
-        if (result.error) {
-          results.errors.push(`Token ${index}: ${result.error}`)
-        }
+    try {
+      const response = await fetch(fcmUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        body: JSON.stringify(message),
       })
-    }
 
-    console.log(`[FCM] 전송 결과 - 성공: ${results.success}, 실패: ${results.failure}`)
-  } catch (error) {
-    console.error('[FCM] 전송 실패:', error)
-    results.failure = tokens.length
-    results.errors.push(error.message)
+      const result = await response.json()
+
+      if (response.ok && result.name) {
+        results.success++
+      } else {
+        results.failure++
+        results.errors.push(`Token error: ${result.error?.message || 'Unknown error'}`)
+      }
+    } catch (error) {
+      results.failure++
+      results.errors.push(`Send error: ${error.message}`)
+    }
   }
 
+  console.log(`[FCM v1] 전송 결과 - 성공: ${results.success}, 실패: ${results.failure}`)
   return results
 }
 

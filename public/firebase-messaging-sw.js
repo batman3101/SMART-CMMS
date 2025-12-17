@@ -4,7 +4,20 @@
  *
  * 주의: Firebase 설정을 여기에도 포함해야 합니다.
  * importScripts로 Firebase SDK를 로드합니다.
+ *
+ * @version 2.0.0 - 알림 클릭 시 페이지 이동 기능 추가
  */
+
+// Service Worker 즉시 활성화
+self.addEventListener('install', () => {
+  console.log('[Firebase SW] 설치됨 - 즉시 활성화')
+  self.skipWaiting()
+})
+
+self.addEventListener('activate', (event) => {
+  console.log('[Firebase SW] 활성화됨')
+  event.waitUntil(clients.claim())
+})
 
 // Firebase SDK 로드 (CDN)
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js')
@@ -81,48 +94,68 @@ function getNotificationActions(type) {
 
 // 알림 클릭 처리
 self.addEventListener('notificationclick', (event) => {
-  console.log('[Firebase SW] 알림 클릭:', event.action)
+  console.log('[Firebase SW] 알림 클릭:', event.action, event.notification.data)
 
   event.notification.close()
 
   const data = event.notification.data || {}
-  let urlToOpen = '/'
 
+  // 닫기 액션이면 아무것도 안함
   if (event.action === 'dismiss') {
     return
   }
 
+  // 이동할 경로 결정
+  let path = '/'
   if (data.url) {
-    urlToOpen = data.url
+    path = data.url
+  } else if (data.click_action) {
+    path = data.click_action
   } else {
     switch (data.type) {
       case 'emergency':
       case 'long_repair':
-        urlToOpen = '/maintenance/monitor'
+        path = '/maintenance/monitor'
         break
       case 'completed':
-        urlToOpen = '/maintenance/history'
+        path = '/maintenance/history'
         break
       case 'pm_schedule':
-        urlToOpen = '/pm'
+        path = '/pm'
         break
       default:
-        urlToOpen = '/maintenance/notifications'
+        path = '/notifications'
     }
   }
 
+  // 전체 URL 생성
+  const urlToOpen = new URL(path, self.location.origin).href
+  console.log('[Firebase SW] 이동할 URL:', urlToOpen)
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      console.log('[Firebase SW] 열린 창 수:', clientList.length)
+
+      // 이미 열린 창이 있으면 해당 창으로 이동
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.focus()
-          client.navigate(urlToOpen)
-          return
+          console.log('[Firebase SW] 기존 창으로 이동:', client.url)
+          // postMessage로 페이지에 네비게이션 요청
+          client.postMessage({
+            type: 'NOTIFICATION_CLICK',
+            url: path,
+          })
+          return client.focus()
         }
       }
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen)
-      }
+
+      // 열린 창이 없으면 새 창 열기
+      console.log('[Firebase SW] 새 창 열기:', urlToOpen)
+      return clients.openWindow(urlToOpen)
+    }).catch((error) => {
+      console.error('[Firebase SW] 알림 클릭 처리 오류:', error)
+      // 에러 발생 시 새 창 열기 시도
+      return clients.openWindow(urlToOpen)
     })
   )
 })

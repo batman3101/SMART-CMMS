@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { notificationsApi } from '@/lib/api'
 import { isMainSupabaseConnected } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export type NotificationType = 'emergency' | 'long_repair' | 'completed' | 'info' | 'pm_schedule'
 
@@ -33,10 +34,10 @@ interface NotificationState {
 
   // Actions
   addNotification: (notification: Omit<Notification, 'id' | 'created_at'>) => void
-  removeNotification: (id: string) => void
-  markAsRead: (id: string) => void
-  markAllAsRead: () => void
-  clearReadNotifications: () => void
+  removeNotification: (id: string) => Promise<void>
+  markAsRead: (id: string) => Promise<void>
+  markAllAsRead: () => Promise<void>
+  clearReadNotifications: () => Promise<void>
   clearAllNotifications: () => void
 
   // Push settings
@@ -114,13 +115,23 @@ export const useNotificationStore = create<NotificationState>()(
         }))
       },
 
-      removeNotification: (id) => {
+      removeNotification: async (id) => {
+        // DB에서 삭제
+        if (isMainSupabaseConnected()) {
+          await notificationsApi.deleteNotification(id)
+        }
+        // 로컬 상태 업데이트
         set((state) => ({
           notifications: state.notifications.filter((n) => n.id !== id),
         }))
       },
 
-      markAsRead: (id) => {
+      markAsRead: async (id) => {
+        // DB에서 읽음 처리
+        if (isMainSupabaseConnected()) {
+          await notificationsApi.markAsRead(id)
+        }
+        // 로컬 상태 업데이트
         set((state) => ({
           notifications: state.notifications.map((n) =>
             n.id === id ? { ...n, read: true } : n
@@ -128,13 +139,44 @@ export const useNotificationStore = create<NotificationState>()(
         }))
       },
 
-      markAllAsRead: () => {
+      markAllAsRead: async () => {
+        // DB에서 전체 읽음 처리
+        if (isMainSupabaseConnected() && supabase) {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            // 현재 사용자의 모든 알림을 읽음 처리
+            const { data: userData } = await supabase
+              .from('users')
+              .select('id')
+              .eq('auth_user_id', user.id)
+              .single()
+            if (userData) {
+              await notificationsApi.markAllAsRead(userData.id)
+            }
+          }
+        }
+        // 로컬 상태 업데이트
         set((state) => ({
           notifications: state.notifications.map((n) => ({ ...n, read: true })),
         }))
       },
 
-      clearReadNotifications: () => {
+      clearReadNotifications: async () => {
+        // DB에서 읽은 알림 삭제
+        if (isMainSupabaseConnected() && supabase) {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const { data: userData } = await supabase
+              .from('users')
+              .select('id')
+              .eq('auth_user_id', user.id)
+              .single()
+            if (userData) {
+              await notificationsApi.clearRead(userData.id)
+            }
+          }
+        }
+        // 로컬 상태 업데이트
         set((state) => ({
           notifications: state.notifications.filter((n) => !n.read),
         }))

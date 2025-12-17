@@ -60,26 +60,42 @@ self.addEventListener('push', (event) => {
 
 // 알림 클릭 처리
 self.addEventListener('notificationclick', (event) => {
-  console.log('[ServiceWorker] Notification click:', event.action)
+  console.log('[ServiceWorker] Notification click:', event.action, event.notification.data)
 
   event.notification.close()
 
-  const urlToOpen = getUrlFromNotification(event.notification.data, event.action)
+  // 닫기 액션이면 아무것도 안함
+  if (event.action === 'dismiss') {
+    return
+  }
+
+  const path = getUrlFromNotification(event.notification.data, event.action)
+  const urlToOpen = new URL(path, self.location.origin).href
+  console.log('[ServiceWorker] 이동할 URL:', urlToOpen)
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 이미 열린 창이 있으면 포커스
+      console.log('[ServiceWorker] 열린 창 수:', clientList.length)
+
+      // 이미 열린 창이 있으면 해당 창으로 이동
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.focus()
-          client.navigate(urlToOpen)
-          return
+          console.log('[ServiceWorker] 기존 창으로 이동:', client.url)
+          // postMessage로 페이지에 네비게이션 요청
+          client.postMessage({
+            type: 'NOTIFICATION_CLICK',
+            url: path,
+          })
+          return client.focus()
         }
       }
-      // 없으면 새 창 열기
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen)
-      }
+
+      // 열린 창이 없으면 새 창 열기
+      console.log('[ServiceWorker] 새 창 열기:', urlToOpen)
+      return clients.openWindow(urlToOpen)
+    }).catch((error) => {
+      console.error('[ServiceWorker] 알림 클릭 처리 오류:', error)
+      return clients.openWindow(urlToOpen)
     })
   )
 })
@@ -124,19 +140,23 @@ function getUrlFromNotification(data, action) {
     return '/'
   }
 
+  // data.url 또는 data.click_action 사용
   if (data?.url) {
     return data.url
+  }
+  if (data?.click_action) {
+    return data.click_action
   }
 
   switch (data?.type) {
     case 'emergency':
     case 'long_repair':
-      return '/maintenance/monitoring'
+      return '/maintenance/monitor'
     case 'completed':
       return '/maintenance/history'
     case 'pm_schedule':
-      return '/maintenance'
+      return '/pm'
     default:
-      return '/maintenance/notifications'
+      return '/notifications'
   }
 }

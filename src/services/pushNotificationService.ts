@@ -34,6 +34,9 @@ class PushNotificationService {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.register('/sw.js')
         console.log('[PushNotificationService] Web Push Service Worker 등록됨:', registration.scope)
+
+        // Service Worker 메시지 리스너 등록 (알림 클릭 처리)
+        this.setupServiceWorkerMessageListener()
       }
 
       // Firebase FCM 초기화 (설정이 있는 경우에만)
@@ -49,6 +52,27 @@ class PushNotificationService {
       console.error('[PushNotificationService] 초기화 실패:', error)
       return false
     }
+  }
+
+  /**
+   * Service Worker 메시지 리스너 설정
+   * 푸시 알림 클릭 시 페이지 이동 처리
+   */
+  private setupServiceWorkerMessageListener(): void {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      console.log('[PushNotificationService] Service Worker 메시지 수신:', event.data)
+
+      if (event.data && event.data.type === 'NOTIFICATION_CLICK') {
+        const url = event.data.url
+        if (url) {
+          console.log('[PushNotificationService] 알림 클릭으로 페이지 이동:', url)
+          // React Router를 사용하므로 window.location 대신 navigate 사용
+          // 하지만 서비스 레이어에서는 직접 접근이 어려우므로 location 사용
+          window.location.href = url
+        }
+      }
+    })
+    console.log('[PushNotificationService] Service Worker 메시지 리스너 등록됨')
   }
 
   /**

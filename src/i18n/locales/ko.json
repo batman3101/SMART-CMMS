@@ -629,7 +629,17 @@
     "completedTitle": "수리 완료",
     "completedMessage": "{{equipment}} 설비 수리가 완료되었습니다. 평점: {{rating}}/10",
     "pmScheduleTitle": "PM 일정 알림",
-    "pmScheduleMessage": "{{equipment}} 설비의 PM 예정일입니다."
+    "pmScheduleMessage": "{{equipment}} 설비의 PM 예정일입니다.",
+    "emergency_occurred": "긴급수리 발생",
+    "emergency_message": "[{{equipment_code}}] {{equipment_name}} 설비에서 긴급수리가 시작되었습니다. {{symptom}}",
+    "breakdown_started": "고장수리 시작",
+    "breakdown_message": "[{{equipment_code}}] {{equipment_name}} 설비의 고장수리가 시작되었습니다.",
+    "quality_started": "품질 관련 수리 시작",
+    "quality_message": "[{{equipment_code}}] {{equipment_name}} 설비의 품질 관련 수리가 시작되었습니다.",
+    "repair_completed": "수리 완료",
+    "repair_completed_message": "[{{equipment_code}}] {{repair_type_name}} 수리가 완료되었습니다. 소요시간: {{duration_hours}}시간, 평점: {{rating}}/10",
+    "long_repair_warning": "장시간 수리 경고",
+    "long_repair_message": "[{{equipment_code}}] {{repair_type_name}} 수리가 {{hours_elapsed}}시간을 초과했습니다. 진행 상황을 확인해주세요."
   },
   "parts": {
     "title": "부품 정보",

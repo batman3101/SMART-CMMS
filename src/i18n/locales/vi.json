@@ -629,7 +629,17 @@
     "completedTitle": "Sửa chữa hoàn thành",
     "completedMessage": "Thiết bị {{equipment}} đã sửa chữa xong. Đánh giá: {{rating}}/10",
     "pmScheduleTitle": "Thông báo lịch PM",
-    "pmScheduleMessage": "Đến lịch PM cho thiết bị {{equipment}}."
+    "pmScheduleMessage": "Đến lịch PM cho thiết bị {{equipment}}.",
+    "emergency_occurred": "Sửa chữa khẩn cấp",
+    "emergency_message": "[{{equipment_code}}] Thiết bị {{equipment_name}} cần sửa chữa khẩn cấp. {{symptom}}",
+    "breakdown_started": "Bắt đầu sửa chữa hỏng hóc",
+    "breakdown_message": "[{{equipment_code}}] Thiết bị {{equipment_name}} bắt đầu sửa chữa hỏng hóc.",
+    "quality_started": "Bắt đầu sửa chữa chất lượng",
+    "quality_message": "[{{equipment_code}}] Thiết bị {{equipment_name}} bắt đầu sửa chữa liên quan đến chất lượng.",
+    "repair_completed": "Hoàn thành sửa chữa",
+    "repair_completed_message": "[{{equipment_code}}] Sửa chữa {{repair_type_name}} hoàn thành. Thời gian: {{duration_hours}} giờ, Đánh giá: {{rating}}/10",
+    "long_repair_warning": "Cảnh báo sửa chữa lâu",
+    "long_repair_message": "[{{equipment_code}}] Sửa chữa {{repair_type_name}} đã vượt quá {{hours_elapsed}} giờ. Vui lòng kiểm tra tiến độ."
   },
   "parts": {
     "title": "Thông tin phụ tùng",

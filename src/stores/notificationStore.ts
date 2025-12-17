@@ -16,6 +16,7 @@ export interface Notification {
   date: string
   read: boolean
   created_at: string
+  data?: Record<string, unknown>  // 번역 파라미터용 추가 데이터
 }
 
 export interface PushSettings {
@@ -209,17 +210,21 @@ export const useNotificationStore = create<NotificationState>()(
 
         const { data } = await notificationsApi.getNotifications()
         if (data && data.length > 0) {
-          const notifications: Notification[] = (data as Record<string, unknown>[]).map((n) => ({
-            id: n.id as string,
-            type: (n.type as NotificationType) || 'info',
-            title: n.title as string,
-            message: n.message as string,
-            equipment_code: (n.data as Record<string, unknown>)?.equipment_code as string || undefined,
-            time: new Date(n.created_at as string).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-            date: (n.created_at as string).split('T')[0],
-            read: n.is_read as boolean,
-            created_at: n.created_at as string,
-          }))
+          const notifications: Notification[] = (data as Record<string, unknown>[]).map((n) => {
+            const notificationData = n.data as Record<string, unknown> || {}
+            return {
+              id: n.id as string,
+              type: (n.type as NotificationType) || 'info',
+              title: n.title as string,
+              message: n.message as string,
+              equipment_code: notificationData.equipment_code as string || undefined,
+              time: new Date(n.created_at as string).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+              date: (n.created_at as string).split('T')[0],
+              read: n.is_read as boolean,
+              created_at: n.created_at as string,
+              data: notificationData,
+            }
+          })
           set({ notifications })
         }
       },

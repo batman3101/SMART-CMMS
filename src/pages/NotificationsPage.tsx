@@ -140,6 +140,19 @@ export default function NotificationsPage() {
     }
   }
 
+  // 번역 키인지 확인하고 번역하는 헬퍼
+  const translateNotificationText = (text: string | undefined, data?: Record<string, unknown>): string => {
+    if (!text) return ''
+
+    // notification. 으로 시작하면 번역 키로 처리
+    if (text.startsWith('notification.')) {
+      return t(text, data || {})
+    }
+
+    // 그 외는 그대로 반환 (기존 알림 호환)
+    return text
+  }
+
   const handleRequestPermission = async () => {
     const permission = await pushNotificationService.requestPermission()
     setPermissionStatus(permission)
@@ -463,7 +476,7 @@ export default function NotificationsPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                                 <p className={`text-sm sm:text-base font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                  {notification.title || getNotificationTitle(notification.type)}
+                                  {translateNotificationText(notification.title, notification.data) || getNotificationTitle(notification.type)}
                                 </p>
                                 {getTypeBadge(notification.type)}
                                 {!notification.read && (
@@ -471,7 +484,7 @@ export default function NotificationsPage() {
                                 )}
                               </div>
                               <p className="mt-1 text-xs sm:text-sm text-muted-foreground line-clamp-2">
-                                {notification.message || getNotificationMessage(notification.type, notification.equipment_code)}
+                                {translateNotificationText(notification.message, notification.data) || getNotificationMessage(notification.type, notification.equipment_code)}
                               </p>
                               {notification.equipment_code && (
                                 <p className="mt-1 sm:mt-2 text-xs">

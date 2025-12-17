@@ -15,6 +15,8 @@ import {
   CheckCircle,
   Clock,
   Filter,
+  X,
+  ChevronRight,
 } from 'lucide-react'
 import { aiApi } from '@/lib/api'
 import type { AIInsight } from '@/types'
@@ -72,6 +74,9 @@ export default function AIInsightPage() {
   // 필터
   const [typeFilter, setTypeFilter] = useState('')
   const [severityFilter, setSeverityFilter] = useState('')
+
+  // 상세보기 모달
+  const [selectedInsight, setSelectedInsight] = useState<AIInsight | null>(null)
 
   // 데이터 로드
   const fetchData = async () => {
@@ -340,8 +345,21 @@ export default function AIInsightPage() {
                         {formatDate(insight.generated_at)}
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" className="hidden sm:flex h-8 sm:h-9 text-xs sm:text-sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden sm:flex h-8 sm:h-9 text-xs sm:text-sm"
+                      onClick={() => setSelectedInsight(insight)}
+                    >
                       {t('ai.viewDetail')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="sm:hidden h-8 w-8 p-0"
+                      onClick={() => setSelectedInsight(insight)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
@@ -350,6 +368,73 @@ export default function AIInsightPage() {
           })
         )}
       </div>
+
+      {/* 상세보기 모달 */}
+      {selectedInsight && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedInsight(null)}>
+          <div
+            className="bg-background rounded-lg shadow-lg w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">{t('ai.viewDetail')}</h2>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSelectedInsight(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4 space-y-4">
+              {/* 제목 및 배지 */}
+              <div>
+                <h3 className="text-base font-semibold mb-2">{selectedInsight.title}</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">{getInsightTypeLabel(selectedInsight.insight_type, t)}</Badge>
+                  <Badge
+                    variant={severityColors[(selectedInsight.data as { urgency?: string })?.urgency as keyof typeof severityColors] || 'secondary'}
+                  >
+                    {(selectedInsight.data as { urgency?: string })?.urgency === 'high'
+                      ? t('ai.urgencyHigh')
+                      : (selectedInsight.data as { urgency?: string })?.urgency === 'medium'
+                        ? t('ai.urgencyMedium')
+                        : t('ai.urgencyLow')}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* 설명 */}
+              <div>
+                <p className="text-sm text-muted-foreground font-medium mb-1">{t('ai.description')}</p>
+                <p className="text-sm">{selectedInsight.description}</p>
+              </div>
+
+              {/* 권장 조치 */}
+              {selectedInsight.content && (
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium mb-1">{t('ai.recommendedAction')}</p>
+                  <p className="text-sm">{selectedInsight.content}</p>
+                </div>
+              )}
+
+              {/* 관련 설비 */}
+              {((selectedInsight.data as { equipment_codes?: string[] })?.equipment_codes?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium mb-1">{t('maintenance.relatedEquipment')}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {(selectedInsight.data as { equipment_codes?: string[] })?.equipment_codes?.map((code: string) => (
+                      <Badge key={code} variant="outline" className="text-xs">{code}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 생성일 */}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t">
+                <Clock className="h-3 w-3" />
+                {formatDate(selectedInsight.generated_at)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

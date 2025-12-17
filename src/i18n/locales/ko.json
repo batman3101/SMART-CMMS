@@ -391,6 +391,8 @@
     "resetFilter": "필터 초기화",
     "noInsights": "표시할 인사이트가 없습니다",
     "viewDetail": "상세보기",
+    "description": "설명",
+    "recommendedAction": "권장 조치",
     "typeAnomaly": "이상 감지",
     "typePrediction": "예측",
     "typeRecommendation": "권장사항",

@@ -391,6 +391,8 @@
     "resetFilter": "Đặt lại bộ lọc",
     "noInsights": "Không có insight để hiển thị",
     "viewDetail": "Xem chi tiết",
+    "description": "Mô tả",
+    "recommendedAction": "Hành động khuyến nghị",
     "typeAnomaly": "Phát hiện bất thường",
     "typePrediction": "Dự đoán",
     "typeRecommendation": "Khuyến nghị",

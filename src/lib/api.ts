@@ -1645,6 +1645,37 @@ export const pmApi = {
     return { success: !error, error: error?.message || null }
   },
 
+  async updateSchedule(id: string, form: {
+    scheduled_date?: string
+    assigned_technician_id?: string | null
+    priority?: 'high' | 'medium' | 'low'
+    notes?: string
+  }): Promise<{ success: boolean; error: string | null }> {
+    // scheduled 상태만 수정 가능
+    const { data: schedule } = await getSupabase()
+      .from('pm_schedules')
+      .select('status')
+      .eq('id', id)
+      .single()
+
+    if (schedule?.status !== 'scheduled') {
+      return { success: false, error: 'Only scheduled PM can be edited' }
+    }
+
+    const { error } = await getSupabase()
+      .from('pm_schedules')
+      .update({
+        scheduled_date: form.scheduled_date,
+        assigned_technician_id: form.assigned_technician_id,
+        priority: form.priority,
+        notes: form.notes,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+
+    return { success: !error, error: error?.message || null }
+  },
+
   async getComplianceStats(months?: number): Promise<{ data: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] | null; error: string | null }> {
     const monthsToFetch = months || 6
     const results: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] = []

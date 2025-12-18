@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import {
   Table,
@@ -27,6 +28,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { pmApi, equipmentApi, usersApi } from '@/lib/api'
@@ -66,6 +68,14 @@ export default function PMScheduleListPage() {
   const [technicians, setTechnicians] = useState<User[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; schedule: PMSchedule | null }>({ open: false, schedule: null })
+  const [editModal, setEditModal] = useState<{ open: boolean; schedule: PMSchedule | null }>({ open: false, schedule: null })
+  const [editForm, setEditForm] = useState({
+    scheduled_date: '',
+    assigned_technician_id: '',
+    priority: 'medium' as PMPriority,
+    notes: '',
+  })
+  const [editLoading, setEditLoading] = useState(false)
 
   // Filters
   const [search, setSearch] = useState('')
@@ -187,6 +197,47 @@ export default function PMScheduleListPage() {
       fetchSchedules()
     } else {
       addToast({ type: 'error', title: t('pm.deleteSchedule'), message: error || t('common.error') })
+    }
+  }
+
+  const openEditModal = (schedule: PMSchedule) => {
+    setEditForm({
+      scheduled_date: schedule.scheduled_date,
+      assigned_technician_id: schedule.assigned_technician_id || '',
+      priority: schedule.priority,
+      notes: schedule.notes || '',
+    })
+    setEditModal({ open: true, schedule })
+  }
+
+  const closeEditModal = () => {
+    setEditModal({ open: false, schedule: null })
+    setEditForm({
+      scheduled_date: '',
+      assigned_technician_id: '',
+      priority: 'medium',
+      notes: '',
+    })
+  }
+
+  const handleEdit = async () => {
+    if (!editModal.schedule) return
+
+    setEditLoading(true)
+    const { success, error } = await pmApi.updateSchedule(editModal.schedule.id, {
+      scheduled_date: editForm.scheduled_date,
+      assigned_technician_id: editForm.assigned_technician_id || null,
+      priority: editForm.priority,
+      notes: editForm.notes,
+    })
+    setEditLoading(false)
+
+    if (success) {
+      addToast({ type: 'success', title: t('pm.editSchedule'), message: t('common.success') })
+      closeEditModal()
+      fetchSchedules()
+    } else {
+      addToast({ type: 'error', title: t('pm.editSchedule'), message: error || t('common.error') })
     }
   }
 
@@ -357,7 +408,7 @@ export default function PMScheduleListPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => navigate(`/pm/schedules/${schedule.id}/edit`)}
+                            onClick={() => openEditModal(schedule)}
                             className="h-8 w-8 p-0"
                           >
                             <Edit className="h-4 w-4" />
@@ -493,7 +544,7 @@ export default function PMScheduleListPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => navigate(`/pm/schedules/${schedule.id}/edit`)}
+                              onClick={() => openEditModal(schedule)}
                               title={t('pm.editSchedule')}
                             >
                               <Edit className="h-4 w-4" />
@@ -584,6 +635,94 @@ export default function PMScheduleListPage() {
                 </Button>
                 <Button variant="destructive" onClick={handleDelete} className="w-full sm:w-auto">
                   {t('common.delete')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.open && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
+          <Card className="w-full sm:max-w-lg mx-0 sm:mx-4 rounded-b-none sm:rounded-b-lg max-h-[90vh] overflow-y-auto">
+            <CardContent className="p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold mb-4">{t('pm.editSchedule')}</h3>
+
+              {editModal.schedule && (
+                <div className="bg-muted p-3 rounded-md mb-4 text-xs sm:text-sm space-y-1">
+                  <p><strong>{t('equipment.equipmentCode')}:</strong> {editModal.schedule.equipment?.equipment_code}</p>
+                  <p><strong>{t('equipment.equipmentName')}:</strong> {getEquipmentName(editModal.schedule.equipment)}</p>
+                  <p><strong>{t('pm.template')}:</strong> {getTemplateName(editModal.schedule.template)}</p>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {/* 예정일 */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-scheduled-date">{t('pm.scheduledDate')}</Label>
+                  <Input
+                    id="edit-scheduled-date"
+                    type="date"
+                    value={editForm.scheduled_date}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, scheduled_date: e.target.value }))}
+                  />
+                </div>
+
+                {/* 담당자 */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-technician">{t('pm.assignedTechnician')}</Label>
+                  <Select
+                    id="edit-technician"
+                    value={editForm.assigned_technician_id}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, assigned_technician_id: e.target.value }))}
+                  >
+                    <option value="">{t('pm.filterByTechnician')}</option>
+                    {technicians.map((tech) => (
+                      <option key={tech.id} value={tech.id}>
+                        {tech.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                {/* 우선순위 */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-priority">{t('pm.priority')}</Label>
+                  <Select
+                    id="edit-priority"
+                    value={editForm.priority}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, priority: e.target.value as PMPriority }))}
+                  >
+                    <option value="low">{t('pm.priorityLow')}</option>
+                    <option value="medium">{t('pm.priorityMedium')}</option>
+                    <option value="high">{t('pm.priorityHigh')}</option>
+                  </Select>
+                </div>
+
+                {/* 메모 */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-notes">{t('pm.pmNotes')}</Label>
+                  <textarea
+                    id="edit-notes"
+                    className="w-full rounded-md border p-3 text-sm bg-background"
+                    rows={3}
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder={t('pm.pmNotes') + '...'}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-6">
+                <Button variant="outline" onClick={closeEditModal} disabled={editLoading} className="w-full sm:w-auto">
+                  {t('common.cancel')}
+                </Button>
+                <Button onClick={handleEdit} disabled={editLoading} className="w-full sm:w-auto">
+                  {editLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  {t('common.save')}
                 </Button>
               </div>
             </CardContent>

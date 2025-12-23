@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp, FirebaseApp } from 'firebase/app'
 import { getMessaging, getToken, onMessage, Messaging, MessagePayload } from 'firebase/messaging'
 
 const firebaseConfig = {
@@ -11,18 +11,45 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-// Firebase 앱 초기화
-const app = initializeApp(firebaseConfig)
+// iOS Safari 감지
+const isIOSSafari = (): boolean => {
+  if (typeof window === 'undefined') return false
+  const ua = navigator.userAgent
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua)
+  return isIOS && isSafari
+}
 
-// Messaging 인스턴스 (브라우저 환경에서만)
+// Push API 지원 확인
+const isPushSupported = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return 'PushManager' in window && 'serviceWorker' in navigator && 'Notification' in window
+}
+
+// Firebase 앱 초기화 (방어적 처리)
+let app: FirebaseApp | null = null
+
+try {
+  app = initializeApp(firebaseConfig)
+} catch (error) {
+  console.error('Firebase 앱 초기화 실패:', error)
+}
+
+// Messaging 인스턴스 (브라우저 환경에서만, iOS Safari 제외)
 let messaging: Messaging | null = null
 
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+// iOS Safari에서는 Push Notification이 PWA로 설치된 경우에만 제한적으로 지원됨
+// 웹 브라우저에서는 지원되지 않으므로 초기화 스킵
+if (app && typeof window !== 'undefined' && isPushSupported() && !isIOSSafari()) {
   try {
     messaging = getMessaging(app)
+    console.log('[Firebase] Messaging 초기화 성공')
   } catch (error) {
-    console.error('Firebase Messaging 초기화 실패:', error)
+    console.warn('[Firebase] Messaging 초기화 실패 (지원되지 않는 환경):', error)
+    messaging = null
   }
+} else if (isIOSSafari()) {
+  console.log('[Firebase] iOS Safari에서는 Push Notification이 지원되지 않습니다.')
 }
 
 // FCM 토큰 요청

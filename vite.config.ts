@@ -9,6 +9,10 @@ export default defineConfig({
     host: true, // 외부 접속 허용 (0.0.0.0)
     port: 5173,
   },
+  build: {
+    // iOS Safari 14+ 지원을 위한 빌드 타깃 설정
+    target: ['es2020', 'safari14', 'chrome87', 'firefox78'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

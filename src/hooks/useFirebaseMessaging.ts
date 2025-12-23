@@ -9,8 +9,26 @@ interface UseFcmReturn {
   notificationPermission: NotificationPermission
   isLoading: boolean
   error: string | null
+  isSupported: boolean
   requestPermission: () => Promise<string | null>
   unsubscribe: () => Promise<void>
+}
+
+// iOS Safari 감지
+function isIOSSafari(): boolean {
+  if (typeof window === 'undefined') return false
+  const ua = navigator.userAgent
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua)
+  return isIOS && isSafari
+}
+
+// Push Notification 지원 여부 확인
+function isPushSupported(): boolean {
+  if (typeof window === 'undefined') return false
+  // iOS Safari에서는 PWA가 아닌 경우 Push가 지원되지 않음
+  if (isIOSSafari()) return false
+  return 'PushManager' in window && 'serviceWorker' in navigator && 'Notification' in window
 }
 
 // 디바이스 정보 수집
@@ -34,6 +52,7 @@ export function useFirebaseMessaging(): UseFcmReturn {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isSupported] = useState(() => isPushSupported())
   const { user } = useAuthStore()
   const { addNotification, setFcmToken: storeFcmToken, setIsSubscribed } = useNotificationStore()
 
@@ -111,6 +130,13 @@ export function useFirebaseMessaging(): UseFcmReturn {
 
   // 알림 권한 요청 및 토큰 발급
   const requestPermission = useCallback(async () => {
+    // iOS Safari에서는 Push가 지원되지 않음
+    if (!isSupported) {
+      console.log('[FCM] Push Notification이 지원되지 않는 환경입니다.')
+      setError('이 브라우저에서는 Push 알림이 지원되지 않습니다.')
+      return null
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -133,9 +159,11 @@ export function useFirebaseMessaging(): UseFcmReturn {
 
         return token
       } else {
-        setNotificationPermission(Notification.permission)
+        if ('Notification' in window) {
+          setNotificationPermission(Notification.permission)
+        }
         setIsSubscribed(false)
-        if (Notification.permission === 'denied') {
+        if ('Notification' in window && Notification.permission === 'denied') {
           setError('알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.')
         }
         return null
@@ -147,7 +175,7 @@ export function useFirebaseMessaging(): UseFcmReturn {
     } finally {
       setIsLoading(false)
     }
-  }, [user?.id, saveFcmToken, storeFcmToken, setIsSubscribed])
+  }, [user?.id, saveFcmToken, storeFcmToken, setIsSubscribed, isSupported])
 
   // 구독 취소
   const unsubscribe = useCallback(async () => {
@@ -162,6 +190,9 @@ export function useFirebaseMessaging(): UseFcmReturn {
 
   // 초기 권한 상태 확인
   useEffect(() => {
+    // Push가 지원되지 않으면 초기화 스킵
+    if (!isSupported) return
+
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotificationPermission(Notification.permission)
 
@@ -173,11 +204,12 @@ export function useFirebaseMessaging(): UseFcmReturn {
         }
       }
     }
-  }, [])
+  }, [isSupported])
 
   // 포그라운드 메시지 처리
   useEffect(() => {
-    if (notificationPermission !== 'granted') return
+    // Push가 지원되지 않거나 권한이 없으면 스킵
+    if (!isSupported || notificationPermission !== 'granted') return
 
     onForegroundMessage((payload) => {
       console.log('포그라운드 메시지:', payload)
@@ -198,7 +230,7 @@ export function useFirebaseMessaging(): UseFcmReturn {
         })
 
         // 브라우저 알림 표시
-        if (document.visibilityState !== 'visible') {
+        if (document.visibilityState !== 'visible' && 'Notification' in window) {
           new Notification(payload.notification.title || '새 알림', {
             body: payload.notification.body,
             icon: '/A symbol BLUE-02.png',
@@ -208,13 +240,14 @@ export function useFirebaseMessaging(): UseFcmReturn {
         }
       }
     })
-  }, [notificationPermission, addNotification])
+  }, [isSupported, notificationPermission, addNotification])
 
   return {
     fcmToken,
     notificationPermission,
     isLoading,
     error,
+    isSupported,
     requestPermission,
     unsubscribe,
   }

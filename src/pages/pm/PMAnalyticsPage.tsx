@@ -44,7 +44,7 @@ interface PMAnalyticsData {
 }
 
 export default function PMAnalyticsPage() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')

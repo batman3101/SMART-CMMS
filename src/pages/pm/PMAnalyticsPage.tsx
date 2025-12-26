@@ -89,19 +89,13 @@ export default function PMAnalyticsPage() {
         pmApi.getAvgCompletionTime(),
       ])
 
-      // Format monthly trend data with localized month names
-      const monthlyTrend = (monthlyTrendRes.data || []).map((item) => {
-        const date = new Date(item.month + '-01')
-        const monthName = date.toLocaleDateString(i18n.language === 'ko' ? 'ko-KR' : 'vi-VN', {
-          month: 'short',
-        })
-        return {
-          month: monthName,
-          completed: item.completed,
-          scheduled: item.scheduled,
-          compliance: item.compliance,
-        }
-      })
+      // Format monthly trend data (API already returns localized month names)
+      const monthlyTrend = (monthlyTrendRes.data || []).map((item) => ({
+        month: item.month,
+        completed: item.completed,
+        scheduled: item.scheduled,
+        compliance: item.compliance,
+      }))
 
       // Format equipment type data
       const byEquipmentType = byEquipmentTypeRes.data || []

@@ -1941,31 +1941,32 @@ export const pmApi = {
       const date = new Date()
       date.setMonth(date.getMonth() - i)
       const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      const monthName = date.toLocaleDateString('ko-KR', { month: 'short' })
 
       const { data: schedules } = await getSupabase()
         .from('pm_schedules')
         .select('status')
-        .like('scheduled_date', `${yearMonth}%`)
+        .gte('scheduled_date', `${yearMonth}-01`)
+        .lte('scheduled_date', `${yearMonth}-31`)
 
       const scheduled = schedules?.length || 0
       const completed = schedules?.filter(s => s.status === 'completed').length || 0
       const compliance = scheduled > 0 ? Math.round((completed / scheduled) * 100) : 0
 
-      results.push({ month: monthName, completed, scheduled, compliance })
+      // Return YYYY-MM format for client-side localization
+      results.push({ month: yearMonth, completed, scheduled, compliance })
     }
 
     return { data: results, error: null }
   },
 
   // PM Analytics - By Equipment Type
-  async getByEquipmentType(): Promise<{ data: { name: string; completed: number; overdue: number }[] | null; error: string | null }> {
+  async getByEquipmentType(locale: string = 'ko'): Promise<{ data: { name: string; completed: number; overdue: number }[] | null; error: string | null }> {
     const { data: schedules } = await getSupabase()
       .from('pm_schedules')
       .select(`
         status,
         equipment_id,
-        equipments!inner(equipment_type_id, equipment_types!inner(id, name))
+        equipments!inner(equipment_type_id, equipment_types!inner(id, name, name_ko, name_vi))
       `)
 
     if (!schedules) return { data: [], error: null }
@@ -1976,14 +1977,18 @@ export const pmApi = {
     ;(schedules as Record<string, unknown>[]).forEach((s) => {
       const equipment = s.equipments as Record<string, unknown> | null
       const equipmentType = equipment?.equipment_types as Record<string, unknown> | null
-      const typeName = (equipmentType?.name as string) || 'Unknown'
+      // Use localized name based on locale parameter
+      const typeName = locale === 'vi'
+        ? (equipmentType?.name_vi as string) || (equipmentType?.name as string) || 'Unknown'
+        : (equipmentType?.name_ko as string) || (equipmentType?.name as string) || 'Unknown'
+      const typeId = (equipmentType?.id as string) || 'unknown'
       const status = s.status as string
 
-      if (!typeMap[typeName]) {
-        typeMap[typeName] = { name: typeName, completed: 0, overdue: 0 }
+      if (!typeMap[typeId]) {
+        typeMap[typeId] = { name: typeName, completed: 0, overdue: 0 }
       }
-      if (status === 'completed') typeMap[typeName].completed++
-      if (status === 'overdue') typeMap[typeName].overdue++
+      if (status === 'completed') typeMap[typeId].completed++
+      if (status === 'overdue') typeMap[typeId].overdue++
     })
 
     return { data: Object.values(typeMap), error: null }

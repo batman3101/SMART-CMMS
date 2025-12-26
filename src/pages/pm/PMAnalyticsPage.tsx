@@ -44,7 +44,7 @@ interface PMAnalyticsData {
 }
 
 export default function PMAnalyticsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
@@ -60,7 +60,7 @@ export default function PMAnalyticsPage() {
   useEffect(() => {
     fetchAnalytics()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, equipmentTypeFilter, equipmentTypes])
+  }, [period, equipmentTypeFilter, equipmentTypes, i18n.language])
 
   const fetchData = async () => {
     const { data } = await equipmentApi.getEquipmentTypes()
@@ -83,19 +83,26 @@ export default function PMAnalyticsPage() {
         pmApi.getComplianceStats(),
         pmApi.getDashboardStats(),
         pmApi.getMonthlyTrend(6),
-        pmApi.getByEquipmentType(),
+        pmApi.getByEquipmentType(i18n.language),
         pmApi.getByTechnician(),
         pmApi.getStatusDistribution(),
         pmApi.getAvgCompletionTime(),
       ])
 
-      // Format monthly trend data (API already returns localized month names)
-      const monthlyTrend = (monthlyTrendRes.data || []).map((item) => ({
-        month: item.month,
-        completed: item.completed,
-        scheduled: item.scheduled,
-        compliance: item.compliance,
-      }))
+      // Format monthly trend data with localized month names
+      const monthlyTrend = (monthlyTrendRes.data || []).map((item) => {
+        // item.month is in YYYY-MM format (e.g., "2024-12")
+        const date = new Date(item.month + '-01')
+        const monthName = date.toLocaleDateString(i18n.language === 'ko' ? 'ko-KR' : 'vi-VN', {
+          month: 'short',
+        })
+        return {
+          month: monthName,
+          completed: item.completed,
+          scheduled: item.scheduled,
+          compliance: item.compliance,
+        }
+      })
 
       // Format equipment type data
       const byEquipmentType = byEquipmentTypeRes.data || []

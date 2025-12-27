@@ -6,8 +6,8 @@ let fontLoadPromise: Promise<string | null> | null = null
 let fontLoaded = false
 let fontLoadAttempted = false
 
-// Local font path (NanumGothic - Google Fonts Korean TTF font)
-const KOREAN_FONT_PATH = '/NanumGothic.ttf'
+// Local font path (NotoSansKR - Google Fonts Korean TTF font with Vietnamese support)
+const KOREAN_FONT_PATH = '/NotoSansKR-Regular.ttf'
 
 /**
  * Fetches a font and converts it to base64
@@ -63,7 +63,7 @@ export async function loadKoreanFont(): Promise<string | null> {
     .then((data) => {
       koreanFontData = data
       fontLoaded = true
-      console.log('Korean font (NanumGothic) loaded successfully')
+      console.log('NotoSansKR font loaded successfully')
       return data
     })
     .catch((error) => {
@@ -89,15 +89,15 @@ export async function addKoreanFontToDocument(doc: jsPDF): Promise<void> {
     }
 
     // Add the font to the document's virtual file system
-    doc.addFileToVFS('NanumGothic.ttf', fontData)
+    doc.addFileToVFS('NotoSansKR.ttf', fontData)
 
     // Register the font
-    doc.addFont('NanumGothic.ttf', 'NanumGothic', 'normal')
+    doc.addFont('NotoSansKR.ttf', 'NotoSansKR', 'normal')
 
     // Set as default font
-    doc.setFont('NanumGothic')
+    doc.setFont('NotoSansKR')
 
-    console.log('Korean font (NanumGothic) applied to PDF document')
+    console.log('NotoSansKR font applied to PDF document (Korean + Vietnamese support)')
   } catch (error) {
     console.warn('Failed to apply Korean font, using default:', error)
     // Continue with default font - Korean text may not display correctly
@@ -108,5 +108,5 @@ export async function addKoreanFontToDocument(doc: jsPDF): Promise<void> {
  * Gets the font name to use for autoTable
  */
 export function getKoreanFontName(): string {
-  return fontLoaded ? 'NanumGothic' : 'helvetica'
+  return fontLoaded ? 'NotoSansKR' : 'helvetica'
 }

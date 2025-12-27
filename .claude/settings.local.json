@@ -47,7 +47,8 @@
       "WebSearch",
       "Bash(npx supabase:*)",
       "Bash(findstr:*)",
-      "Bash(timeout 3:*)"
+      "Bash(timeout 3:*)",
+      "Bash(unzip:*)"
     ],
     "deny": [],
     "ask": []

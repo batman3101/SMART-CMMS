@@ -186,6 +186,9 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
   await addKoreanFontToDocument(doc)
   const fontName = getKoreanFontName()
 
+  // Ensure font is set for all text operations
+  doc.setFont(fontName)
+
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 15
@@ -206,6 +209,7 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
     const pageCount = doc.getNumberOfPages()
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i)
+      doc.setFont(fontName)
       doc.setFontSize(9)
       doc.setTextColor(128, 128, 128)
       doc.text(`${lang.page} ${i} / ${pageCount}`, pageWidth - margin, pageHeight - 10, { align: 'right' })
@@ -330,14 +334,16 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
         ]
       })
 
+      // Explicitly set font before autoTable
+      doc.setFont(fontName)
       autoTable(doc, {
         startY: yPosition,
         head: [[lang.date, lang.equipmentCode, lang.repairType, lang.technician, lang.duration]],
         body: repairTableData,
         theme: 'striped',
-        headStyles: { fillColor: [41, 98, 255], fontSize: 9, font: fontName },
-        bodyStyles: { fontSize: 8, font: fontName },
-        styles: { font: fontName },
+        headStyles: { fillColor: [41, 98, 255], fontSize: 9, font: fontName, fontStyle: 'normal' },
+        bodyStyles: { fontSize: 8, font: fontName, fontStyle: 'normal' },
+        styles: { font: fontName, fontStyle: 'normal' },
         margin: { left: margin, right: margin },
       })
 
@@ -345,6 +351,7 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
     } else {
       doc.setFontSize(10)
       doc.setTextColor(100, 100, 100)
+      doc.setFont(fontName)
       doc.text(lang.noData, margin, yPosition + 10)
       yPosition += 20
     }
@@ -368,14 +375,16 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
         String(item.total_downtime_minutes || 0),
       ])
 
+      // Explicitly set font before autoTable
+      doc.setFont(fontName)
       autoTable(doc, {
         startY: yPosition,
         head: [[lang.rank, lang.equipmentCode, lang.equipmentName, lang.failureCount, lang.downtime]],
         body: failureTableData,
         theme: 'striped',
-        headStyles: { fillColor: [239, 68, 68], fontSize: 9, font: fontName },
-        bodyStyles: { fontSize: 8, font: fontName },
-        styles: { font: fontName },
+        headStyles: { fillColor: [239, 68, 68], fontSize: 9, font: fontName, fontStyle: 'normal' },
+        bodyStyles: { fontSize: 8, font: fontName, fontStyle: 'normal' },
+        styles: { font: fontName, fontStyle: 'normal' },
         margin: { left: margin, right: margin },
       })
 
@@ -383,6 +392,7 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
     } else {
       doc.setFontSize(10)
       doc.setTextColor(100, 100, 100)
+      doc.setFont(fontName)
       doc.text(lang.noData, margin, yPosition + 10)
       yPosition += 20
     }
@@ -405,19 +415,22 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
         item.avg_rating ? item.avg_rating.toFixed(1) : '-',
       ])
 
+      // Explicitly set font before autoTable
+      doc.setFont(fontName)
       autoTable(doc, {
         startY: yPosition,
         head: [[lang.technician, lang.completedCount, lang.avgTime, lang.rating]],
         body: techTableData,
         theme: 'striped',
-        headStyles: { fillColor: [16, 185, 129], fontSize: 9, font: fontName },
-        bodyStyles: { fontSize: 8, font: fontName },
-        styles: { font: fontName },
+        headStyles: { fillColor: [16, 185, 129], fontSize: 9, font: fontName, fontStyle: 'normal' },
+        bodyStyles: { fontSize: 8, font: fontName, fontStyle: 'normal' },
+        styles: { font: fontName, fontStyle: 'normal' },
         margin: { left: margin, right: margin },
       })
     } else {
       doc.setFontSize(10)
       doc.setTextColor(100, 100, 100)
+      doc.setFont(fontName)
       doc.text(lang.noData, margin, yPosition + 10)
     }
   }

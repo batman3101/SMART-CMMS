@@ -440,7 +440,19 @@ export default function AnalyticsPage() {
               <BarChart data={buildingStats}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="building" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  tick={{ fontSize: 10 }}
+                  stroke="#3B82F6"
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 10 }}
+                  stroke="#F59E0B"
+                  tickFormatter={(value) => `${Math.round(value / 60)}h`}
+                />
                 <Tooltip
                   formatter={(value: number, name: string) => [
                     name === 'failure_count'
@@ -450,12 +462,14 @@ export default function AnalyticsPage() {
                   ]}
                 />
                 <Bar
+                  yAxisId="left"
                   dataKey="failure_count"
                   fill="#3B82F6"
                   radius={[4, 4, 0, 0]}
                   name="failure_count"
                 />
                 <Bar
+                  yAxisId="right"
                   dataKey="total_downtime_minutes"
                   fill="#F59E0B"
                   radius={[4, 4, 0, 0]}
@@ -470,7 +484,7 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-yellow-500" />
-                <span className="text-xs sm:text-sm text-muted-foreground">{t('analytics.downtime')} ({t('analytics.minutes')})</span>
+                <span className="text-xs sm:text-sm text-muted-foreground">{t('analytics.downtime')} ({t('analytics.hours')})</span>
               </div>
             </div>
           </CardContent>

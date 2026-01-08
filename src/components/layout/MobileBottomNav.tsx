@@ -22,6 +22,7 @@ import {
   Timer,
   ListChecks,
   FileCheck,
+  Paintbrush,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
@@ -59,6 +60,8 @@ const moreMenuItems: MoreMenuItem[] = [
   { icon: Calendar, labelKey: 'nav.pmCalendar', path: '/pm/calendar', category: 'main' },
   { icon: ListChecks, labelKey: 'nav.pmSchedules', path: '/pm/schedules', category: 'main' },
   { icon: FileCheck, labelKey: 'nav.pmTemplates', path: '/pm/templates', category: 'main' },
+  { icon: Paintbrush, labelKey: 'nav.paintDashboard', path: '/paint', category: 'main' },
+  { icon: Paintbrush, labelKey: 'nav.paintSchedules', path: '/paint/schedules', category: 'main' },
   { icon: Package, labelKey: 'nav.parts', path: '/parts', category: 'main' },
   { icon: Bell, labelKey: 'nav.notifications', path: '/maintenance/notifications', category: 'main' },
   // 분석

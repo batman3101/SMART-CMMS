@@ -19,6 +19,7 @@ import {
   Shield,
   CalendarClock,
   Package,
+  Paintbrush,
 } from 'lucide-react'
 
 interface NavItem {
@@ -67,6 +68,16 @@ const navItems: NavItem[] = [
       { path: '/pm/execution', labelKey: 'nav.pmExecution' },
       { path: '/pm/templates', labelKey: 'nav.pmTemplates' },
       { path: '/pm/analytics', labelKey: 'nav.pmAnalytics' },
+    ],
+  },
+  {
+    path: '/paint',
+    icon: <Paintbrush className="h-5 w-5" />,
+    labelKey: 'nav.paint',
+    children: [
+      { path: '/paint', labelKey: 'nav.paintDashboard' },
+      { path: '/paint/schedules', labelKey: 'nav.paintSchedules' },
+      { path: '/paint/execution', labelKey: 'nav.paintExecution' },
     ],
   },
   {

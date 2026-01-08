@@ -19,6 +19,14 @@ import type {
   EquipmentFailureRank,
   RepairTypeDistribution,
   TechnicianPerformance,
+  PaintTemplate,
+  PaintSchedule,
+  PaintExecution,
+  PaintDashboardStats,
+  PaintScheduleFilter,
+  PaintScheduleCreateForm,
+  PaintChecklistStep,
+  PaintStepExecution,
 } from '@/types'
 
 // Type for joined equipment data from Supabase
@@ -2491,6 +2499,601 @@ export const settingsApi = {
 }
 
 // ========================================
+// Paint (도색) API
+// ========================================
+export const paintApi = {
+  // Templates
+  async getTemplates(): Promise<{ data: PaintTemplate[] | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('paint_templates')
+      .select(`
+        *,
+        equipment_type:equipment_types(*)
+      `)
+      .eq('is_active', true)
+      .order('name')
+
+    return { data, error: error?.message || null }
+  },
+
+  // Schedules
+  async getSchedules(filter?: PaintScheduleFilter): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('paint_schedules')
+      .select(`
+        *,
+        template:paint_templates(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        assigned_technician:users(*)
+      `)
+
+    if (filter?.start_date) query = query.gte('scheduled_date', filter.start_date)
+    if (filter?.end_date) query = query.lte('scheduled_date', filter.end_date)
+    if (filter?.equipment_id) query = query.eq('equipment_id', filter.equipment_id)
+    if (filter?.equipment_type_id) query = query.eq('equipment.equipment_type_id', filter.equipment_type_id)
+    if (filter?.technician_id) query = query.eq('assigned_technician_id', filter.technician_id)
+    if (filter?.status) query = query.eq('status', filter.status)
+    if (filter?.priority) query = query.eq('priority', filter.priority)
+
+    const { data, error } = await query.order('scheduled_date')
+
+    return { data, error: error?.message || null }
+  },
+
+  async getTodaySchedules(): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
+    const today = new Date().toISOString().split('T')[0]
+
+    const { data, error } = await getSupabase()
+      .from('paint_schedules')
+      .select(`
+        *,
+        template:paint_templates(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        assigned_technician:users(*)
+      `)
+      .eq('scheduled_date', today)
+      .in('status', ['scheduled', 'in_progress'])
+      .order('priority')
+
+    return { data, error: error?.message || null }
+  },
+
+  async getOverdueSchedules(): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
+    const today = new Date().toISOString().split('T')[0]
+
+    const { data, error } = await getSupabase()
+      .from('paint_schedules')
+      .select(`
+        *,
+        template:paint_templates(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        assigned_technician:users(*)
+      `)
+      .lt('scheduled_date', today)
+      .in('status', ['scheduled', 'in_progress'])
+      .order('scheduled_date')
+
+    return { data, error: error?.message || null }
+  },
+
+  async getUpcomingSchedules(days: number = 7): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
+    const today = new Date().toISOString().split('T')[0]
+    const endDate = new Date()
+    endDate.setDate(endDate.getDate() + days)
+    const endDateStr = endDate.toISOString().split('T')[0]
+
+    const { data, error } = await getSupabase()
+      .from('paint_schedules')
+      .select(`
+        *,
+        template:paint_templates(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        assigned_technician:users(*)
+      `)
+      .gte('scheduled_date', today)
+      .lte('scheduled_date', endDateStr)
+      .in('status', ['scheduled', 'in_progress'])
+      .order('scheduled_date')
+
+    return { data, error: error?.message || null }
+  },
+
+  async getScheduleById(id: string): Promise<{ data: PaintSchedule | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('paint_schedules')
+      .select(`
+        *,
+        template:paint_templates(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        assigned_technician:users(*)
+      `)
+      .eq('id', id)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async createSchedule(form: PaintScheduleCreateForm): Promise<{ data: PaintSchedule | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('paint_schedules')
+      .insert({
+        template_id: form.template_id || null,
+        equipment_id: form.equipment_id,
+        scheduled_date: form.scheduled_date,
+        assigned_technician_id: form.assigned_technician_id || null,
+        priority: form.priority || 'medium',
+        notes: form.notes || null,
+        status: 'scheduled',
+      })
+      .select(`
+        *,
+        template:paint_templates(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        assigned_technician:users(*)
+      `)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async updateSchedule(id: string, updates: Partial<PaintSchedule>): Promise<{ success: boolean; error: string | null }> {
+    const { error } = await getSupabase()
+      .from('paint_schedules')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+
+    return { success: !error, error: error?.message || null }
+  },
+
+  async deleteSchedule(id: string): Promise<{ success: boolean; error: string | null }> {
+    const { error } = await getSupabase()
+      .from('paint_schedules')
+      .delete()
+      .eq('id', id)
+
+    return { success: !error, error: error?.message || null }
+  },
+
+  // Executions
+  async getExecutionBySchedule(scheduleId: string): Promise<{ data: PaintExecution | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('paint_executions')
+      .select(`
+        *,
+        schedule:paint_schedules(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        technician:users(*)
+      `)
+      .eq('schedule_id', scheduleId)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async startExecution(scheduleId: string, technicianId: string): Promise<{ data: PaintExecution | null; error: string | null }> {
+    // Get schedule info
+    const { data: schedule } = await getSupabase()
+      .from('paint_schedules')
+      .select('equipment_id')
+      .eq('id', scheduleId)
+      .single()
+
+    if (!schedule) {
+      return { data: null, error: '일정을 찾을 수 없습니다.' }
+    }
+
+    // Create execution record
+    const { data, error } = await getSupabase()
+      .from('paint_executions')
+      .insert({
+        schedule_id: scheduleId,
+        equipment_id: schedule.equipment_id,
+        technician_id: technicianId,
+        started_at: new Date().toISOString(),
+        status: 'in_progress',
+      })
+      .select(`
+        *,
+        schedule:paint_schedules(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        technician:users(*)
+      `)
+      .single()
+
+    if (!error) {
+      // Update schedule status
+      await getSupabase()
+        .from('paint_schedules')
+        .update({ status: 'in_progress' })
+        .eq('id', scheduleId)
+    }
+
+    return { data, error: error?.message || null }
+  },
+
+  async completeExecution(id: string, completionData: { notes?: string; rating?: number }): Promise<{ data: PaintExecution | null; error: string | null }> {
+    // Get execution to calculate duration
+    const { data: execution } = await getSupabase()
+      .from('paint_executions')
+      .select('started_at, schedule_id')
+      .eq('id', id)
+      .single()
+
+    if (!execution) {
+      return { data: null, error: '실행 기록을 찾을 수 없습니다.' }
+    }
+
+    const completedAt = new Date().toISOString()
+    const startedAt = new Date(execution.started_at)
+    const durationMinutes = Math.round((new Date(completedAt).getTime() - startedAt.getTime()) / (1000 * 60))
+
+    const { data, error } = await getSupabase()
+      .from('paint_executions')
+      .update({
+        completed_at: completedAt,
+        duration_minutes: durationMinutes,
+        notes: completionData.notes,
+        rating: completionData.rating,
+        status: 'completed',
+      })
+      .eq('id', id)
+      .select(`
+        *,
+        schedule:paint_schedules(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        technician:users(*)
+      `)
+      .single()
+
+    if (!error && execution.schedule_id) {
+      // Update schedule status
+      await getSupabase()
+        .from('paint_schedules')
+        .update({ status: 'completed' })
+        .eq('id', execution.schedule_id)
+    }
+
+    return { data, error: error?.message || null }
+  },
+
+  // Dashboard Stats
+  async getDashboardStats(): Promise<{ data: PaintDashboardStats | null; error: string | null }> {
+    const today = new Date().toISOString().split('T')[0]
+    const weekLater = new Date()
+    weekLater.setDate(weekLater.getDate() + 7)
+    const monthStart = today.slice(0, 8) + '01'
+    const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+
+    const { data: schedules } = await getSupabase()
+      .from('paint_schedules')
+      .select('status, scheduled_date')
+
+    // 예정된 도색: 오늘 이후의 scheduled/in_progress (오늘 포함)
+    const totalScheduled = schedules?.filter(s =>
+      s.scheduled_date >= today &&
+      (s.status === 'scheduled' || s.status === 'in_progress')
+    ).length || 0
+
+    // 이번 달 완료
+    const completedThisMonth = schedules?.filter(s =>
+      s.scheduled_date >= monthStart &&
+      s.scheduled_date <= monthEnd &&
+      s.status === 'completed'
+    ).length || 0
+
+    // 지연: 예정일이 오늘 이전이고 미완료
+    const overdueCount = schedules?.filter(s =>
+      s.scheduled_date < today &&
+      (s.status === 'scheduled' || s.status === 'in_progress')
+    ).length || 0
+
+    // 금주 예정
+    const upcomingWeek = schedules?.filter(s =>
+      s.scheduled_date >= today &&
+      s.scheduled_date <= weekLater.toISOString().split('T')[0] &&
+      (s.status === 'scheduled' || s.status === 'in_progress')
+    ).length || 0
+
+    // 준수율: 이번 달 기준
+    const overdueThisMonth = schedules?.filter(s =>
+      s.scheduled_date >= monthStart &&
+      s.scheduled_date < today &&
+      (s.status === 'scheduled' || s.status === 'in_progress')
+    ).length || 0
+
+    const totalEvaluatedThisMonth = completedThisMonth + overdueThisMonth
+    const complianceRate = totalEvaluatedThisMonth > 0
+      ? Math.round((completedThisMonth / totalEvaluatedThisMonth) * 100)
+      : (completedThisMonth > 0 ? 100 : 0)
+
+    return {
+      data: {
+        total_scheduled: totalScheduled,
+        completed_this_month: completedThisMonth,
+        overdue_count: overdueCount,
+        upcoming_week: upcomingWeek,
+        compliance_rate: complianceRate,
+      },
+      error: null,
+    }
+  },
+
+  // ========================================
+  // Checklist Steps (6-step paint process)
+  // ========================================
+
+  // Get all checklist steps (master data)
+  async getChecklistSteps(): Promise<{ data: PaintChecklistStep[] | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('paint_checklist_steps')
+      .select('*')
+      .eq('is_active', true)
+      .order('step_order')
+
+    return { data, error: error?.message || null }
+  },
+
+  // Get step executions for a schedule
+  async getStepExecutions(scheduleId: string): Promise<{ data: PaintStepExecution[] | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('paint_step_executions')
+      .select(`
+        *,
+        step:paint_checklist_steps(*),
+        technician:users(id, name)
+      `)
+      .eq('schedule_id', scheduleId)
+      .order('step_order')
+
+    return { data, error: error?.message || null }
+  },
+
+  // Initialize step executions for a schedule (create 6 pending steps)
+  async initializeStepExecutions(scheduleId: string): Promise<{ success: boolean; error: string | null }> {
+    // Get all checklist steps
+    const { data: steps, error: stepsError } = await getSupabase()
+      .from('paint_checklist_steps')
+      .select('id, step_order')
+      .eq('is_active', true)
+      .order('step_order')
+
+    if (stepsError || !steps) {
+      return { success: false, error: stepsError?.message || 'Failed to get checklist steps' }
+    }
+
+    // Create execution records for each step
+    const executions = steps.map(step => ({
+      schedule_id: scheduleId,
+      step_id: step.id,
+      step_order: step.step_order,
+      status: 'pending' as const,
+    }))
+
+    const { error } = await getSupabase()
+      .from('paint_step_executions')
+      .insert(executions)
+
+    return { success: !error, error: error?.message || null }
+  },
+
+  // Start a step
+  async startStep(scheduleId: string, stepOrder: number, technicianId: string): Promise<{ data: PaintStepExecution | null; error: string | null }> {
+    // Get step info
+    const { data: step } = await getSupabase()
+      .from('paint_checklist_steps')
+      .select('id')
+      .eq('step_order', stepOrder)
+      .single()
+
+    if (!step) {
+      return { data: null, error: '단계를 찾을 수 없습니다.' }
+    }
+
+    // Check if execution exists
+    const { data: existing } = await getSupabase()
+      .from('paint_step_executions')
+      .select('id')
+      .eq('schedule_id', scheduleId)
+      .eq('step_order', stepOrder)
+      .single()
+
+    let data, error
+    if (existing) {
+      // Update existing record
+      const result = await getSupabase()
+        .from('paint_step_executions')
+        .update({
+          status: 'in_progress',
+          technician_id: technicianId,
+          started_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .select(`
+          *,
+          step:paint_checklist_steps(*),
+          technician:users(id, name)
+        `)
+        .single()
+      data = result.data
+      error = result.error
+    } else {
+      // Insert new record
+      const result = await getSupabase()
+        .from('paint_step_executions')
+        .insert({
+          schedule_id: scheduleId,
+          step_id: step.id,
+          step_order: stepOrder,
+          status: 'in_progress',
+          technician_id: technicianId,
+          started_at: new Date().toISOString(),
+        })
+        .select(`
+          *,
+          step:paint_checklist_steps(*),
+          technician:users(id, name)
+        `)
+        .single()
+      data = result.data
+      error = result.error
+    }
+
+    if (!error) {
+      // Update schedule current_step and status
+      await getSupabase()
+        .from('paint_schedules')
+        .update({
+          current_step: stepOrder,
+          status: 'in_progress',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', scheduleId)
+    }
+
+    return { data, error: error?.message || null }
+  },
+
+  // Complete a step
+  async completeStep(stepExecutionId: string, notes?: string): Promise<{ data: PaintStepExecution | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('paint_step_executions')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        notes: notes || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', stepExecutionId)
+      .select(`
+        *,
+        step:paint_checklist_steps(*),
+        technician:users(id, name)
+      `)
+      .single()
+
+    if (!error && data) {
+      // Check if this was the last step (step 6)
+      if (data.step_order === 6) {
+        // Complete the schedule
+        await getSupabase()
+          .from('paint_schedules')
+          .update({
+            status: 'completed',
+            current_step: 6,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', data.schedule_id)
+      }
+    }
+
+    return { data, error: error?.message || null }
+  },
+
+  // Skip a step
+  async skipStep(scheduleId: string, stepOrder: number, notes?: string): Promise<{ data: PaintStepExecution | null; error: string | null }> {
+    // Get step info
+    const { data: step } = await getSupabase()
+      .from('paint_checklist_steps')
+      .select('id')
+      .eq('step_order', stepOrder)
+      .single()
+
+    if (!step) {
+      return { data: null, error: '단계를 찾을 수 없습니다.' }
+    }
+
+    // Check if execution exists
+    const { data: existing } = await getSupabase()
+      .from('paint_step_executions')
+      .select('id')
+      .eq('schedule_id', scheduleId)
+      .eq('step_order', stepOrder)
+      .single()
+
+    let data, error
+    if (existing) {
+      const result = await getSupabase()
+        .from('paint_step_executions')
+        .update({
+          status: 'skipped',
+          notes: notes || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .select(`
+          *,
+          step:paint_checklist_steps(*),
+          technician:users(id, name)
+        `)
+        .single()
+      data = result.data
+      error = result.error
+    } else {
+      const result = await getSupabase()
+        .from('paint_step_executions')
+        .insert({
+          schedule_id: scheduleId,
+          step_id: step.id,
+          step_order: stepOrder,
+          status: 'skipped',
+          notes: notes || null,
+        })
+        .select(`
+          *,
+          step:paint_checklist_steps(*),
+          technician:users(id, name)
+        `)
+        .single()
+      data = result.data
+      error = result.error
+    }
+
+    return { data, error: error?.message || null }
+  },
+
+  // Get schedule with step executions
+  async getScheduleWithSteps(id: string): Promise<{ data: PaintSchedule | null; error: string | null }> {
+    const { data: schedule, error: scheduleError } = await getSupabase()
+      .from('paint_schedules')
+      .select(`
+        *,
+        template:paint_templates(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        assigned_technician:users(*)
+      `)
+      .eq('id', id)
+      .single()
+
+    if (scheduleError || !schedule) {
+      return { data: null, error: scheduleError?.message || null }
+    }
+
+    // Get step executions
+    const { data: stepExecutions } = await getSupabase()
+      .from('paint_step_executions')
+      .select(`
+        *,
+        step:paint_checklist_steps(*),
+        technician:users(id, name)
+      `)
+      .eq('schedule_id', id)
+      .order('step_order')
+
+    return {
+      data: {
+        ...schedule,
+        step_executions: stepExecutions || [],
+      },
+      error: null,
+    }
+  },
+}
+
+// ========================================
 // Export all APIs
 // ========================================
 export const api = {
@@ -2499,6 +3102,7 @@ export const api = {
   users: usersApi,
   statistics: statisticsApi,
   pm: pmApi,
+  paint: paintApi,
   notifications: notificationsApi,
   ai: aiApi,
   reports: reportsApi,

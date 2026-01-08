@@ -470,6 +470,134 @@ export interface PMAutoGenerateConfig {
 }
 
 // ========================================
+// Paint (설비 도색 관리)
+// ========================================
+
+// 도색 일정 상태
+export type PaintScheduleStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'paused'
+
+// 도색 단계 상태
+export type PaintStepStatus = 'pending' | 'in_progress' | 'completed' | 'skipped'
+
+// 도색 우선순위
+export type PaintPriority = 'low' | 'medium' | 'high'
+
+// 도색 체크리스트 단계 (마스터 데이터)
+export interface PaintChecklistStep {
+  id: string
+  step_order: number
+  name: string
+  name_ko: string
+  name_vi: string
+  description?: string
+  estimated_duration_hours: number
+  is_active: boolean
+  created_at: string
+}
+
+// 도색 단계별 실행 기록
+export interface PaintStepExecution {
+  id: string
+  schedule_id: string
+  step_id: string
+  step?: PaintChecklistStep
+  step_order: number
+  status: PaintStepStatus
+  technician_id?: string
+  technician?: User
+  started_at?: string
+  completed_at?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+// 도색 템플릿
+export interface PaintTemplate {
+  id: string
+  name: string
+  name_ko?: string
+  name_vi?: string
+  description?: string
+  equipment_type_id: string
+  equipment_type?: EquipmentType
+  interval_type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+  interval_value: number
+  estimated_duration: number          // 예상 소요시간 (분)
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// 도색 일정
+export interface PaintSchedule {
+  id: string
+  template_id?: string
+  template?: PaintTemplate
+  equipment_id: string
+  equipment?: Equipment
+  scheduled_date: string              // YYYY-MM-DD
+  expected_end_date?: string          // 예상 완료일
+  current_step: number                // 현재 단계 (0 = 미시작, 1-6 = 현재 단계)
+  assigned_technician_id?: string
+  assigned_technician?: User
+  status: PaintScheduleStatus
+  priority: PaintPriority
+  notes?: string
+  step_executions?: PaintStepExecution[]  // 단계별 실행 기록
+  created_at: string
+  updated_at: string
+}
+
+// 도색 실행 기록
+export interface PaintExecution {
+  id: string
+  schedule_id: string
+  schedule?: PaintSchedule
+  equipment_id: string
+  equipment?: Equipment
+  technician_id: string
+  technician?: User
+  started_at: string
+  completed_at?: string
+  duration_minutes?: number
+  notes?: string
+  rating?: number                     // 1-10
+  status: 'in_progress' | 'completed'
+  created_at?: string
+}
+
+// 도색 대시보드 통계
+export interface PaintDashboardStats {
+  total_scheduled: number
+  completed_this_month: number
+  overdue_count: number
+  upcoming_week: number
+  compliance_rate: number
+}
+
+// 도색 일정 필터
+export interface PaintScheduleFilter {
+  start_date?: string
+  end_date?: string
+  equipment_id?: string
+  equipment_type_id?: string
+  technician_id?: string
+  status?: PaintScheduleStatus
+  priority?: PaintPriority
+}
+
+// 도색 일정 생성 폼
+export interface PaintScheduleCreateForm {
+  template_id?: string
+  equipment_id: string
+  scheduled_date: string
+  assigned_technician_id?: string
+  priority?: PaintPriority
+  notes?: string
+}
+
+// ========================================
 // Parts (External Database - Read Only)
 // ========================================
 

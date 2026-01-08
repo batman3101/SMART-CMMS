@@ -58,6 +58,21 @@
     @apply border-border;
   }
 
+  /* Native select and option dark mode support */
+  select {
+    @apply bg-background text-foreground;
+  }
+
+  select option {
+    @apply bg-background text-foreground;
+  }
+
+  .dark select,
+  .dark select option {
+    background-color: hsl(222.2 84% 4.9%);
+    color: hsl(210 40% 98%);
+  }
+
   /* Prevent horizontal scroll on mobile */
   html {
     overflow-x: hidden;

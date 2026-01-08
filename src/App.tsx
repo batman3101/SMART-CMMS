@@ -34,6 +34,7 @@ import PaintCalendarPage from '@/pages/paint/PaintCalendarPage'
 import PaintScheduleListPage from '@/pages/paint/PaintScheduleListPage'
 import PaintScheduleCreatePage from '@/pages/paint/PaintScheduleCreatePage'
 import PaintExecutionPage from '@/pages/paint/PaintExecutionPage'
+import PaintScheduleDetailPage from '@/pages/paint/PaintScheduleDetailPage'
 import PartsPage from '@/pages/parts/PartsPage'
 import { Loader2 } from 'lucide-react'
 
@@ -116,6 +117,7 @@ function App() {
           <Route path="calendar" element={<PaintCalendarPage />} />
           <Route path="schedules" element={<PaintScheduleListPage />} />
           <Route path="schedules/new" element={<PaintScheduleCreatePage />} />
+          <Route path="schedules/:id" element={<PaintScheduleDetailPage />} />
           <Route path="execution" element={<PaintExecutionPage />} />
         </Route>
 

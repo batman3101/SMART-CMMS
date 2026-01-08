@@ -57,7 +57,9 @@
     "month": "월",
     "clearAll": "전체 해제",
     "showingFirst": "처음 {{count}}개 표시 중",
-    "refineSearch": "검색어를 더 구체화하세요"
+    "refineSearch": "검색어를 더 구체화하세요",
+    "completedAt": "완료 시간",
+    "total": "합계"
   },
   "auth": {
     "login": "로그인",

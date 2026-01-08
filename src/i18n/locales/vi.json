@@ -57,7 +57,9 @@
     "month": "tháng",
     "clearAll": "Bo chon tat ca",
     "showingFirst": "Hien thi {{count}} dau tien",
-    "refineSearch": "Nhap cu the hon"
+    "refineSearch": "Nhap cu the hon",
+    "completedAt": "Thời gian hoàn thành",
+    "total": "Tổng cộng"
   },
   "auth": {
     "login": "Đăng nhập",

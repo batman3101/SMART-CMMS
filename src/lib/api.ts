@@ -2794,7 +2794,7 @@ export const paintApi = {
       .from('paint_schedules')
       .select('status, scheduled_date')
 
-    // 예정된 도색: 오늘 이후의 scheduled/in_progress (오늘 포함)
+    // 예정된 도색: 오늘 이후의 scheduled/in_progress (오늘 포함) - PM과 동일
     const totalScheduled = schedules?.filter(s =>
       s.scheduled_date >= today &&
       (s.status === 'scheduled' || s.status === 'in_progress')
@@ -2807,20 +2807,20 @@ export const paintApi = {
       s.status === 'completed'
     ).length || 0
 
-    // 지연: 예정일이 오늘 이전이고 미완료
+    // 지연: 예정일이 오늘 이전이고 미완료 (scheduled 또는 in_progress)
     const overdueCount = schedules?.filter(s =>
       s.scheduled_date < today &&
       (s.status === 'scheduled' || s.status === 'in_progress')
     ).length || 0
 
-    // 금주 예정
+    // 금주 예정: 오늘부터 7일 이내의 scheduled/in_progress - PM과 동일
     const upcomingWeek = schedules?.filter(s =>
       s.scheduled_date >= today &&
       s.scheduled_date <= weekLater.toISOString().split('T')[0] &&
       (s.status === 'scheduled' || s.status === 'in_progress')
     ).length || 0
 
-    // 준수율: 이번 달 기준
+    // 준수율: 이번 달 기준 (완료 / (완료 + 지연))
     const overdueThisMonth = schedules?.filter(s =>
       s.scheduled_date >= monthStart &&
       s.scheduled_date < today &&

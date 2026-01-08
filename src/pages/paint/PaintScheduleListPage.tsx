@@ -75,6 +75,8 @@ export default function PaintScheduleListPage() {
     assigned_technician_id: '',
     priority: 'medium' as PaintPriority,
     notes: '',
+    current_step: 0,
+    status: 'scheduled' as PaintScheduleStatus,
   })
   const [editLoading, setEditLoading] = useState(false)
 
@@ -254,6 +256,8 @@ export default function PaintScheduleListPage() {
       assigned_technician_id: schedule.assigned_technician_id || '',
       priority: schedule.priority,
       notes: schedule.notes || '',
+      current_step: schedule.current_step || 0,
+      status: schedule.status,
     })
     setEditModal({ open: true, schedule })
   }
@@ -265,6 +269,8 @@ export default function PaintScheduleListPage() {
       assigned_technician_id: '',
       priority: 'medium',
       notes: '',
+      current_step: 0,
+      status: 'scheduled',
     })
   }
 
@@ -272,11 +278,24 @@ export default function PaintScheduleListPage() {
     if (!editModal.schedule) return
 
     setEditLoading(true)
+
+    // Determine status based on current_step
+    let newStatus = editForm.status
+    if (editForm.current_step === 0 && editForm.status === 'in_progress') {
+      newStatus = 'scheduled'
+    } else if (editForm.current_step > 0 && editForm.current_step < 6 && editForm.status === 'scheduled') {
+      newStatus = 'in_progress'
+    } else if (editForm.current_step === 6) {
+      newStatus = 'completed'
+    }
+
     const { success, error } = await paintApi.updateSchedule(editModal.schedule.id, {
       scheduled_date: editForm.scheduled_date,
       assigned_technician_id: editForm.assigned_technician_id || undefined,
       priority: editForm.priority,
       notes: editForm.notes,
+      current_step: editForm.current_step,
+      status: newStatus,
     })
     setEditLoading(false)
 
@@ -453,7 +472,7 @@ export default function PaintScheduleListPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {schedule.status === 'scheduled' && (
+                      {schedule.status !== 'completed' && schedule.status !== 'cancelled' && (
                         <>
                           <Button
                             size="sm"
@@ -590,7 +609,7 @@ export default function PaintScheduleListPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {schedule.status === 'scheduled' && (
+                        {schedule.status !== 'completed' && schedule.status !== 'cancelled' && (
                           <>
                             <Button
                               size="icon"
@@ -743,6 +762,23 @@ export default function PaintScheduleListPage() {
                     <option value="low">{t('paint.priorityLow')}</option>
                     <option value="medium">{t('paint.priorityMedium')}</option>
                     <option value="high">{t('paint.priorityHigh')}</option>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-step">{t('paint.currentStep')}</Label>
+                  <Select
+                    id="edit-step"
+                    value={String(editForm.current_step)}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, current_step: Number(e.target.value) }))}
+                  >
+                    <option value="0">{t('paint.notStarted')}</option>
+                    <option value="1">1. {t('paint.step1')}</option>
+                    <option value="2">2. {t('paint.step2')}</option>
+                    <option value="3">3. {t('paint.step3')}</option>
+                    <option value="4">4. {t('paint.step4')}</option>
+                    <option value="5">5. {t('paint.step5')}</option>
+                    <option value="6">6. {t('paint.step6')} ({t('paint.stepCompleted')})</option>
                   </Select>
                 </div>
 

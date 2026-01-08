@@ -426,7 +426,7 @@ export default function PMScheduleListPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {schedule.status === 'scheduled' && (
+                      {schedule.status !== 'completed' && schedule.status !== 'cancelled' && (
                         <>
                           <Button
                             size="sm"
@@ -562,7 +562,7 @@ export default function PMScheduleListPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {schedule.status === 'scheduled' && (
+                        {schedule.status !== 'completed' && schedule.status !== 'cancelled' && (
                           <>
                             <Button
                               size="icon"

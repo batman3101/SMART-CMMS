@@ -30,6 +30,7 @@ import PMAnalyticsPage from '@/pages/pm/PMAnalyticsPage'
 import PMScheduleDetailPage from '@/pages/pm/PMScheduleDetailPage'
 import PMScheduleCreatePage from '@/pages/pm/PMScheduleCreatePage'
 import PaintDashboardPage from '@/pages/paint/PaintDashboardPage'
+import PaintCalendarPage from '@/pages/paint/PaintCalendarPage'
 import PaintScheduleListPage from '@/pages/paint/PaintScheduleListPage'
 import PaintScheduleCreatePage from '@/pages/paint/PaintScheduleCreatePage'
 import PaintExecutionPage from '@/pages/paint/PaintExecutionPage'
@@ -112,6 +113,7 @@ function App() {
         {/* Paint (Equipment Painting) */}
         <Route path="paint">
           <Route index element={<PaintDashboardPage />} />
+          <Route path="calendar" element={<PaintCalendarPage />} />
           <Route path="schedules" element={<PaintScheduleListPage />} />
           <Route path="schedules/new" element={<PaintScheduleCreatePage />} />
           <Route path="execution" element={<PaintExecutionPage />} />

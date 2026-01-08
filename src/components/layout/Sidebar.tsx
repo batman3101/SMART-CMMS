@@ -76,6 +76,7 @@ const navItems: NavItem[] = [
     labelKey: 'nav.paint',
     children: [
       { path: '/paint', labelKey: 'nav.paintDashboard' },
+      { path: '/paint/calendar', labelKey: 'nav.paintCalendar' },
       { path: '/paint/schedules', labelKey: 'nav.paintSchedules' },
       { path: '/paint/execution', labelKey: 'nav.paintExecution' },
     ],

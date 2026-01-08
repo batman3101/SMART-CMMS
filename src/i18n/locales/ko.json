@@ -90,6 +90,7 @@
     "pmAnalytics": "PM 분석",
     "paint": "도색 관리",
     "paintDashboard": "도색 대시보드",
+    "paintCalendar": "도색 캘린더",
     "paintSchedules": "도색 일정",
     "paintExecution": "도색 실행",
     "analytics": "분석",
@@ -878,6 +879,7 @@
   "paint": {
     "title": "도색 관리",
     "dashboard": "도색 대시보드",
+    "calendar": "도색 캘린더",
     "schedules": "도색 일정 목록",
     "execution": "도색 실행",
     "totalScheduled": "예정된 도색",
@@ -892,6 +894,7 @@
     "noUpcomingPaint": "예정된 도색이 없습니다",
     "noOverduePaint": "지연된 도색이 없습니다",
     "startPaint": "도색 시작",
+    "continuePaint": "도색 계속",
     "completePaint": "도색 완료",
     "scheduledDate": "예정일",
     "assignedTechnician": "담당자",

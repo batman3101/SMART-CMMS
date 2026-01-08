@@ -132,7 +132,7 @@ export const equipmentApi = {
 
   async createEquipment(equipment: Partial<Equipment>): Promise<{ data: Equipment | null; error: string | null }> {
     // Remove equipment_type object as database only has equipment_type_id column
-    const { equipment_type, ...insertData } = equipment
+    const { equipment_type: _equipment_type, ...insertData } = equipment
 
     const { data, error } = await getSupabase()
       .from('equipments')
@@ -145,7 +145,7 @@ export const equipmentApi = {
 
   async updateEquipment(id: string, updates: Partial<Equipment>): Promise<{ data: Equipment | null; error: string | null }> {
     // Remove equipment_type object as database only has equipment_type_id column
-    const { equipment_type, ...updateData } = updates
+    const { equipment_type: _equipment_type, ...updateData } = updates
 
     const { data, error } = await getSupabase()
       .from('equipments')
@@ -169,7 +169,7 @@ export const equipmentApi = {
   async bulkCreateEquipments(equipments: Partial<Equipment>[]): Promise<{ data: Equipment[] | null; error: string | null }> {
     // Remove equipment_type object from each equipment as database only has equipment_type_id column
     const insertData = equipments.map(eq => {
-      const { equipment_type, ...rest } = eq
+      const { equipment_type: _equipment_type, ...rest } = eq
       return { ...rest, is_active: true }
     })
 
@@ -836,7 +836,7 @@ export const statisticsApi = {
     }
 
     const distribution = Object.entries(statusCounts)
-      .filter(([_, value]) => value > 0) // Only include statuses with count > 0
+      .filter(([_status, value]) => value > 0) // Only include statuses with count > 0
       .map(([status, value]) => ({
         status,
         value,
@@ -2593,6 +2593,29 @@ export const paintApi = {
       .gte('scheduled_date', today)
       .lte('scheduled_date', endDateStr)
       .in('status', ['scheduled', 'in_progress'])
+      .order('scheduled_date')
+
+    return { data, error: error?.message || null }
+  },
+
+  async getSchedulesByMonth(yearMonth: string): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
+    // yearMonth 형식: "2025-01"
+    const [year, month] = yearMonth.split('-').map(Number)
+    const startDate = `${yearMonth}-01`
+    // 해당 월의 마지막 날 계산
+    const lastDay = new Date(year, month, 0).getDate()
+    const endDate = `${yearMonth}-${String(lastDay).padStart(2, '0')}`
+
+    const { data, error } = await getSupabase()
+      .from('paint_schedules')
+      .select(`
+        *,
+        template:paint_templates(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        assigned_technician:users(*)
+      `)
+      .gte('scheduled_date', startDate)
+      .lte('scheduled_date', endDate)
       .order('scheduled_date')
 
     return { data, error: error?.message || null }

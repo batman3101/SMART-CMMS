@@ -61,6 +61,7 @@ const moreMenuItems: MoreMenuItem[] = [
   { icon: ListChecks, labelKey: 'nav.pmSchedules', path: '/pm/schedules', category: 'main' },
   { icon: FileCheck, labelKey: 'nav.pmTemplates', path: '/pm/templates', category: 'main' },
   { icon: Paintbrush, labelKey: 'nav.paintDashboard', path: '/paint', category: 'main' },
+  { icon: Paintbrush, labelKey: 'nav.paintCalendar', path: '/paint/calendar', category: 'main' },
   { icon: Paintbrush, labelKey: 'nav.paintSchedules', path: '/paint/schedules', category: 'main' },
   { icon: Package, labelKey: 'nav.parts', path: '/parts', category: 'main' },
   { icon: Bell, labelKey: 'nav.notifications', path: '/maintenance/notifications', category: 'main' },

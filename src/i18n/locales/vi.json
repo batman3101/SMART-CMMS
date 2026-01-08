@@ -984,7 +984,8 @@
     "stepStarted": "Đã bắt đầu bước",
     "stepCompletedMsg": "Đã hoàn thành bước",
     "stepSkippedMsg": "Đã bỏ qua bước",
-    "statusPaused": "Tạm dừng"
+    "statusPaused": "Tạm dừng",
+    "stepsCompleted": "bước hoàn thành"
   },
   "report": {
     "dailyReport": "Bao cao Hang ngay",

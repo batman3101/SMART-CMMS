@@ -984,7 +984,8 @@
     "stepStarted": "단계가 시작되었습니다",
     "stepCompletedMsg": "단계가 완료되었습니다",
     "stepSkippedMsg": "단계를 건너뛰었습니다",
-    "statusPaused": "일시정지"
+    "statusPaused": "일시정지",
+    "stepsCompleted": "단계 완료"
   },
   "report": {
     "dailyReport": "일간 리포트",

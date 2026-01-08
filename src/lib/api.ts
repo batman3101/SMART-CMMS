@@ -1519,6 +1519,9 @@ export const pmApi = {
   },
 
   async getOverdueSchedules(): Promise<{ data: PMSchedule[] | null; error: string | null }> {
+    const today = new Date().toISOString().split('T')[0]
+
+    // Get PMs that are past their scheduled date but not completed or cancelled
     const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
@@ -1527,7 +1530,8 @@ export const pmApi = {
         template:pm_templates(*),
         assigned_technician:users(*)
       `)
-      .eq('status', 'overdue')
+      .lt('scheduled_date', today)
+      .in('status', ['scheduled', 'in_progress'])
       .order('scheduled_date')
 
     return { data, error: error?.message || null }
@@ -1900,8 +1904,11 @@ export const pmApi = {
       s.status === 'completed'
     ).length || 0
 
-    // 지연: overdue 상태인 PM
-    const overdueCount = schedules?.filter(s => s.status === 'overdue').length || 0
+    // 지연: 예정일이 오늘 이전이고 완료되지 않은 PM (scheduled 또는 in_progress 상태)
+    const overdueCount = schedules?.filter(s =>
+      s.scheduled_date < today &&
+      (s.status === 'scheduled' || s.status === 'in_progress')
+    ).length || 0
 
     // 예정된 PM: 오늘 이후의 scheduled/in_progress PM (오늘 포함)
     const totalScheduled = schedules?.filter(s =>
@@ -1910,11 +1917,11 @@ export const pmApi = {
     ).length || 0
 
     // PM 준수율 계산: 이번 달 기준 (완료 / (완료 + 지연)) * 100
-    // 이번 달 지연된 PM 수
+    // 이번 달 지연된 PM 수: 예정일이 이번 달 && 오늘 이전 && 미완료
     const overdueThisMonth = schedules?.filter(s =>
       s.scheduled_date >= monthStart &&
-      s.scheduled_date <= monthEnd &&
-      s.status === 'overdue'
+      s.scheduled_date < today &&
+      (s.status === 'scheduled' || s.status === 'in_progress')
     ).length || 0
 
     const totalEvaluatedThisMonth = completedThisMonth + overdueThisMonth

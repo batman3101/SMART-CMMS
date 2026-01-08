@@ -370,31 +370,47 @@ export const mockPMExecutions: PMExecution[] = generatePMExecutions()
 // ========================================
 export const getPMDashboardStats = (): PMDashboardStats => {
   const now = new Date()
+  const today = now.toISOString().split('T')[0]
   const thisMonth = now.toISOString().slice(0, 7)
   const weekEnd = new Date(now)
   weekEnd.setDate(weekEnd.getDate() + 7)
 
-  const scheduled = mockPMSchedules.filter(s => s.status === 'scheduled').length
-  const inProgress = mockPMSchedules.filter(s => s.status === 'in_progress').length
+  // 예정된 PM: 오늘 이후의 scheduled/in_progress PM (오늘 포함)
+  const scheduled = mockPMSchedules.filter(s =>
+    s.scheduled_date >= today &&
+    (s.status === 'scheduled' || s.status === 'in_progress')
+  ).length
+
   const completedThisMonth = mockPMSchedules.filter(
     s => s.status === 'completed' && s.scheduled_date.startsWith(thisMonth)
   ).length
-  const overdue = mockPMSchedules.filter(s => s.status === 'overdue').length
+
+  // 지연: 예정일이 오늘 이전이고 완료되지 않은 PM (scheduled 또는 in_progress 상태)
+  const overdue = mockPMSchedules.filter(s =>
+    s.scheduled_date < today &&
+    (s.status === 'scheduled' || s.status === 'in_progress')
+  ).length
+
   const upcomingWeek = mockPMSchedules.filter(
-    s => s.status === 'scheduled' &&
+    s => (s.status === 'scheduled' || s.status === 'in_progress') &&
          s.scheduled_date >= getDateString(0) &&
          s.scheduled_date <= getDateString(7)
   ).length
 
-  const totalScheduledThisMonth = mockPMSchedules.filter(
-    s => s.scheduled_date.startsWith(thisMonth)
+  // 이번 달 지연된 PM 수: 예정일이 이번 달 && 오늘 이전 && 미완료
+  const overdueThisMonth = mockPMSchedules.filter(s =>
+    s.scheduled_date.startsWith(thisMonth) &&
+    s.scheduled_date < today &&
+    (s.status === 'scheduled' || s.status === 'in_progress')
   ).length
-  const complianceRate = totalScheduledThisMonth > 0
-    ? Math.round((completedThisMonth / totalScheduledThisMonth) * 100)
-    : 100
+
+  const totalEvaluatedThisMonth = completedThisMonth + overdueThisMonth
+  const complianceRate = totalEvaluatedThisMonth > 0
+    ? Math.round((completedThisMonth / totalEvaluatedThisMonth) * 100)
+    : (completedThisMonth > 0 ? 100 : 0)
 
   return {
-    total_scheduled: scheduled + inProgress,
+    total_scheduled: scheduled,
     completed_this_month: completedThisMonth,
     overdue_count: overdue,
     upcoming_week: upcomingWeek,

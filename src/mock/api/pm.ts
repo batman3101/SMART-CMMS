@@ -218,8 +218,12 @@ export const mockPMApi = {
     error: string | null
   }> {
     await delay(200)
-    const overdue = mockPMSchedules.filter(s => s.status === 'overdue')
-      .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))
+    const today = new Date().toISOString().split('T')[0]
+    // Get PMs that are past their scheduled date but not completed or cancelled
+    const overdue = mockPMSchedules.filter(s =>
+      s.scheduled_date < today &&
+      (s.status === 'scheduled' || s.status === 'in_progress')
+    ).sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))
     return { data: overdue, error: null }
   },
 

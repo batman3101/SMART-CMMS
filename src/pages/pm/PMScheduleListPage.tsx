@@ -112,14 +112,27 @@ export default function PMScheduleListPage() {
   const fetchSchedules = async () => {
     setLoading(true)
     try {
-      const filter: PMScheduleFilter = {}
-      if (statusFilter) filter.status = statusFilter
-      if (priorityFilter) filter.priority = priorityFilter
-      if (technicianFilter) filter.technician_id = technicianFilter
-      if (equipmentTypeFilter) filter.equipment_type_id = equipmentTypeFilter
+      // Special handling for 'overdue' status filter
+      if (statusFilter === 'overdue') {
+        const { data } = await pmApi.getOverdueSchedules()
+        if (data) {
+          let filtered = data
+          // Apply additional filters
+          if (priorityFilter) filtered = filtered.filter(s => s.priority === priorityFilter)
+          if (technicianFilter) filtered = filtered.filter(s => s.assigned_technician_id === technicianFilter)
+          if (equipmentTypeFilter) filtered = filtered.filter(s => s.equipment?.equipment_type_id === equipmentTypeFilter)
+          setSchedules(filtered)
+        }
+      } else {
+        const filter: PMScheduleFilter = {}
+        if (statusFilter) filter.status = statusFilter
+        if (priorityFilter) filter.priority = priorityFilter
+        if (technicianFilter) filter.technician_id = technicianFilter
+        if (equipmentTypeFilter) filter.equipment_type_id = equipmentTypeFilter
 
-      const { data } = await pmApi.getSchedules(filter)
-      if (data) setSchedules(data)
+        const { data } = await pmApi.getSchedules(filter)
+        if (data) setSchedules(data)
+      }
     } catch (error) {
       console.error('Failed to fetch schedules:', error)
     } finally {
@@ -145,7 +158,17 @@ export default function PMScheduleListPage() {
     currentPage * PAGE_SIZE
   )
 
-  const getStatusBadge = (status: PMScheduleStatus) => {
+  // Helper to check if a PM schedule is overdue
+  const isOverdue = (schedule: PMSchedule): boolean => {
+    const today = new Date().toISOString().split('T')[0]
+    return schedule.scheduled_date < today &&
+           (schedule.status === 'scheduled' || schedule.status === 'in_progress')
+  }
+
+  const getStatusBadge = (schedule: PMSchedule) => {
+    // Show 'overdue' badge if the schedule is past its date
+    const displayStatus = isOverdue(schedule) ? 'overdue' : schedule.status
+
     const variants: Record<PMScheduleStatus, string> = {
       scheduled: 'outline',
       in_progress: 'warning',
@@ -160,7 +183,7 @@ export default function PMScheduleListPage() {
       overdue: t('pm.statusOverdue'),
       cancelled: t('pm.statusCancelled'),
     }
-    return <Badge variant={variants[status] as 'default' | 'info' | 'success' | 'destructive' | 'secondary'}>{labels[status]}</Badge>
+    return <Badge variant={variants[displayStatus] as 'default' | 'info' | 'success' | 'destructive' | 'secondary'}>{labels[displayStatus]}</Badge>
   }
 
   const getPriorityBadge = (priority: PMPriority) => {
@@ -371,7 +394,7 @@ export default function PMScheduleListPage() {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm">{schedule.scheduled_date}</span>
-                      {getStatusBadge(schedule.status)}
+                      {getStatusBadge(schedule)}
                       {getPriorityBadge(schedule.priority)}
                     </div>
                   </div>
@@ -388,7 +411,7 @@ export default function PMScheduleListPage() {
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"
-                        variant={schedule.status === 'scheduled' || schedule.status === 'overdue' ? 'default' : 'ghost'}
+                        variant={schedule.status === 'scheduled' || isOverdue(schedule) ? 'default' : 'ghost'}
                         onClick={() => navigate(`/pm/execution?schedule=${schedule.id}`)}
                         disabled={schedule.status === 'completed' || schedule.status === 'cancelled'}
                         className={`h-8 w-8 p-0 ${schedule.status === 'in_progress' ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
@@ -518,12 +541,12 @@ export default function PMScheduleListPage() {
                     <TableCell>{getTemplateName(schedule.template)}</TableCell>
                     <TableCell>{schedule.assigned_technician?.name || '-'}</TableCell>
                     <TableCell>{getPriorityBadge(schedule.priority)}</TableCell>
-                    <TableCell>{getStatusBadge(schedule.status)}</TableCell>
+                    <TableCell>{getStatusBadge(schedule)}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-1">
                         <Button
                           size="icon"
-                          variant={schedule.status === 'scheduled' || schedule.status === 'overdue' ? 'default' : 'ghost'}
+                          variant={schedule.status === 'scheduled' || isOverdue(schedule) ? 'default' : 'ghost'}
                           onClick={() => navigate(`/pm/execution?schedule=${schedule.id}`)}
                           title={t('pm.startPM')}
                           disabled={schedule.status === 'completed' || schedule.status === 'cancelled'}

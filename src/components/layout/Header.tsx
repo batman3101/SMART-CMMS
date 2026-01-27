@@ -6,6 +6,7 @@ import { useThemeStore } from '@/stores/themeStore'
 import { useNotificationStore, NotificationType } from '@/stores/notificationStore'
 import { Button } from '@/components/ui/button'
 import { LogOut, Globe, Bell, Sun, Moon, AlertTriangle, Wrench, Clock, CheckCircle, X, Calendar } from 'lucide-react'
+import FactorySelector from './FactorySelector'
 
 export default function Header() {
   const { t } = useTranslation()
@@ -173,6 +174,9 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
+        {/* Factory Selector */}
+        <FactorySelector />
+
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
           <Button

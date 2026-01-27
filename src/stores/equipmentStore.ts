@@ -20,6 +20,7 @@ interface EquipmentState {
   addEquipment: (equipment: Equipment) => void
   updateEquipment: (id: string, updates: Partial<Equipment>) => void
   deleteEquipment: (id: string) => void
+  reset: () => void
 }
 
 const initialFilter: EquipmentFilter = {}
@@ -53,4 +54,14 @@ export const useEquipmentStore = create<EquipmentState>((set) => ({
     set((state) => ({
       equipments: state.equipments.filter((eq) => eq.id !== id),
     })),
+
+  reset: () =>
+    set({
+      equipments: [],
+      equipmentTypes: [],
+      selectedEquipment: null,
+      filter: initialFilter,
+      isLoading: false,
+      error: null,
+    }),
 }))

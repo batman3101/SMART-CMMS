@@ -52,6 +52,7 @@ interface NotificationState {
 
   // Computed
   getUnreadCount: () => number
+  reset: () => void
 }
 
 // 샘플 알림 데이터 (개발용)
@@ -232,6 +233,11 @@ export const useNotificationStore = create<NotificationState>()(
       getUnreadCount: () => {
         return get().notifications.filter((n) => !n.read).length
       },
+
+      reset: () =>
+        set({
+          notifications: isMainSupabaseConnected() ? [] : sampleNotifications,
+        }),
     }),
     {
       name: 'notification-storage',

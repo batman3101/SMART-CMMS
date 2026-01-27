@@ -61,6 +61,14 @@
     "completedAt": "Thời gian hoàn thành",
     "total": "Tổng cộng"
   },
+  "factory": {
+    "title": "Nhà máy",
+    "alt": "Nhà máy 1 (ALT)",
+    "alv": "Nhà máy 2 (ALV)",
+    "switch": "Chuyển nhà máy",
+    "current": "Nhà máy hiện tại",
+    "select": "Chọn nhà máy"
+  },
   "auth": {
     "login": "Đăng nhập",
     "logout": "Đăng xuất",

@@ -39,6 +39,7 @@ import {
 } from 'lucide-react'
 import { equipmentApi, statisticsApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
+import { useAuthStore } from '@/stores/authStore'
 import type {
   EquipmentFailureRank,
   RepairTypeDistribution,
@@ -62,6 +63,7 @@ interface FilteredKPIs {
 
 export default function AnalyticsPage() {
   const { t } = useTranslation()
+  const { currentFactory } = useAuthStore()
 
   const [isLoading, setIsLoading] = useState(true)
   const [kpis, setKpis] = useState<FilteredKPIs | null>(null)
@@ -71,6 +73,7 @@ export default function AnalyticsPage() {
   const [techPerformance, setTechPerformance] = useState<TechnicianPerformance[]>([])
   const [buildingStats, setBuildingStats] = useState<BuildingFailureStat[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
+  const [buildings, setBuildings] = useState<string[]>([])  // 동적 건물 목록
 
   // Filter states
   const [startDate, setStartDate] = useState('')
@@ -86,6 +89,22 @@ export default function AnalyticsPage() {
     setEndDate(end.toISOString().split('T')[0])
     setStartDate(start.toISOString().split('T')[0])
   }, [])
+
+  // 공장별 건물 목록 동적 로드
+  useEffect(() => {
+    const fetchBuildings = async () => {
+      const { data } = await equipmentApi.getEquipments()
+      if (data) {
+        const uniqueBuildings = [...new Set(
+          data.map(e => e.building).filter((b): b is string => Boolean(b))
+        )].sort()
+        setBuildings(uniqueBuildings)
+        // 공장 전환 시 건물 필터 초기화
+        setBuilding('')
+      }
+    }
+    fetchBuildings()
+  }, [currentFactory])
 
   const fetchData = useCallback(async () => {
     setIsLoading(true)
@@ -237,8 +256,9 @@ export default function AnalyticsPage() {
                 className="w-full sm:w-[150px] h-9 sm:h-10 text-sm"
               >
                 <option value="">{t('equipment.buildingAll')}</option>
-                <option value="A동">A동</option>
-                <option value="B동">B동</option>
+                {buildings.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
               </Select>
             </div>
             <div className="flex flex-col gap-1">

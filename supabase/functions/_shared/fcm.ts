@@ -53,6 +53,7 @@ export async function getTokensByCondition(
     user_ids?: string[]
     roles?: number[]
     departments?: string[]
+    factory_id?: string  // 공장 ID 필터 (멀티 팩토리 지원)
     notification_type?: NotificationType
   }
 ): Promise<string[]> {
@@ -65,7 +66,8 @@ export async function getTokensByCondition(
       users!inner (
         id,
         role,
-        department
+        department,
+        factory_id
       ),
       user_push_settings (
         enabled,
@@ -90,6 +92,11 @@ export async function getTokensByCondition(
   // 부서 필터
   if (options.departments && options.departments.length > 0) {
     query = query.in('users.department', options.departments)
+  }
+
+  // 공장 ID 필터 (멀티 팩토리 지원)
+  if (options.factory_id) {
+    query = query.eq('users.factory_id', options.factory_id)
   }
 
   const { data, error } = await query

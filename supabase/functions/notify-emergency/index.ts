@@ -23,6 +23,7 @@ interface EmergencyRequest {
   maintenance_id?: string
   symptom?: string
   building?: string
+  factory_id?: string  // 공장 ID (멀티 팩토리 지원)
   // 알림 대상 (선택)
   target_roles?: number[] // 기본: [1, 2, 3] - Admin, Supervisor, Technician
   target_departments?: string[]
@@ -46,9 +47,11 @@ serve(async (req) => {
     console.log(`[Emergency] 긴급 수리 알림 - 설비: ${request.equipment_code}`)
 
     // 알림 대상 토큰 조회 (기본: Admin, Supervisor, Technician)
+    // factory_id가 있으면 해당 공장 사용자에게만 전송
     const tokens = await getTokensByCondition(supabase, {
       roles: request.target_roles || [1, 2, 3],
       departments: request.target_departments,
+      factory_id: request.factory_id,
       notification_type: 'emergency',
     })
 
@@ -77,11 +80,18 @@ serve(async (req) => {
     })
 
     // 인앱 알림 저장 (대상 사용자들에게)
-    const { data: targetUsers } = await supabase
+    // factory_id가 있으면 해당 공장 사용자에게만 저장
+    let userQuery = supabase
       .from('users')
       .select('id')
       .in('role', request.target_roles || [1, 2, 3])
       .eq('is_active', true)
+
+    if (request.factory_id) {
+      userQuery = userQuery.eq('factory_id', request.factory_id)
+    }
+
+    const { data: targetUsers } = await userQuery
 
     if (targetUsers && targetUsers.length > 0) {
       await saveInAppNotification(

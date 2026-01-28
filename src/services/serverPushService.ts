@@ -25,7 +25,13 @@
  */
 
 import { supabase, isMainSupabaseConnected } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 import type { NotificationType } from '@/stores/notificationStore'
+
+// 현재 공장 ID 가져오기
+const getCurrentFactoryId = (): string => {
+  return useAuthStore.getState().currentFactory || 'ALT'
+}
 
 // 푸시 알림 요청 타입
 export interface PushNotificationRequest {
@@ -72,6 +78,7 @@ export interface EmergencyNotificationRequest {
   maintenance_id?: string
   symptom?: string
   building?: string
+  factory_id?: string  // 공장 ID (멀티 팩토리 지원)
   target_roles?: number[]
   target_departments?: string[]
 }
@@ -107,9 +114,9 @@ class ServerPushService {
   /**
    * Edge Function 호출
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async invokeFunction<T>(
     functionName: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     body: any
   ): Promise<T> {
     if (!this.isEnabled || !supabase) {
@@ -150,14 +157,20 @@ class ServerPushService {
 
   /**
    * 긴급 수리 알림 전송
+   * factory_id가 없으면 현재 공장 ID를 자동으로 추가
    */
   async notifyEmergency(
     request: EmergencyNotificationRequest
   ): Promise<PushNotificationResponse> {
     console.log('[ServerPush] 긴급 수리 알림:', request.equipment_code)
+    // factory_id가 없으면 현재 공장 ID 추가 (멀티 팩토리 지원)
+    const requestWithFactory = {
+      ...request,
+      factory_id: request.factory_id || getCurrentFactoryId(),
+    }
     return this.invokeFunction<PushNotificationResponse>(
       'notify-emergency',
-      request
+      requestWithFactory
     )
   }
 

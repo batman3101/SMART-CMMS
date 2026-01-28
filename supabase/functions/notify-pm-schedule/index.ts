@@ -44,6 +44,7 @@ interface PMSchedule {
     equipment_name: string
     equipment_name_ko: string
     building: string
+    factory_id: string  // 공장 ID 추가 (멀티 팩토리 지원)
   }
 }
 
@@ -67,7 +68,7 @@ serve(async (req) => {
     targetDate.setDate(targetDate.getDate() + daysBefore)
     const targetDateStr = targetDate.toISOString().split('T')[0]
 
-    // PM 일정 조회
+    // PM 일정 조회 (설비의 factory_id 포함)
     let query = supabase
       .from('pm_schedules')
       .select(`
@@ -85,7 +86,8 @@ serve(async (req) => {
           equipment_code,
           equipment_name,
           equipment_name_ko,
-          building
+          building,
+          factory_id
         )
       `)
       .eq('status', 'scheduled')
@@ -130,13 +132,19 @@ serve(async (req) => {
         // 담당자에게만 알림
         targetUserIds = [schedule.assigned_technician_id]
       } else {
-        // 관련 역할 모두에게 알림
-        const { data: users } = await supabase
+        // 관련 역할 모두에게 알림 (해당 공장 사용자만)
+        let userQuery = supabase
           .from('users')
           .select('id')
           .in('role', [1, 2, 3])
           .eq('is_active', true)
 
+        // 설비의 factory_id로 필터링 (멀티 팩토리 지원)
+        if (equipment.factory_id) {
+          userQuery = userQuery.eq('factory_id', equipment.factory_id)
+        }
+
+        const { data: users } = await userQuery
         targetUserIds = users?.map((u) => u.id) || []
       }
 

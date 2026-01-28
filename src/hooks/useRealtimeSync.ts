@@ -4,7 +4,7 @@ import { useEquipmentStore } from '@/stores/equipmentStore'
 import { useMaintenanceStore } from '@/stores/maintenanceStore'
 import { useNotificationStore, NotificationType } from '@/stores/notificationStore'
 import { useAuthStore } from '@/stores/authStore'
-import { supabase } from '@/lib/supabase'
+import { equipmentApi, maintenanceApi } from '@/lib/api'
 import type { Equipment, MaintenanceRecord } from '@/types'
 
 // 데이터가 stale로 간주되는 시간 (10초로 단축 - 더 빠른 새로고침)
@@ -21,18 +21,8 @@ export function useEquipmentRealtime(enabled = true) {
 
   // 초기 데이터 로드
   const loadEquipments = useCallback(async () => {
-    if (!supabase) return
-
-    const { data, error } = await supabase
-      .from('equipments')
-      .select(`
-        *,
-        type:equipment_types(*)
-      `)
-      .eq('is_active', true)
-      .order('equipment_no')
-
-    if (!error && data) {
+    const { data } = await equipmentApi.getEquipments()
+    if (data) {
       setEquipments(data as Equipment[])
     }
   }, [setEquipments])
@@ -72,20 +62,8 @@ export function useMaintenanceRealtime(enabled = true) {
 
   // 초기 데이터 로드
   const loadRecords = useCallback(async () => {
-    if (!supabase) return
-
-    const { data, error } = await supabase
-      .from('maintenance_records')
-      .select(`
-        *,
-        equipment:equipments(*),
-        repair_type:repair_types(*),
-        technician:users(*)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(100)
-
-    if (!error && data) {
+    const { data } = await maintenanceApi.getRecords()
+    if (data) {
       setRecords(data as MaintenanceRecord[])
     }
   }, [setRecords])
@@ -177,7 +155,7 @@ export function useNotificationRealtime(enabled = true) {
  * - stale 데이터 자동 갱신
  */
 export function useAppRealtime(enabled = true) {
-  const { user, refreshUser } = useAuthStore()
+  const { user, currentFactory, refreshUser } = useAuthStore()
   const { updateEquipment, setEquipments } = useEquipmentStore()
   const { updateRecord, setRecords, deleteRecord } = useMaintenanceStore()
   const { addNotification } = useNotificationStore()
@@ -190,35 +168,21 @@ export function useAppRealtime(enabled = true) {
 
   // 초기 데이터 로드
   const loadAllData = useCallback(async () => {
-    if (!supabase) return
-
     console.log('[DataSync] Loading all data...')
-
-    // 병렬로 데이터 로드
     const [equipmentsResult, recordsResult] = await Promise.all([
-      supabase
-        .from('equipments')
-        .select(`*, type:equipment_types(*)`)
-        .eq('is_active', true)
-        .order('equipment_no'),
-      supabase
-        .from('maintenance_records')
-        .select(`*, equipment:equipments(*), repair_type:repair_types(*), technician:users(*)`)
-        .order('created_at', { ascending: false })
-        .limit(100),
+      equipmentApi.getEquipments(),
+      maintenanceApi.getRecords(),
     ])
-
-    if (!equipmentsResult.error && equipmentsResult.data) {
+    if (equipmentsResult.data) {
       setEquipments(equipmentsResult.data as Equipment[])
     }
-
-    if (!recordsResult.error && recordsResult.data) {
+    if (recordsResult.data) {
       setRecords(recordsResult.data as MaintenanceRecord[])
     }
-
     lastFetchRef.current = Date.now()
     console.log('[DataSync] Data loaded successfully')
-  }, [setEquipments, setRecords])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setEquipments, setRecords, currentFactory])
 
   // 조건부 fetch (stale일 때만)
   const conditionalFetch = useCallback(async () => {
@@ -281,6 +245,7 @@ export function useAppRealtime(enabled = true) {
     [
       {
         table: 'equipments',
+        filter: currentFactory ? `factory_id=eq.${currentFactory}` : undefined,
         onInsert: () => {
           console.log('[Realtime] Equipment inserted')
           loadAllData() // 관계 데이터 포함하여 리로드
@@ -296,6 +261,7 @@ export function useAppRealtime(enabled = true) {
       },
       {
         table: 'maintenance_records',
+        filter: currentFactory ? `factory_id=eq.${currentFactory}` : undefined,
         onInsert: () => {
           console.log('[Realtime] Maintenance inserted')
           loadAllData() // 관계 데이터 포함하여 리로드
@@ -338,6 +304,7 @@ export function useAppRealtime(enabled = true) {
       // PM 스케줄 변경 감지
       {
         table: 'pm_schedules',
+        filter: currentFactory ? `factory_id=eq.${currentFactory}` : undefined,
         onInsert: () => {
           console.log('[Realtime] PM schedule created')
         },
@@ -351,6 +318,7 @@ export function useAppRealtime(enabled = true) {
       // PM 실행 변경 감지
       {
         table: 'pm_executions',
+        filter: currentFactory ? `factory_id=eq.${currentFactory}` : undefined,
         onInsert: () => {
           console.log('[Realtime] PM execution created')
         },
@@ -361,6 +329,7 @@ export function useAppRealtime(enabled = true) {
       // 설정 변경 감지
       {
         table: 'settings',
+        filter: currentFactory ? `factory_id=eq.${currentFactory}` : undefined,
         onUpdate: () => {
           console.log('[Realtime] Settings updated')
         },

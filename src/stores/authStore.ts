@@ -1,13 +1,17 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User } from '@/types'
+import type { User, FactoryId } from '@/types'
 import { supabase, signOut as supabaseSignOut } from '@/lib/supabase'
+import { useEquipmentStore } from './equipmentStore'
+import { useMaintenanceStore } from './maintenanceStore'
+import { useNotificationStore } from './notificationStore'
 
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
   language: 'ko' | 'vi'
+  currentFactory: FactoryId
   login: (user: User) => void
   logout: () => Promise<void>
   setLanguage: (lang: 'ko' | 'vi') => void
@@ -15,6 +19,8 @@ interface AuthState {
   setLoading: (loading: boolean) => void
   checkSession: () => Promise<boolean>
   refreshUser: () => Promise<void>
+  setCurrentFactory: (factory: FactoryId) => void
+  canSwitchFactory: () => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,12 +30,14 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: true,
       language: 'ko',
+      currentFactory: 'ALT',
 
       login: (user) =>
         set({
           user,
           isAuthenticated: true,
           isLoading: false,
+          currentFactory: (user.factory_id as FactoryId) || 'ALT',
         }),
 
       logout: async () => {
@@ -110,6 +118,18 @@ export const useAuthStore = create<AuthState>()(
           console.error('Failed to refresh user:', error)
         }
       },
+
+      setCurrentFactory: (factory: FactoryId) => {
+        set({ currentFactory: factory })
+        // Reset all data stores when factory changes
+        useEquipmentStore.getState().reset()
+        useMaintenanceStore.getState().reset()
+        useNotificationStore.getState().reset()
+      },
+
+      canSwitchFactory: () => {
+        return get().user?.role === 1
+      },
     }),
     {
       name: 'amms-auth',
@@ -117,6 +137,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         language: state.language,
+        currentFactory: state.currentFactory,
       }),
     }
   )

@@ -20,6 +20,7 @@ interface MaintenanceState {
   addRecord: (record: MaintenanceRecord) => void
   updateRecord: (id: string, updates: Partial<MaintenanceRecord>) => void
   deleteRecord: (id: string) => void
+  reset: () => void
 }
 
 const initialFilter: MaintenanceFilter = {}
@@ -53,4 +54,14 @@ export const useMaintenanceStore = create<MaintenanceState>((set) => ({
     set((state) => ({
       records: state.records.filter((rec) => rec.id !== id),
     })),
+
+  reset: () =>
+    set({
+      records: [],
+      repairTypes: [],
+      selectedRecord: null,
+      filter: initialFilter,
+      isLoading: false,
+      error: null,
+    }),
 }))

@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabase'
+import { useAuthStore } from '@/stores/authStore'
 import type {
   Equipment,
   EquipmentType,
@@ -68,6 +69,11 @@ const getSupabase = () => {
   return supabase
 }
 
+// Get current factory ID from auth store
+const getCurrentFactoryId = (): string => {
+  return useAuthStore.getState().currentFactory || 'ALT'
+}
+
 // Get Supabase project URL for Edge Functions
 const getEdgeFunctionUrl = (functionName: string) => {
   const url = import.meta.env.VITE_SUPABASE_URL
@@ -86,6 +92,7 @@ export const equipmentApi = {
         *,
         equipment_type:equipment_types(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
       .order('equipment_code')
 
@@ -99,6 +106,7 @@ export const equipmentApi = {
         *,
         equipment_type:equipment_types(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .single()
 
@@ -123,6 +131,7 @@ export const equipmentApi = {
     const { data, error } = await getSupabase()
       .from('equipments')
       .update({ status, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .select()
       .single()
@@ -136,7 +145,7 @@ export const equipmentApi = {
 
     const { data, error } = await getSupabase()
       .from('equipments')
-      .insert(insertData)
+      .insert({ ...insertData, factory_id: getCurrentFactoryId() })
       .select(`*, equipment_type:equipment_types(*)`)
       .single()
 
@@ -150,6 +159,7 @@ export const equipmentApi = {
     const { data, error } = await getSupabase()
       .from('equipments')
       .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .select(`*, equipment_type:equipment_types(*)`)
       .single()
@@ -161,6 +171,7 @@ export const equipmentApi = {
     const { error } = await getSupabase()
       .from('equipments')
       .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { error: error?.message || null }
@@ -168,9 +179,10 @@ export const equipmentApi = {
 
   async bulkCreateEquipments(equipments: Partial<Equipment>[]): Promise<{ data: Equipment[] | null; error: string | null }> {
     // Remove equipment_type object from each equipment as database only has equipment_type_id column
+    const factoryId = getCurrentFactoryId()
     const insertData = equipments.map(eq => {
       const { equipment_type: _equipment_type, ...rest } = eq
-      return { ...rest, is_active: true }
+      return { ...rest, is_active: true, factory_id: factoryId }
     })
 
     const { data, error } = await getSupabase()
@@ -308,6 +320,7 @@ export const maintenanceApi = {
         repair_type:repair_types(*),
         technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .order('date', { ascending: false })
 
     if (filter?.startDate) {
@@ -343,6 +356,7 @@ export const maintenanceApi = {
         repair_type:repair_types(*),
         technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'in_progress')
       .order('start_time', { ascending: false })
 
@@ -359,6 +373,7 @@ export const maintenanceApi = {
         repair_type:repair_types(*),
         technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('date', today)
       .order('start_time', { ascending: false })
 
@@ -375,6 +390,7 @@ export const maintenanceApi = {
         repair_type:repair_types(*),
         technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
       .eq('date', today)
       .order('end_time', { ascending: false })
@@ -413,6 +429,7 @@ export const maintenanceApi = {
         record_no,
         status: 'in_progress',
         used_parts: record.used_parts || [],
+        factory_id: getCurrentFactoryId(),
       })
       .select(`
         *,
@@ -441,6 +458,7 @@ export const maintenanceApi = {
         status: 'completed',
         updated_at: new Date().toISOString(),
       })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .select(`
         *,
@@ -462,6 +480,7 @@ export const usersApi = {
     const { data, error } = await getSupabase()
       .from('users')
       .select('*')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
       .order('name')
 
@@ -472,6 +491,7 @@ export const usersApi = {
     const { data, error } = await getSupabase()
       .from('users')
       .select('*')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
       .in('role', [2, 3]) // Supervisor and Technician
       .order('name')
@@ -505,7 +525,7 @@ export const usersApi = {
           action: 'create_user',
           email,
           password,
-          userData,
+          userData: { ...userData, factory_id: userData.factory_id || getCurrentFactoryId() },
         }),
       })
 
@@ -625,6 +645,7 @@ export const usersApi = {
     const { error } = await getSupabase()
       .from('users')
       .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { error: error?.message || null }
@@ -634,6 +655,7 @@ export const usersApi = {
     const { error } = await getSupabase()
       .from('users')
       .update({ is_active: true, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { error: error?.message || null }
@@ -722,12 +744,14 @@ export const statisticsApi = {
     const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('status')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
 
     // Get in-progress maintenance records (all dates)
     const { data: inProgressRecords } = await getSupabase()
       .from('maintenance_records')
       .select('id')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'in_progress')
 
     // Get today's records
@@ -735,6 +759,7 @@ export const statisticsApi = {
     const { data: todayRecords } = await getSupabase()
       .from('maintenance_records')
       .select('status, repair_type:repair_types(code)')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('date', today)
 
     const totalEquipment = equipments?.length || 0
@@ -765,6 +790,7 @@ export const statisticsApi = {
         duration_minutes,
         equipment:equipments(equipment_code, equipment_name)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
 
     if (error || !data) {
@@ -800,6 +826,7 @@ export const statisticsApi = {
     const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('status')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
 
     if (!equipments) {
@@ -810,6 +837,7 @@ export const statisticsApi = {
     const { data: inProgressRecords } = await getSupabase()
       .from('maintenance_records')
       .select('id')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'in_progress')
 
     const statusColors: Record<string, string> = {
@@ -882,6 +910,7 @@ export const statisticsApi = {
     let query = getSupabase()
       .from('maintenance_records')
       .select('repair_type:repair_types(id, code, name, color)')
+      .eq('factory_id', getCurrentFactoryId())
 
     if (queryStartDate) {
       query = query.gte('date', queryStartDate)
@@ -923,6 +952,7 @@ export const statisticsApi = {
     const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select('date')
+      .eq('factory_id', getCurrentFactoryId())
       .gte('date', sevenDaysAgo.toISOString().split('T')[0])
 
     if (error || !data) {
@@ -951,6 +981,7 @@ export const statisticsApi = {
     const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select('technician_id, duration_minutes, rating, technician:users(id, name)')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
       .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
 
@@ -1009,12 +1040,14 @@ export const statisticsApi = {
     const { data: records } = await getSupabase()
       .from('maintenance_records')
       .select('duration_minutes, date')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
       .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
 
     const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('id')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
 
     const totalEquipment = equipments?.length || 1
@@ -1064,6 +1097,7 @@ export const statisticsApi = {
         repair_type:repair_types(code),
         equipment:equipments(building, equipment_type_id)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
 
     if (filter?.startDate) {
@@ -1109,6 +1143,7 @@ export const statisticsApi = {
     const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('id')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
 
     const totalEquipment = equipments?.length || 1
@@ -1147,6 +1182,7 @@ export const statisticsApi = {
         duration_minutes,
         equipment:equipments(equipment_code, equipment_name, building, equipment_type_id)
       `)
+      .eq('factory_id', getCurrentFactoryId())
 
     if (filter?.startDate) {
       query = query.gte('date', filter.startDate)
@@ -1213,6 +1249,7 @@ export const statisticsApi = {
         repair_type:repair_types(id, code, name),
         equipment:equipments(building, equipment_type_id)
       `)
+      .eq('factory_id', getCurrentFactoryId())
 
     if (filter?.startDate) {
       query = query.gte('date', filter.startDate)
@@ -1274,6 +1311,7 @@ export const statisticsApi = {
         date,
         equipment:equipments(building, equipment_type_id)
       `)
+      .eq('factory_id', getCurrentFactoryId())
 
     if (filter?.startDate) {
       query = query.gte('date', filter.startDate)
@@ -1331,6 +1369,7 @@ export const statisticsApi = {
         duration_minutes,
         equipment:equipments(building, equipment_type_id)
       `)
+      .eq('factory_id', getCurrentFactoryId())
 
     if (filter?.startDate) {
       query = query.gte('date', filter.startDate)
@@ -1384,6 +1423,7 @@ export const statisticsApi = {
         technician:users(id, name),
         equipment:equipments(building, equipment_type_id)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
 
     if (filter?.startDate) {
@@ -1477,6 +1517,7 @@ export const pmApi = {
         template:pm_templates(*),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .order('scheduled_date', { ascending: true })
 
     if (filter?.status) {
@@ -1504,6 +1545,7 @@ export const pmApi = {
         *,
         equipment_type:equipment_types(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
       .order('name')
 
@@ -1520,6 +1562,7 @@ export const pmApi = {
         template:pm_templates(*),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('scheduled_date', today)
       .order('priority')
 
@@ -1538,6 +1581,7 @@ export const pmApi = {
         template:pm_templates(*),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .lt('scheduled_date', today)
       .in('status', ['scheduled', 'in_progress'])
       .order('scheduled_date')
@@ -1559,6 +1603,7 @@ export const pmApi = {
         template:pm_templates(*),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .gte('scheduled_date', today)
       .lte('scheduled_date', endDateStr)
       .in('status', ['scheduled', 'in_progress'])
@@ -1583,6 +1628,7 @@ export const pmApi = {
         template:pm_templates(*),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .gte('scheduled_date', startDate)
       .lte('scheduled_date', endDate)
       .order('scheduled_date')
@@ -1599,6 +1645,7 @@ export const pmApi = {
         template:pm_templates(*),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .single()
 
@@ -1618,6 +1665,7 @@ export const pmApi = {
       .insert({
         ...form,
         status: 'scheduled',
+        factory_id: getCurrentFactoryId(),
       })
       .select(`
         *,
@@ -1646,12 +1694,14 @@ export const pmApi = {
     await getSupabase()
       .from('pm_executions')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('schedule_id', id)
 
     // 일정 삭제
     const { error } = await getSupabase()
       .from('pm_schedules')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { success: !error, error: error?.message || null }
@@ -1683,6 +1733,7 @@ export const pmApi = {
         notes: form.notes,
         updated_at: new Date().toISOString(),
       })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { success: !error, error: error?.message || null }
@@ -1700,6 +1751,7 @@ export const pmApi = {
       const { data: schedules } = await getSupabase()
         .from('pm_schedules')
         .select('status')
+        .eq('factory_id', getCurrentFactoryId())
         .like('scheduled_date', `${yearMonth}%`)
 
       const scheduled_count = schedules?.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length || 0
@@ -1719,7 +1771,7 @@ export const pmApi = {
   async createTemplate(template: Partial<PMTemplate>): Promise<{ data: PMTemplate | null; error: string | null }> {
     const { data, error } = await getSupabase()
       .from('pm_templates')
-      .insert({ ...template, is_active: true })
+      .insert({ ...template, is_active: true, factory_id: getCurrentFactoryId() })
       .select(`*, equipment_type:equipment_types(*)`)
       .single()
 
@@ -1730,6 +1782,7 @@ export const pmApi = {
     const { data, error } = await getSupabase()
       .from('pm_templates')
       .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .select(`*, equipment_type:equipment_types(*)`)
       .single()
@@ -1741,6 +1794,7 @@ export const pmApi = {
     const { error } = await getSupabase()
       .from('pm_templates')
       .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { error: error?.message || null }
@@ -1756,6 +1810,7 @@ export const pmApi = {
         equipment:equipments(*),
         technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('schedule_id', scheduleId)
       .maybeSingle()
 
@@ -1797,6 +1852,7 @@ export const pmApi = {
         status: 'in_progress',
         checklist_results: [],
         used_parts: [],
+        factory_id: getCurrentFactoryId(),
       })
       .select(`
         *,
@@ -1813,6 +1869,7 @@ export const pmApi = {
     const { data, error } = await getSupabase()
       .from('pm_executions')
       .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .select()
       .single()
@@ -1872,6 +1929,7 @@ export const pmApi = {
         duration_minutes: durationMinutes,
         status: 'completed',
       })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .select()
       .single()
@@ -1881,6 +1939,7 @@ export const pmApi = {
       await getSupabase()
         .from('pm_schedules')
         .update({ status: 'completed' })
+        .eq('factory_id', getCurrentFactoryId())
         .eq('id', execution.schedule_id)
     }
 
@@ -1897,6 +1956,7 @@ export const pmApi = {
     const { data: schedules } = await getSupabase()
       .from('pm_schedules')
       .select('status, scheduled_date')
+      .eq('factory_id', getCurrentFactoryId())
 
     // 금주 예정: 오늘부터 7일 이내의 scheduled/in_progress PM
     const upcomingScheduled = schedules?.filter(s =>
@@ -1960,6 +2020,7 @@ export const pmApi = {
       const { data: schedules } = await getSupabase()
         .from('pm_schedules')
         .select('status')
+        .eq('factory_id', getCurrentFactoryId())
         .gte('scheduled_date', `${yearMonth}-01`)
         .lte('scheduled_date', `${yearMonth}-31`)
 
@@ -1983,6 +2044,7 @@ export const pmApi = {
         equipment_id,
         equipments!inner(equipment_type_id, equipment_types!inner(id, name, name_ko, name_vi))
       `)
+      .eq('factory_id', getCurrentFactoryId())
 
     if (!schedules) return { data: [], error: null }
 
@@ -2019,6 +2081,7 @@ export const pmApi = {
         technician_id,
         users!inner(id, name)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
 
     if (!executions) return { data: [], error: null }
@@ -2055,6 +2118,7 @@ export const pmApi = {
     const { data: schedules } = await getSupabase()
       .from('pm_schedules')
       .select('status')
+      .eq('factory_id', getCurrentFactoryId())
 
     if (!schedules) return { data: [], error: null }
 
@@ -2074,6 +2138,7 @@ export const pmApi = {
     const { data: executions } = await getSupabase()
       .from('pm_executions')
       .select('duration_minutes')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
       .not('duration_minutes', 'is', null)
 
@@ -2092,6 +2157,7 @@ export const notificationsApi = {
     let query = getSupabase()
       .from('notifications')
       .select('*')
+      .eq('factory_id', getCurrentFactoryId())
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -2107,6 +2173,7 @@ export const notificationsApi = {
     const { error } = await getSupabase()
       .from('notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { error: error?.message || null }
@@ -2116,6 +2183,7 @@ export const notificationsApi = {
     const { error } = await getSupabase()
       .from('notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('user_id', userId)
       .eq('is_read', false)
 
@@ -2126,6 +2194,7 @@ export const notificationsApi = {
     const { error } = await getSupabase()
       .from('notifications')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { error: error?.message || null }
@@ -2135,6 +2204,7 @@ export const notificationsApi = {
     const { error } = await getSupabase()
       .from('notifications')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('user_id', userId)
       .eq('is_read', true)
 
@@ -2150,6 +2220,7 @@ export const aiApi = {
     const { data, error } = await getSupabase()
       .from('ai_insights')
       .select('*')
+      .eq('factory_id', getCurrentFactoryId())
       .order('generated_at', { ascending: false })
       .limit(20)
 
@@ -2169,6 +2240,7 @@ export const aiApi = {
     const { data: insights, error } = await getSupabase()
       .from('ai_insights')
       .select('*')
+      .eq('factory_id', getCurrentFactoryId())
       .order('generated_at', { ascending: false })
 
     if (error || !insights) {
@@ -2262,6 +2334,7 @@ export const reportsApi = {
         *,
         generated_by_user:users(id, name, email)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .order('created_at', { ascending: false })
 
     if (filter?.type) {
@@ -2288,6 +2361,7 @@ export const reportsApi = {
         *,
         generated_by_user:users(id, name, email)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .single()
 
@@ -2307,7 +2381,7 @@ export const reportsApi = {
   }): Promise<{ data: unknown | null; error: string | null }> {
     const { data, error } = await getSupabase()
       .from('generated_reports')
-      .insert(report)
+      .insert({ ...report, factory_id: getCurrentFactoryId() })
       .select()
       .single()
 
@@ -2323,6 +2397,7 @@ export const reportsApi = {
     const { data, error } = await getSupabase()
       .from('generated_reports')
       .update(updates)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .select()
       .single()
@@ -2334,6 +2409,7 @@ export const reportsApi = {
     const { error } = await getSupabase()
       .from('generated_reports')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { error: error?.message || null }
@@ -2348,6 +2424,7 @@ export const chatHistoryApi = {
     let query = getSupabase()
       .from('ai_chat_history')
       .select('*')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('user_id', userId)
       .order('created_at', { ascending: true })
 
@@ -2363,6 +2440,7 @@ export const chatHistoryApi = {
     const { data, error } = await getSupabase()
       .from('ai_chat_history')
       .select('session_id, created_at')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
@@ -2389,7 +2467,7 @@ export const chatHistoryApi = {
   }): Promise<{ data: unknown | null; error: string | null }> {
     const { data, error } = await getSupabase()
       .from('ai_chat_history')
-      .insert(message)
+      .insert({ ...message, factory_id: getCurrentFactoryId() })
       .select()
       .single()
 
@@ -2400,6 +2478,7 @@ export const chatHistoryApi = {
     const { error } = await getSupabase()
       .from('ai_chat_history')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('user_id', userId)
       .eq('session_id', sessionId)
 
@@ -2410,6 +2489,7 @@ export const chatHistoryApi = {
     const { error } = await getSupabase()
       .from('ai_chat_history')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('user_id', userId)
 
     return { error: error?.message || null }
@@ -2424,6 +2504,7 @@ export const settingsApi = {
     const { data, error } = await getSupabase()
       .from('settings')
       .select('*')
+      .eq('factory_id', getCurrentFactoryId())
 
     if (error) {
       return { data: null, error: error.message }
@@ -2444,6 +2525,7 @@ export const settingsApi = {
     const { data, error } = await getSupabase()
       .from('settings')
       .select('*')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('key', key)
       .maybeSingle()
 
@@ -2463,26 +2545,29 @@ export const settingsApi = {
         description,
         updated_by: updatedBy,
         updated_at: new Date().toISOString(),
+        factory_id: getCurrentFactoryId(),
       }, {
-        onConflict: 'key',
+        onConflict: 'factory_id,key',
       })
 
     return { error: error?.message || null }
   },
 
   async setMultiple(settings: { key: string; value: unknown; description?: string }[], updatedBy?: string): Promise<{ error: string | null }> {
+    const factoryId = getCurrentFactoryId()
     const settingsToUpsert = settings.map(s => ({
       key: s.key,
       value: s.value,
       description: s.description,
       updated_by: updatedBy,
       updated_at: new Date().toISOString(),
+      factory_id: factoryId,
     }))
 
     const { error } = await getSupabase()
       .from('settings')
       .upsert(settingsToUpsert, {
-        onConflict: 'key',
+        onConflict: 'factory_id,key',
       })
 
     return { error: error?.message || null }
@@ -2492,6 +2577,7 @@ export const settingsApi = {
     const { error } = await getSupabase()
       .from('settings')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('key', key)
 
     return { error: error?.message || null }
@@ -2510,6 +2596,7 @@ export const paintApi = {
         *,
         equipment_type:equipment_types(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
       .order('name')
 
@@ -2526,6 +2613,7 @@ export const paintApi = {
         equipment:equipments(*,equipment_type:equipment_types(*)),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
 
     if (filter?.start_date) query = query.gte('scheduled_date', filter.start_date)
     if (filter?.end_date) query = query.lte('scheduled_date', filter.end_date)
@@ -2551,6 +2639,7 @@ export const paintApi = {
         equipment:equipments(*,equipment_type:equipment_types(*)),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('scheduled_date', today)
       .in('status', ['scheduled', 'in_progress'])
       .order('priority')
@@ -2569,6 +2658,7 @@ export const paintApi = {
         equipment:equipments(*,equipment_type:equipment_types(*)),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .lt('scheduled_date', today)
       .in('status', ['scheduled', 'in_progress'])
       .order('scheduled_date')
@@ -2590,6 +2680,7 @@ export const paintApi = {
         equipment:equipments(*,equipment_type:equipment_types(*)),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .gte('scheduled_date', today)
       .lte('scheduled_date', endDateStr)
       .in('status', ['scheduled', 'in_progress'])
@@ -2614,6 +2705,7 @@ export const paintApi = {
         equipment:equipments(*,equipment_type:equipment_types(*)),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .gte('scheduled_date', startDate)
       .lte('scheduled_date', endDate)
       .order('scheduled_date')
@@ -2630,6 +2722,7 @@ export const paintApi = {
         equipment:equipments(*,equipment_type:equipment_types(*)),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .single()
 
@@ -2647,6 +2740,7 @@ export const paintApi = {
         priority: form.priority || 'medium',
         notes: form.notes || null,
         status: 'scheduled',
+        factory_id: getCurrentFactoryId(),
       })
       .select(`
         *,
@@ -2666,6 +2760,7 @@ export const paintApi = {
         ...updates,
         updated_at: new Date().toISOString(),
       })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { success: !error, error: error?.message || null }
@@ -2675,6 +2770,7 @@ export const paintApi = {
     const { error } = await getSupabase()
       .from('paint_schedules')
       .delete()
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
 
     return { success: !error, error: error?.message || null }
@@ -2690,6 +2786,7 @@ export const paintApi = {
         equipment:equipments(*,equipment_type:equipment_types(*)),
         technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('schedule_id', scheduleId)
       .single()
 
@@ -2717,6 +2814,7 @@ export const paintApi = {
         technician_id: technicianId,
         started_at: new Date().toISOString(),
         status: 'in_progress',
+        factory_id: getCurrentFactoryId(),
       })
       .select(`
         *,
@@ -2762,6 +2860,7 @@ export const paintApi = {
         rating: completionData.rating,
         status: 'completed',
       })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .select(`
         *,
@@ -2776,6 +2875,7 @@ export const paintApi = {
       await getSupabase()
         .from('paint_schedules')
         .update({ status: 'completed' })
+        .eq('factory_id', getCurrentFactoryId())
         .eq('id', execution.schedule_id)
     }
 
@@ -2793,6 +2893,7 @@ export const paintApi = {
     const { data: schedules } = await getSupabase()
       .from('paint_schedules')
       .select('status, scheduled_date')
+      .eq('factory_id', getCurrentFactoryId())
 
     // 예정된 도색: 오늘 이후의 scheduled/in_progress (오늘 포함) - PM과 동일
     const totalScheduled = schedules?.filter(s =>
@@ -2868,6 +2969,7 @@ export const paintApi = {
         step:paint_checklist_steps(*),
         technician:users(id, name)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('schedule_id', scheduleId)
       .order('step_order')
 
@@ -2888,11 +2990,13 @@ export const paintApi = {
     }
 
     // Create execution records for each step
+    const factoryId = getCurrentFactoryId()
     const executions = steps.map(step => ({
       schedule_id: scheduleId,
       step_id: step.id,
       step_order: step.step_order,
       status: 'pending' as const,
+      factory_id: factoryId,
     }))
 
     const { error } = await getSupabase()
@@ -2919,6 +3023,7 @@ export const paintApi = {
     const { data: existing } = await getSupabase()
       .from('paint_step_executions')
       .select('id')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('schedule_id', scheduleId)
       .eq('step_order', stepOrder)
       .single()
@@ -2934,6 +3039,7 @@ export const paintApi = {
           started_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
+        .eq('factory_id', getCurrentFactoryId())
         .eq('id', existing.id)
         .select(`
           *,
@@ -2954,6 +3060,7 @@ export const paintApi = {
           status: 'in_progress',
           technician_id: technicianId,
           started_at: new Date().toISOString(),
+          factory_id: getCurrentFactoryId(),
         })
         .select(`
           *,
@@ -2990,6 +3097,7 @@ export const paintApi = {
         notes: notes || null,
         updated_at: new Date().toISOString(),
       })
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', stepExecutionId)
       .select(`
         *,
@@ -3033,6 +3141,7 @@ export const paintApi = {
     const { data: existing } = await getSupabase()
       .from('paint_step_executions')
       .select('id')
+      .eq('factory_id', getCurrentFactoryId())
       .eq('schedule_id', scheduleId)
       .eq('step_order', stepOrder)
       .single()
@@ -3046,6 +3155,7 @@ export const paintApi = {
           notes: notes || null,
           updated_at: new Date().toISOString(),
         })
+        .eq('factory_id', getCurrentFactoryId())
         .eq('id', existing.id)
         .select(`
           *,
@@ -3064,6 +3174,7 @@ export const paintApi = {
           step_order: stepOrder,
           status: 'skipped',
           notes: notes || null,
+          factory_id: getCurrentFactoryId(),
         })
         .select(`
           *,
@@ -3088,6 +3199,7 @@ export const paintApi = {
         equipment:equipments(*,equipment_type:equipment_types(*)),
         assigned_technician:users(*)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .single()
 
@@ -3103,6 +3215,7 @@ export const paintApi = {
         step:paint_checklist_steps(*),
         technician:users(id, name)
       `)
+      .eq('factory_id', getCurrentFactoryId())
       .eq('schedule_id', id)
       .order('step_order')
 

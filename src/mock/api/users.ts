@@ -62,6 +62,7 @@ export const mockUsersApi = {
       department: user.department,
       position: user.position,
       role: user.role,
+      factory_id: user.factory_id || 'ALT',
       is_active: user.is_active,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

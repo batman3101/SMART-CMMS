@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
+import { FACTORIES } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,7 +26,7 @@ import {
 
 export default function ProfilePage() {
   const { t } = useTranslation()
-  const { user, language, setLanguage, updateUser } = useAuthStore()
+  const { user, language, setLanguage, updateUser, currentFactory } = useAuthStore()
 
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -65,6 +66,7 @@ export default function ProfilePage() {
           .from('maintenance_records')
           .select('duration_minutes, rating, date')
           .eq('technician_id', user.id)
+          .eq('factory_id', currentFactory)
           .eq('status', 'completed')
 
         // Get this month's records
@@ -223,7 +225,12 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3">
                 <Building className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {user?.department} / {user?.position}
+                  {user?.factory_id && FACTORIES[user.factory_id as keyof typeof FACTORIES]
+                    ? (language === 'ko'
+                        ? FACTORIES[user.factory_id as keyof typeof FACTORIES].name_ko
+                        : FACTORIES[user.factory_id as keyof typeof FACTORIES].name_vi)
+                    : user?.factory_id || '-'}{' '}
+                  / {user?.department} / {user?.position}
                 </span>
               </div>
               <div className="flex items-center gap-3">

@@ -1,3 +1,20 @@
+// Factory types
+export type FactoryId = 'ALT' | 'ALV'
+
+export interface Factory {
+  id: FactoryId
+  name_ko: string
+  name_vi: string
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export const FACTORIES: Record<FactoryId, { name_ko: string; name_vi: string }> = {
+  ALT: { name_ko: '1공장', name_vi: 'Nhà máy 1' },
+  ALV: { name_ko: '2공장', name_vi: 'Nhà máy 2' },
+}
+
 // User types
 export type UserRole = 1 | 2 | 3 | 4
 // 1: 시스템 관리자 (System Admin)
@@ -46,6 +63,7 @@ export interface User {
   department: DepartmentCode | string
   position: PositionCode | string
   role: UserRole
+  factory_id: string
   is_active: boolean
   created_at: string
   updated_at: string

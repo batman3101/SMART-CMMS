@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks/useTableSort'
+import { useAuthStore } from '@/stores/authStore'
 import type { Equipment, EquipmentType, EquipmentStatus } from '@/types'
 
 const ITEMS_PER_PAGE = 15
@@ -67,6 +68,7 @@ const defaultFormData: EquipmentFormData = {
 
 export default function EquipmentMasterPage() {
   const { t, i18n } = useTranslation()
+  const { currentFactory } = useAuthStore()
 
   // Multilingual helpers
   const getEquipmentName = (eq: Equipment) => {
@@ -132,7 +134,8 @@ export default function EquipmentMasterPage() {
       }
     }
     fetchData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   // 필터링된 데이터
   const filteredEquipments = useMemo(() => {

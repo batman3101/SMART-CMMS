@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+import { useAuthStore } from '@/stores/authStore'
 import {
   RefreshCw,
   TrendingUp,
@@ -45,6 +46,7 @@ interface PMAnalyticsData {
 
 export default function PMAnalyticsPage() {
   const { t, i18n } = useTranslation()
+  const { currentFactory } = useAuthStore()
 
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
@@ -60,7 +62,7 @@ export default function PMAnalyticsPage() {
   useEffect(() => {
     fetchAnalytics()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, equipmentTypeFilter, equipmentTypes, i18n.language])
+  }, [period, equipmentTypeFilter, equipmentTypes, i18n.language, currentFactory])
 
   const fetchData = async () => {
     const { data } = await equipmentApi.getEquipmentTypes()

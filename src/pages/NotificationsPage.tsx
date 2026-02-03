@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
@@ -23,6 +24,7 @@ import {
 
 export default function NotificationsPage() {
   const { t } = useTranslation()
+  const { currentFactory } = useAuthStore()
 
   // Notification Store 연동
   const {
@@ -41,7 +43,8 @@ export default function NotificationsPage() {
   // Supabase에서 알림 가져오기
   useEffect(() => {
     fetchNotifications()
-  }, [fetchNotifications])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   const [filterType, setFilterType] = useState<string>('all')
   const [showSettings, setShowSettings] = useState(false)

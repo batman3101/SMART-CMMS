@@ -16,11 +16,13 @@ import {
   ListTodo,
 } from 'lucide-react'
 import { paintApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 import type { PaintSchedule, PaintDashboardStats, Equipment, PaintTemplate } from '@/types'
 
 export default function PaintDashboardPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { currentFactory } = useAuthStore()
 
   // Multilingual helpers
   const getEquipmentName = (eq: Equipment | undefined) => {
@@ -43,7 +45,8 @@ export default function PaintDashboardPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   const fetchData = async () => {
     setLoading(true)

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '@/components/ui/card'
+import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
@@ -59,6 +60,7 @@ const getInsightTypeLabel = (type: string, t: (key: string) => string) => {
 
 export default function AIInsightPage() {
   const { t } = useTranslation()
+  const { currentFactory } = useAuthStore()
 
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -98,7 +100,8 @@ export default function AIInsightPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   // 인사이트 갱신
   const handleRefresh = async () => {

@@ -1,0 +1,441 @@
+{
+  "version": "2.0",
+  "lastUpdated": "2026-02-03T10:13:45.013Z",
+  "activeFeatures": [
+    "SMART-CMMS",
+    "paint",
+    "maintenance",
+    "ai",
+    "pm",
+    "equipment",
+    "analytics",
+    "parts",
+    "admin"
+  ],
+  "primaryFeature": "SMART-CMMS",
+  "features": {
+    "SMART-CMMS": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T09:27:54.408Z",
+        "lastUpdated": "2026-02-03T10:07:49.475Z"
+      },
+      "lastFile": "C:\\Work Drive\\APP\\SMART-CMMS\\src\\lib\\supabase.ts"
+    },
+    "paint": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T09:28:29.169Z",
+        "lastUpdated": "2026-02-03T09:32:27.099Z"
+      },
+      "lastFile": "C:/Work Drive/APP/SMART-CMMS/src/pages/paint/PaintCalendarPage.tsx"
+    },
+    "maintenance": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T09:28:29.169Z",
+        "lastUpdated": "2026-02-03T09:31:50.820Z"
+      },
+      "lastFile": "C:/Work Drive/APP/SMART-CMMS/src/pages/maintenance/MaintenanceMonitorPage.tsx"
+    },
+    "ai": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T09:29:19.509Z",
+        "lastUpdated": "2026-02-03T09:29:44.048Z"
+      },
+      "lastFile": "C:/Work Drive/APP/SMART-CMMS/src/pages/ai/AIInsightPage.tsx"
+    },
+    "pm": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T09:29:28.081Z",
+        "lastUpdated": "2026-02-03T09:34:33.066Z"
+      },
+      "lastFile": "C:/Work Drive/APP/SMART-CMMS/src/pages/pm/PMAnalyticsPage.tsx"
+    },
+    "equipment": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T09:30:00.321Z",
+        "lastUpdated": "2026-02-03T09:32:27.680Z"
+      },
+      "lastFile": "C:/Work Drive/APP/SMART-CMMS/src/pages/equipment/EquipmentBulkUploadPage.tsx"
+    },
+    "analytics": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T09:32:43.784Z",
+        "lastUpdated": "2026-02-03T09:33:56.573Z"
+      },
+      "lastFile": "C:/Work Drive/APP/SMART-CMMS/src/pages/analytics/AnalyticsPage.tsx"
+    },
+    "parts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T10:07:58.902Z",
+        "lastUpdated": "2026-02-03T10:08:26.949Z"
+      },
+      "lastFile": "C:\\Work Drive\\APP\\SMART-CMMS\\src\\pages\\parts\\PartsPage.tsx"
+    },
+    "admin": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-03T10:13:24.384Z",
+        "lastUpdated": "2026-02-03T10:13:45.013Z"
+      },
+      "lastFile": "C:\\Work Drive\\APP\\SMART-CMMS\\src\\pages\\admin\\UserManagementPage.tsx"
+    }
+  },
+  "pipeline": {
+    "currentPhase": 1,
+    "level": "Dynamic",
+    "phaseHistory": []
+  },
+  "session": {
+    "startedAt": "2026-02-03T09:27:54.408Z",
+    "onboardingCompleted": false,
+    "lastActivity": "2026-02-03T10:13:45.013Z"
+  },
+  "history": [
+    {
+      "timestamp": "2026-02-03T09:27:54.408Z",
+      "feature": "SMART-CMMS",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:28:29.169Z",
+      "feature": "paint",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:28:29.169Z",
+      "feature": "maintenance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:28:49.275Z",
+      "feature": "maintenance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:29:11.812Z",
+      "feature": "paint",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:29:19.509Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:29:28.081Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:29:29.968Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:29:43.235Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:29:44.048Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:29:58.050Z",
+      "feature": "maintenance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:30:00.321Z",
+      "feature": "equipment",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:30:19.704Z",
+      "feature": "maintenance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:30:21.723Z",
+      "feature": "equipment",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:30:43.575Z",
+      "feature": "maintenance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:30:45.319Z",
+      "feature": "equipment",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:04.593Z",
+      "feature": "paint",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:12.108Z",
+      "feature": "SMART-CMMS",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:20.182Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:21.848Z",
+      "feature": "SMART-CMMS",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:35.329Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:36.092Z",
+      "feature": "SMART-CMMS",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:50.820Z",
+      "feature": "maintenance",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:52.840Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:31:52.840Z",
+      "feature": "equipment",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:32:12.494Z",
+      "feature": "paint",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:32:14.186Z",
+      "feature": "equipment",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:32:27.099Z",
+      "feature": "paint",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:32:27.680Z",
+      "feature": "equipment",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:32:43.784Z",
+      "feature": "analytics",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:32:54.051Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:33:09.843Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:33:17.078Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:33:27.233Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:33:35.215Z",
+      "feature": "analytics",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:33:42.604Z",
+      "feature": "analytics",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:33:56.573Z",
+      "feature": "analytics",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:34:04.604Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:34:11.556Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:34:26.162Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T09:34:33.066Z",
+      "feature": "pm",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T10:07:49.475Z",
+      "feature": "SMART-CMMS",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T10:07:58.902Z",
+      "feature": "parts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T10:08:09.116Z",
+      "feature": "parts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T10:08:17.531Z",
+      "feature": "parts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T10:08:26.949Z",
+      "feature": "parts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T10:13:24.384Z",
+      "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T10:13:36.427Z",
+      "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-03T10:13:45.013Z",
+      "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    }
+  ]
+}

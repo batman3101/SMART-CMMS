@@ -152,7 +152,8 @@ export default function AnalyticsPage() {
     if (startDate && endDate) {
       fetchData()
     }
-  }, [fetchData, startDate, endDate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, currentFactory])
 
   const handleResetFilters = () => {
     const end = new Date()

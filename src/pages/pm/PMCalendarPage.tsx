@@ -12,6 +12,7 @@ import {
   Play,
 } from 'lucide-react'
 import { pmApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { getTodayInTimezone, formatDateInTimezone, parseLocalDate } from '@/lib/dateUtils'
 import type { PMSchedule } from '@/types'
@@ -27,6 +28,7 @@ interface CalendarDay {
 export default function PMCalendarPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { currentFactory } = useAuthStore()
   const { settings } = useSettingsStore()
   const timezone = settings.timezone
 
@@ -38,7 +40,7 @@ export default function PMCalendarPage() {
   useEffect(() => {
     fetchSchedules()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate])
+  }, [currentDate, currentFactory])
 
   const fetchSchedules = async () => {
     setLoading(true)

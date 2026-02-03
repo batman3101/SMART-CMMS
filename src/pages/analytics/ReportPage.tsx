@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/authStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,7 +33,6 @@ import {
   Monitor,
 } from 'lucide-react'
 import { generateReport, type ReportType, type ReportSections } from '@/lib/reportGenerator'
-import { useAuthStore } from '@/stores/authStore'
 import { equipmentApi } from '@/lib/api'
 import type { Equipment } from '@/types'
 
@@ -58,7 +58,7 @@ interface GeneratedReport {
 export default function ReportPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { language } = useAuthStore()
+  const { language, currentFactory } = useAuthStore()
 
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -104,7 +104,8 @@ export default function ReportPage() {
         .catch(console.error)
         .finally(() => setIsLoadingEquipment(false))
     }
-  }, [selectedTemplate, equipmentList.length])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplate, equipmentList.length, currentFactory])
 
   // Close dropdown when clicking outside
   useEffect(() => {

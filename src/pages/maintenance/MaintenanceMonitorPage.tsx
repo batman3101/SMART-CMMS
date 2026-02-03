@@ -25,7 +25,7 @@ import type { MaintenanceRecord, Equipment } from '@/types'
 export default function MaintenanceMonitorPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { user, currentFactory } = useAuthStore()
   const { addToast } = useToast()
 
   // Permission check
@@ -120,7 +120,8 @@ export default function MaintenanceMonitorPage() {
       isMountedRef.current = false
       clearInterval(interval)
     }
-  }, [fetchData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   // Helper function to parse date with robust timezone handling
   const parseDateTime = (dateStr: string): Date => {

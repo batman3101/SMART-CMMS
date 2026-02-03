@@ -49,7 +49,12 @@
       "Bash(findstr:*)",
       "Bash(timeout 3:*)",
       "Bash(unzip:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(git checkout:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(git pull:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

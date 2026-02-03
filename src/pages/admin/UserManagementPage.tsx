@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/authStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +40,7 @@ import { DEPARTMENTS, POSITIONS, POSITION_ROLE_MAP } from '@/types'
 export default function UserManagementPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
+  const { currentFactory } = useAuthStore()
 
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
@@ -111,7 +113,8 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   useEffect(() => {
     filterUsers()

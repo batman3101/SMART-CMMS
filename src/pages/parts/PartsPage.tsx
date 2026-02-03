@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/authStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,7 @@ const ITEMS_PER_PAGE = 20
 
 export default function PartsPage() {
   const { t } = useTranslation()
+  const { currentFactory } = useAuthStore()
 
   const [parts, setParts] = useState<Part[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -68,7 +70,8 @@ export default function PartsPage() {
     if (isConnected) {
       loadParts()
     }
-  }, [isConnected, searchQuery, categoryFilter, currentPage])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, searchQuery, categoryFilter, currentPage, currentFactory])
 
   const loadCategories = async () => {
     const { data } = await fetchPartCategories()
@@ -88,6 +91,7 @@ export default function PartsPage() {
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       limit: ITEMS_PER_PAGE,
       offset,
+      factoryId: currentFactory || undefined,
     })
 
     if (fetchError) {

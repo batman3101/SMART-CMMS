@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useAuthStore } from '@/stores/authStore'
 import {
   Table,
   TableBody,
@@ -60,6 +61,7 @@ interface ChecklistItem {
 export default function PMTemplatesPage() {
   const { t, i18n } = useTranslation()
   const { addToast } = useToast()
+  const { currentFactory } = useAuthStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
@@ -125,7 +127,7 @@ export default function PMTemplatesPage() {
   useEffect(() => {
     fetchTemplates()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipmentTypeFilter])
+  }, [equipmentTypeFilter, currentFactory])
 
   const fetchData = async () => {
     const { data } = await equipmentApi.getEquipmentTypes()

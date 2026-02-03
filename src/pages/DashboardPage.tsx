@@ -32,6 +32,7 @@ import {
   Line,
 } from 'recharts'
 import { statisticsApi, maintenanceApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 import type {
   DashboardStats,
   EquipmentFailureRank,
@@ -43,6 +44,7 @@ import type {
 export default function DashboardPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { currentFactory } = useAuthStore()
 
   // Multilingual helper for equipment failure rank
   const getEquipmentNameFromRank = (item: EquipmentFailureRank) => {
@@ -196,7 +198,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   if (loading) {
     return (

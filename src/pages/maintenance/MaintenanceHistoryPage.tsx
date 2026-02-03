@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/authStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,7 @@ const ITEMS_PER_PAGE = 15
 export default function MaintenanceHistoryPage() {
   const { t, i18n } = useTranslation()
   const location = useLocation()
+  const { currentFactory } = useAuthStore()
 
   // Get equipmentId from navigation state
   const passedEquipmentId = (location.state as { equipmentId?: string })?.equipmentId
@@ -93,7 +95,7 @@ export default function MaintenanceHistoryPage() {
       }
     }
     fetchData()
-  }, [passedEquipmentId])
+  }, [passedEquipmentId, currentFactory])
 
   // 필터링된 데이터
   const filteredRecords = useMemo(() => {

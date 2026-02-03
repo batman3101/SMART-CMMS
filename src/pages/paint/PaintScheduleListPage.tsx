@@ -33,6 +33,7 @@ import {
 import { useToast } from '@/components/ui/toast'
 import { paintApi, equipmentApi, usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
+import { useAuthStore } from '@/stores/authStore'
 import type { PaintSchedule, PaintScheduleFilter, PaintScheduleStatus, PaintPriority, Equipment, EquipmentType, PaintTemplate, User } from '@/types'
 
 const PAGE_SIZE = 15
@@ -41,6 +42,7 @@ export default function PaintScheduleListPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { addToast } = useToast()
+  const { currentFactory } = useAuthStore()
 
   // Multilingual helpers
   const getEquipmentName = (eq: Equipment | undefined) => {
@@ -109,7 +111,7 @@ export default function PaintScheduleListPage() {
   useEffect(() => {
     fetchSchedules()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, priorityFilter, technicianFilter, equipmentTypeFilter])
+  }, [statusFilter, priorityFilter, technicianFilter, equipmentTypeFilter, currentFactory])
 
   const fetchSchedules = async () => {
     setLoading(true)

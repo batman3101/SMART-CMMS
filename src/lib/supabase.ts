@@ -81,6 +81,7 @@ export async function fetchPartsWithInventory(filter?: {
   category?: string
   limit?: number
   offset?: number
+  factoryId?: string
 }) {
   if (!partsSupabase) {
     return { data: null, error: 'Parts database not connected', count: 0 }
@@ -122,10 +123,18 @@ export async function fetchPartsWithInventory(filter?: {
     return { data: partsData, error: null, count }
   }
 
-  const { data: inventoryData } = await partsSupabase
+  // inventory 쿼리 - factory_id로 필터링
+  let inventoryQuery = partsSupabase
     .from('inventory')
     .select('*')
     .in('part_id', partIds)
+
+  // 공장 ID가 있으면 해당 공장의 재고만 조회
+  if (filter?.factoryId) {
+    inventoryQuery = inventoryQuery.eq('factory_id', filter.factoryId)
+  }
+
+  const { data: inventoryData } = await inventoryQuery
 
   // inventory 데이터를 part_id로 맵핑
   const inventoryMap = new Map()

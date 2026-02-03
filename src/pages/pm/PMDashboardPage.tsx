@@ -17,11 +17,13 @@ import {
   ListTodo,
 } from 'lucide-react'
 import { pmApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 import type { PMSchedule, PMDashboardStats, Equipment, PMTemplate } from '@/types'
 
 export default function PMDashboardPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { currentFactory } = useAuthStore()
 
   // Multilingual helpers
   const getEquipmentName = (eq: Equipment | undefined) => {
@@ -44,7 +46,8 @@ export default function PMDashboardPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   const fetchData = async () => {
     setLoading(true)

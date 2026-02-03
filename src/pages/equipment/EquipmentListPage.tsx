@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks/useTableSort'
+import { useAuthStore } from '@/stores/authStore'
 import type { Equipment, EquipmentStatus, EquipmentType } from '@/types'
 
 const statusColors: Record<EquipmentStatus, string> = {
@@ -46,6 +47,7 @@ export default function EquipmentListPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { addToast } = useToast()
+  const { currentFactory } = useAuthStore()
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
 
   // Helper functions for multilingual display
@@ -115,7 +117,7 @@ export default function EquipmentListPage() {
     }
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [currentFactory])
 
   // 필터링된 데이터
   const filteredEquipments = useMemo(() => {

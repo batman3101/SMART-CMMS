@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
+import { useAuthStore } from '@/stores/authStore'
 import type { EquipmentType } from '@/types'
 
 interface UploadRow {
@@ -45,6 +46,7 @@ interface UploadResult {
 
 export default function EquipmentBulkUploadPage() {
   const { t, i18n } = useTranslation()
+  const { currentFactory } = useAuthStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
@@ -61,7 +63,8 @@ export default function EquipmentBulkUploadPage() {
       if (data) setEquipmentTypes(data)
     }
     fetchTypes()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   // 엑셀 템플릿 다운로드
   const handleDownloadTemplate = () => {

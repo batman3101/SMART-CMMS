@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { useAuthStore } from '@/stores/authStore'
 import {
   Table,
   TableBody,
@@ -41,6 +42,7 @@ export default function PMScheduleListPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { addToast } = useToast()
+  const { currentFactory } = useAuthStore()
 
   // Multilingual helpers
   const getEquipmentName = (eq: Equipment | undefined) => {
@@ -107,7 +109,7 @@ export default function PMScheduleListPage() {
   useEffect(() => {
     fetchSchedules()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, priorityFilter, technicianFilter, equipmentTypeFilter])
+  }, [statusFilter, priorityFilter, technicianFilter, equipmentTypeFilter, currentFactory])
 
   const fetchSchedules = async () => {
     setLoading(true)

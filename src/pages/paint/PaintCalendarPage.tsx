@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { paintApi } from '@/lib/api'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useAuthStore } from '@/stores/authStore'
 import { getTodayInTimezone, formatDateInTimezone, parseLocalDate } from '@/lib/dateUtils'
 import type { PaintSchedule } from '@/types'
 
@@ -29,6 +30,7 @@ export default function PaintCalendarPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { settings } = useSettingsStore()
+  const { currentFactory } = useAuthStore()
   const timezone = settings.timezone
 
   const [loading, setLoading] = useState(true)
@@ -39,7 +41,7 @@ export default function PaintCalendarPage() {
   useEffect(() => {
     fetchSchedules()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate])
+  }, [currentDate, currentFactory])
 
   const fetchSchedules = async () => {
     setLoading(true)

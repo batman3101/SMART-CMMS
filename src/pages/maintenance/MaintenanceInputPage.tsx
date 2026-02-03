@@ -44,7 +44,7 @@ export default function MaintenanceInputPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const { user } = useAuthStore()
+  const { user, currentFactory } = useAuthStore()
   const { addToast } = useToast()
 
   // Permission check
@@ -160,7 +160,8 @@ export default function MaintenanceInputPage() {
       }
     }
     fetchData()
-  }, [searchParams, passedEquipmentId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFactory])
 
   // 설비 검색
   useEffect(() => {

@@ -293,8 +293,8 @@ export default function MaintenanceInputPage() {
     setPartSearchResults([])
     setActivePartIndex(null)
 
-    // 재고 정보 조회
-    const { data } = await getPartWithInventory(part.part_code)
+    // 재고 정보 조회 (공장별 필터링)
+    const { data } = await getPartWithInventory(part.part_code, currentFactory)
     if (data) {
       const finalParts = [...parts]
       finalParts[index] = {
@@ -316,7 +316,7 @@ export default function MaintenanceInputPage() {
     if (!partsConnected || !partCode || parts[index].name) return
 
     updatePart(index, 'isLoading', true)
-    const { data } = await getPartWithInventory(partCode)
+    const { data } = await getPartWithInventory(partCode, currentFactory)
 
     if (data) {
       const newParts = [...parts]

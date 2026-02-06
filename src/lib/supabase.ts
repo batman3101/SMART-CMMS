@@ -38,6 +38,33 @@ export const partsSupabase = isValidUrl(partsSupabaseUrl) && partsSupabaseAnonKe
 // 부품 Supabase 연결 여부 확인
 export const isPartsSupabaseConnected = () => partsSupabase !== null
 
+// Factory code → UUID 변환 캐시
+const factoryIdCache = new Map<string, string>()
+
+// Factory code(ALT, ALV)를 parts DB의 factory_id(UUID)로 변환
+export async function resolveFactoryId(factoryCode: string): Promise<string | null> {
+  if (!partsSupabase || !factoryCode) return null
+
+  // 캐시에 있으면 즉시 반환
+  if (factoryIdCache.has(factoryCode)) {
+    return factoryIdCache.get(factoryCode)!
+  }
+
+  const { data, error } = await partsSupabase
+    .from('factories')
+    .select('factory_id')
+    .eq('factory_code', factoryCode)
+    .single()
+
+  if (error || !data) {
+    console.error('Failed to resolve factory_id for:', factoryCode, error)
+    return null
+  }
+
+  factoryIdCache.set(factoryCode, data.factory_id)
+  return data.factory_id
+}
+
 // Parts database helpers (Read Only)
 export async function fetchParts(filter?: {
   search?: string
@@ -123,15 +150,21 @@ export async function fetchPartsWithInventory(filter?: {
     return { data: partsData, error: null, count }
   }
 
-  // inventory 쿼리 - factory_id로 필터링
+  // factory_code → UUID 변환
+  let resolvedFactoryId: string | null = null
+  if (filter?.factoryId) {
+    resolvedFactoryId = await resolveFactoryId(filter.factoryId)
+  }
+
+  // inventory 쿼리 - factory_id(UUID)로 필터링
   let inventoryQuery = partsSupabase
     .from('inventory')
     .select('*')
     .in('part_id', partIds)
 
-  // 공장 ID가 있으면 해당 공장의 재고만 조회
-  if (filter?.factoryId) {
-    inventoryQuery = inventoryQuery.eq('factory_id', filter.factoryId)
+  // 변환된 UUID로 해당 공장의 재고만 조회
+  if (resolvedFactoryId) {
+    inventoryQuery = inventoryQuery.eq('factory_id', resolvedFactoryId)
   }
 
   const { data: inventoryData } = await inventoryQuery
@@ -206,23 +239,31 @@ export async function getPartByCode(partCode: string) {
   return { data, error }
 }
 
-// 부품의 재고 수량 조회 (inventory 테이블, part_id로 조회)
-export async function getPartInventory(partId: string) {
+// 부품의 재고 수량 조회 (inventory 테이블, part_id + 공장별 필터링)
+export async function getPartInventory(partId: string, factoryCode?: string) {
   if (!partsSupabase) {
     return { data: null, error: 'Parts database not connected' }
   }
 
-  const { data, error } = await partsSupabase
+  let query = partsSupabase
     .from('inventory')
     .select('*')
     .eq('part_id', partId)
-    .single()
+
+  if (factoryCode) {
+    const resolvedFactoryId = await resolveFactoryId(factoryCode)
+    if (resolvedFactoryId) {
+      query = query.eq('factory_id', resolvedFactoryId)
+    }
+  }
+
+  const { data, error } = await query.maybeSingle()
 
   return { data, error }
 }
 
-// 부품 코드로 부품 정보와 재고 함께 조회
-export async function getPartWithInventory(partCode: string) {
+// 부품 코드로 부품 정보와 재고 함께 조회 (공장별 필터링)
+export async function getPartWithInventory(partCode: string, factoryCode?: string) {
   if (!partsSupabase) {
     return { data: null, error: 'Parts database not connected' }
   }
@@ -238,12 +279,23 @@ export async function getPartWithInventory(partCode: string) {
     return { data: null, error: partError || 'Part not found' }
   }
 
-  // 재고 정보 조회 (part_id로 연결)
-  const { data: inventoryData } = await partsSupabase
+  // factory_code → UUID 변환
+  let resolvedFactoryId: string | null = null
+  if (factoryCode) {
+    resolvedFactoryId = await resolveFactoryId(factoryCode)
+  }
+
+  // 재고 정보 조회 (part_id + factory_id로 필터링)
+  let inventoryQuery = partsSupabase
     .from('inventory')
     .select('*')
     .eq('part_id', partData.part_id)
-    .single()
+
+  if (resolvedFactoryId) {
+    inventoryQuery = inventoryQuery.eq('factory_id', resolvedFactoryId)
+  }
+
+  const { data: inventoryData } = await inventoryQuery.maybeSingle()
 
   return {
     data: {

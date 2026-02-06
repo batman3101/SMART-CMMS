@@ -154,6 +154,74 @@ export function formatDisplayTime(
 }
 
 /**
+ * 설정된 타임존 기준으로 오늘로부터 N일 오프셋된 날짜를 YYYY-MM-DD 형식으로 반환
+ * (양수: 미래, 음수: 과거)
+ */
+export function getRelativeDateInTimezone(daysOffset: number, timezone?: string): string {
+  const tz = timezone || getConfiguredTimezone()
+  const now = new Date()
+
+  // 타임존 기준 현재 날짜 부품 추출
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const parts = formatter.formatToParts(now)
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0'
+
+  // 타임존 기준 오늘 Date 생성 후 오프셋 적용
+  const localDate = new Date(
+    parseInt(getPart('year')),
+    parseInt(getPart('month')) - 1,
+    parseInt(getPart('day'))
+  )
+  localDate.setDate(localDate.getDate() + daysOffset)
+
+  const y = localDate.getFullYear()
+  const m = String(localDate.getMonth() + 1).padStart(2, '0')
+  const d = String(localDate.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/**
+ * 설정된 타임존 기준 이번 달 시작일 (YYYY-MM-01) 반환
+ */
+export function getMonthStartInTimezone(timezone?: string): string {
+  const tz = timezone || getConfiguredTimezone()
+  const now = new Date()
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+  })
+  const parts = formatter.formatToParts(now)
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '01'
+  return `${getPart('year')}-${getPart('month')}-01`
+}
+
+/**
+ * 설정된 타임존 기준 이번 달 마지막일 (YYYY-MM-DD) 반환
+ */
+export function getMonthEndInTimezone(timezone?: string): string {
+  const tz = timezone || getConfiguredTimezone()
+  const now = new Date()
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+  })
+  const parts = formatter.formatToParts(now)
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '01'
+
+  const year = parseInt(getPart('year'))
+  const month = parseInt(getPart('month'))
+  const lastDay = new Date(year, month, 0).getDate()
+  return `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+}
+
+/**
  * 현재 시각을 설정된 타임존 기준 YYYY-MM-DD 형식으로 반환
  */
 export function getNowDateString(timezone?: string): string {

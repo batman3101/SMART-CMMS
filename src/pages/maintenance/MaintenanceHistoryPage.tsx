@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
+import { getTodayInTimezone, getConfiguredTimezone } from '@/lib/dateUtils'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -213,7 +214,7 @@ export default function MaintenanceHistoryPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `maintenance_history_${new Date().toISOString().split('T')[0]}.csv`)
+    link.setAttribute('download', `maintenance_history_${getTodayInTimezone()}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -228,6 +229,7 @@ export default function MaintenanceHistoryPage() {
   const formatDateTime = (dateTimeString: string) => {
     const date = new Date(dateTimeString)
     return date.toLocaleString(getLocale(), {
+      timeZone: getConfiguredTimezone(),
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
@@ -239,6 +241,7 @@ export default function MaintenanceHistoryPage() {
   const formatDateTimeFull = (dateTimeString: string) => {
     const date = new Date(dateTimeString)
     return date.toLocaleString(getLocale(), {
+      timeZone: getConfiguredTimezone(),
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -249,7 +252,7 @@ export default function MaintenanceHistoryPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString(getLocale())
+    return date.toLocaleDateString(getLocale(), { timeZone: getConfiguredTimezone() })
   }
 
   // Multilingual helpers

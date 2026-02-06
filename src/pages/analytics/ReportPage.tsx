@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
+import { getTodayInTimezone, getRelativeDateInTimezone, formatDisplayDateTime } from '@/lib/dateUtils'
 import {
   Table,
   TableBody,
@@ -85,12 +86,8 @@ export default function ReportPage() {
 
   // Initialize dates
   useEffect(() => {
-    const today = new Date()
-    const monthAgo = new Date()
-    monthAgo.setMonth(monthAgo.getMonth() - 1)
-
-    setEndDate(today.toISOString().split('T')[0])
-    setStartDate(monthAgo.toISOString().split('T')[0])
+    setEndDate(getTodayInTimezone())
+    setStartDate(getRelativeDateInTimezone(-30))
   }, [])
 
   // Load equipment list when custom report is selected
@@ -194,10 +191,10 @@ export default function ReportPage() {
     const reportId = `report-${Date.now()}`
     const newReport: GeneratedReport = {
       id: reportId,
-      name: `${template?.name}_${new Date().toISOString().split('T')[0]}.pdf`,
+      name: `${template?.name}_${getTodayInTimezone()}.pdf`,
       type: selectedTemplate,
       period: `${startDate} ~ ${endDate}`,
-      created_at: new Date().toLocaleString(),
+      created_at: formatDisplayDateTime(new Date()),
       status: 'generating',
       file_size: '-',
     }

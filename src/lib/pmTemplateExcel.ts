@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import type { PMTemplate, PMIntervalType, PMChecklistItem, PMRequiredPart, EquipmentType } from '@/types'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 
 export type ExcelLanguage = 'ko' | 'vi'
 
@@ -393,7 +394,7 @@ export async function downloadPMTemplateExcel(
   const link = document.createElement('a')
   link.href = url
   const langSuffix = language === 'ko' ? 'KO' : 'VI'
-  link.download = `PM_Template_${langSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`
+  link.download = `PM_Template_${langSuffix}_${getTodayInTimezone()}.xlsx`
   link.click()
   window.URL.revokeObjectURL(url)
 }
@@ -782,7 +783,7 @@ export async function exportPMTemplatesToExcel(
   const link = document.createElement('a')
   link.href = url
   const langSuffix = language === 'ko' ? 'KO' : 'VI'
-  link.download = `PM_Template_Export_${langSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`
+  link.download = `PM_Template_Export_${langSuffix}_${getTodayInTimezone()}.xlsx`
   link.click()
   window.URL.revokeObjectURL(url)
 }

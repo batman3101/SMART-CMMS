@@ -234,7 +234,7 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
   doc.setTextColor(100, 100, 100)
   doc.text(`${lang.period}: ${startDate} ~ ${endDate}`, margin, yPosition)
   yPosition += 5
-  doc.text(`${lang.generatedAt}: ${new Date().toLocaleString()}`, margin, yPosition)
+  doc.text(`${lang.generatedAt}: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh' })}`, margin, yPosition)
   yPosition += 10
 
   // Horizontal line

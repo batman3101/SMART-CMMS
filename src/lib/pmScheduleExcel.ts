@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import type { PMTemplate, PMPriority, Equipment } from '@/types'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 
 export type ExcelLanguage = 'ko' | 'vi'
 
@@ -167,7 +168,7 @@ export async function downloadPMScheduleExcel(
   scheduleSheet.getRow(1).height = 30
 
   // 예시 데이터
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayInTimezone()
   const exampleTemplate = templates[0]
   const exampleEquipment = equipments[0]
   const exampleTechnician = technicians[0]
@@ -267,7 +268,7 @@ export async function downloadPMScheduleExcel(
   const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `PM_Schedule_Template_${language.toUpperCase()}_${new Date().toISOString().split('T')[0]}.xlsx`
+  link.download = `PM_Schedule_Template_${language.toUpperCase()}_${getTodayInTimezone()}.xlsx`
   link.click()
   window.URL.revokeObjectURL(url)
 }
@@ -319,7 +320,7 @@ export async function exportPMSchedulesToExcel(
   const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `PM_Schedules_Export_${new Date().toISOString().split('T')[0]}.xlsx`
+  link.download = `PM_Schedules_Export_${getTodayInTimezone()}.xlsx`
   link.click()
   window.URL.revokeObjectURL(url)
 }

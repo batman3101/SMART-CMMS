@@ -562,7 +562,7 @@ export const createSupabaseNotificationHandler = (/* supabase: SupabaseClient */
             message: `${repair.equipment.equipment_code} 수리가 ${Math.floor(duration / 60000)}분을 초과했습니다.`,
             equipment_code: repair.equipment.equipment_code,
             time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-            date: new Date().toISOString().split('T')[0],
+            date: getTodayInTimezone(),
             read: false,
           })
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
+import { getConfiguredTimezone } from '@/lib/dateUtils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -358,12 +359,12 @@ export default function PaintScheduleDetailPage() {
                         </div>
                         {execution?.started_at && (
                           <p className="mt-1 text-xs text-muted-foreground">
-                            {t('paint.startedAt')}: {new Date(execution.started_at).toLocaleString()}
+                            {t('paint.startedAt')}: {new Date(execution.started_at).toLocaleString('ko-KR', { timeZone: getConfiguredTimezone() })}
                           </p>
                         )}
                         {execution?.completed_at && (
                           <p className="text-xs text-muted-foreground">
-                            {t('common.completedAt')}: {new Date(execution.completed_at).toLocaleString()}
+                            {t('common.completedAt')}: {new Date(execution.completed_at).toLocaleString('ko-KR', { timeZone: getConfiguredTimezone() })}
                           </p>
                         )}
                         {execution?.technician && (

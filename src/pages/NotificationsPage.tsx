@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { useNotificationStore, NotificationType } from '@/stores/notificationStore'
 import { pushNotificationService } from '@/services/pushNotificationService'
+import { getTodayInTimezone, getRelativeDateInTimezone, formatDisplayDate } from '@/lib/dateUtils'
 import {
   Bell,
   AlertTriangle,
@@ -193,16 +194,15 @@ export default function NotificationsPage() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
+    const todayStr = getTodayInTimezone()
+    const yesterdayStr = getRelativeDateInTimezone(-1)
 
-    if (dateStr === today.toISOString().split('T')[0]) {
+    if (dateStr === todayStr) {
       return t('notification.today')
-    } else if (dateStr === yesterday.toISOString().split('T')[0]) {
+    } else if (dateStr === yesterdayStr) {
       return t('notification.yesterday')
     }
-    return date.toLocaleDateString()
+    return formatDisplayDate(date)
   }
 
   return (

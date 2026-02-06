@@ -5,7 +5,7 @@
 
 import { supabase } from './supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { getTodayInTimezone } from '@/lib/dateUtils'
+import { getTodayInTimezone, getRelativeDateInTimezone, getMonthEndInTimezone, getMonthStartInTimezone } from '@/lib/dateUtils'
 import type {
   Equipment,
   EquipmentType,
@@ -781,8 +781,7 @@ export const statisticsApi = {
   },
 
   async getEquipmentFailureRank(limit?: number): Promise<{ data: EquipmentFailureRank[] | null; error: string | null }> {
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const thirtyDaysAgoStr = getRelativeDateInTimezone(-30)
 
     const { data, error } = await getSupabase()
       .from('maintenance_records')
@@ -792,7 +791,7 @@ export const statisticsApi = {
         equipment:equipments(equipment_code, equipment_name)
       `)
       .eq('factory_id', getCurrentFactoryId())
-      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+      .gte('date', thirtyDaysAgoStr)
 
     if (error || !data) {
       return { data: null, error: error?.message || null }
@@ -881,30 +880,24 @@ export const statisticsApi = {
     endDate?: string
   ): Promise<{ data: RepairTypeDistribution[] | null; error: string | null }> {
     // Calculate date range
-    const today = new Date()
+    const todayStr = getTodayInTimezone()
     let queryStartDate = startDate
     let queryEndDate = endDate
 
     if (filterType) {
       switch (filterType) {
         case 'today':
-          queryStartDate = today.toISOString().split('T')[0]
-          queryEndDate = today.toISOString().split('T')[0]
+          queryStartDate = todayStr
+          queryEndDate = todayStr
           break
-        case '7days': {
-          const sevenDaysAgo = new Date(today)
-          sevenDaysAgo.setDate(today.getDate() - 7)
-          queryStartDate = sevenDaysAgo.toISOString().split('T')[0]
-          queryEndDate = today.toISOString().split('T')[0]
+        case '7days':
+          queryStartDate = getRelativeDateInTimezone(-7)
+          queryEndDate = todayStr
           break
-        }
-        case '30days': {
-          const thirtyDaysAgo = new Date(today)
-          thirtyDaysAgo.setDate(today.getDate() - 30)
-          queryStartDate = thirtyDaysAgo.toISOString().split('T')[0]
-          queryEndDate = today.toISOString().split('T')[0]
+        case '30days':
+          queryStartDate = getRelativeDateInTimezone(-30)
+          queryEndDate = todayStr
           break
-        }
       }
     }
 
@@ -947,14 +940,13 @@ export const statisticsApi = {
   },
 
   async getWeeklyRepairTrend(): Promise<{ data: { dayIndex: number; count: number }[] | null; error: string | null }> {
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const sevenDaysAgoStr = getRelativeDateInTimezone(-7)
 
     const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select('date')
       .eq('factory_id', getCurrentFactoryId())
-      .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+      .gte('date', sevenDaysAgoStr)
 
     if (error || !data) {
       return { data: null, error: error?.message || null }
@@ -976,15 +968,14 @@ export const statisticsApi = {
   },
 
   async getTechnicianPerformance(): Promise<{ data: TechnicianPerformance[] | null; error: string | null }> {
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const thirtyDaysAgoStr = getRelativeDateInTimezone(-30)
 
     const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select('technician_id, duration_minutes, rating, technician:users(id, name)')
       .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
-      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+      .gte('date', thirtyDaysAgoStr)
 
     if (error || !data) {
       return { data: null, error: error?.message || null }
@@ -1035,15 +1026,14 @@ export const statisticsApi = {
 
   async getKPIs(): Promise<{ data: { mtbf: number; mttr: number; availability: number } | null; error: string | null }> {
     // Calculate KPIs from maintenance records
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const thirtyDaysAgoStr = getRelativeDateInTimezone(-30)
 
     const { data: records } = await getSupabase()
       .from('maintenance_records')
       .select('duration_minutes, date')
       .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'completed')
-      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+      .gte('date', thirtyDaysAgoStr)
 
     const { data: equipments } = await getSupabase()
       .from('equipments')
@@ -1592,9 +1582,7 @@ export const pmApi = {
 
   async getUpcomingSchedules(days: number = 7): Promise<{ data: PMSchedule[] | null; error: string | null }> {
     const today = getTodayInTimezone()
-    const endDate = new Date()
-    endDate.setDate(endDate.getDate() + days)
-    const endDateStr = endDate.toISOString().split('T')[0]
+    const endDateStr = getRelativeDateInTimezone(days)
 
     const { data, error } = await getSupabase()
       .from('pm_schedules')
@@ -1949,10 +1937,9 @@ export const pmApi = {
 
   async getDashboardStats(): Promise<{ data: { total_scheduled: number; completed_this_month: number; overdue_count: number; upcoming_week: number; compliance_rate: number } | null; error: string | null }> {
     const today = getTodayInTimezone()
-    const weekLater = new Date()
-    weekLater.setDate(weekLater.getDate() + 7)
-    const monthStart = today.slice(0, 8) + '01'
-    const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    const weekLaterStr = getRelativeDateInTimezone(7)
+    const monthStart = getMonthStartInTimezone()
+    const monthEnd = getMonthEndInTimezone()
 
     const { data: schedules } = await getSupabase()
       .from('pm_schedules')
@@ -1962,7 +1949,7 @@ export const pmApi = {
     // 금주 예정: 오늘부터 7일 이내의 scheduled/in_progress PM
     const upcomingScheduled = schedules?.filter(s =>
       s.scheduled_date >= today &&
-      s.scheduled_date <= weekLater.toISOString().split('T')[0] &&
+      s.scheduled_date <= weekLaterStr &&
       (s.status === 'scheduled' || s.status === 'in_progress')
     ).length || 0
 
@@ -2669,9 +2656,7 @@ export const paintApi = {
 
   async getUpcomingSchedules(days: number = 7): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
     const today = getTodayInTimezone()
-    const endDate = new Date()
-    endDate.setDate(endDate.getDate() + days)
-    const endDateStr = endDate.toISOString().split('T')[0]
+    const endDateStr = getRelativeDateInTimezone(days)
 
     const { data, error } = await getSupabase()
       .from('paint_schedules')
@@ -2886,10 +2871,9 @@ export const paintApi = {
   // Dashboard Stats
   async getDashboardStats(): Promise<{ data: PaintDashboardStats | null; error: string | null }> {
     const today = getTodayInTimezone()
-    const weekLater = new Date()
-    weekLater.setDate(weekLater.getDate() + 7)
-    const monthStart = today.slice(0, 8) + '01'
-    const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    const weekLaterStr = getRelativeDateInTimezone(7)
+    const monthStart = getMonthStartInTimezone()
+    const monthEnd = getMonthEndInTimezone()
 
     const { data: schedules } = await getSupabase()
       .from('paint_schedules')
@@ -2918,7 +2902,7 @@ export const paintApi = {
     // 금주 예정: 오늘부터 7일 이내의 scheduled/in_progress - PM과 동일
     const upcomingWeek = schedules?.filter(s =>
       s.scheduled_date >= today &&
-      s.scheduled_date <= weekLater.toISOString().split('T')[0] &&
+      s.scheduled_date <= weekLaterStr &&
       (s.status === 'scheduled' || s.status === 'in_progress')
     ).length || 0
 

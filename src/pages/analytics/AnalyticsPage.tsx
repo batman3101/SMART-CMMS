@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { getTodayInTimezone, getRelativeDateInTimezone } from '@/lib/dateUtils'
 import {
   Table,
   TableBody,
@@ -83,11 +84,8 @@ export default function AnalyticsPage() {
 
   // Set default date range (last 30 days)
   useEffect(() => {
-    const end = new Date()
-    const start = new Date()
-    start.setDate(start.getDate() - 30)
-    setEndDate(end.toISOString().split('T')[0])
-    setStartDate(start.toISOString().split('T')[0])
+    setEndDate(getTodayInTimezone())
+    setStartDate(getRelativeDateInTimezone(-30))
   }, [])
 
   // 공장별 건물 목록 동적 로드
@@ -156,11 +154,8 @@ export default function AnalyticsPage() {
   }, [startDate, endDate, currentFactory])
 
   const handleResetFilters = () => {
-    const end = new Date()
-    const start = new Date()
-    start.setDate(start.getDate() - 30)
-    setEndDate(end.toISOString().split('T')[0])
-    setStartDate(start.toISOString().split('T')[0])
+    setEndDate(getTodayInTimezone())
+    setStartDate(getRelativeDateInTimezone(-30))
     setBuilding('')
     setEquipmentTypeId('')
   }

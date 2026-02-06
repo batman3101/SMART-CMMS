@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { getMonthStartInTimezone, getNowDisplayString } from '@/lib/dateUtils'
 import {
   User,
   Mail,
@@ -70,10 +71,7 @@ export default function ProfilePage() {
           .eq('status', 'completed')
 
         // Get this month's records
-        const thisMonthStart = new Date()
-        thisMonthStart.setDate(1)
-        thisMonthStart.setHours(0, 0, 0, 0)
-        const thisMonthStr = thisMonthStart.toISOString().split('T')[0]
+        const thisMonthStr = getMonthStartInTimezone()
 
         const thisMonthRecords = allRecords?.filter(r => r.date >= thisMonthStr) || []
 
@@ -242,7 +240,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {t('profile.lastLogin')}: {new Date().toLocaleString()}
+                  {t('profile.lastLogin')}: {getNowDisplayString()}
                 </span>
               </div>
             </div>

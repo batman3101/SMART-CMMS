@@ -124,6 +124,7 @@ export default function AIChatPage() {
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('ko-KR', {
+      timeZone: 'Asia/Ho_Chi_Minh',
       hour: '2-digit',
       minute: '2-digit',
     })

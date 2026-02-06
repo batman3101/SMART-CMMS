@@ -5,7 +5,7 @@
 
 import { supabase } from './supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { getTodayInTimezone, getRelativeDateInTimezone, getMonthEndInTimezone, getMonthStartInTimezone } from '@/lib/dateUtils'
+import { getTodayInTimezone, getRelativeDateInTimezone, getMonthEndInTimezone, getMonthStartInTimezone, getCurrentDateInTimezone } from '@/lib/dateUtils'
 import type {
   Equipment,
   EquipmentType,
@@ -1733,9 +1733,9 @@ export const pmApi = {
     const results: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] = []
 
     for (let i = 0; i < monthsToFetch; i++) {
-      const date = new Date()
-      date.setMonth(date.getMonth() - i)
-      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const nowInTz = getCurrentDateInTimezone()
+      nowInTz.setMonth(nowInTz.getMonth() - i)
+      const yearMonth = `${nowInTz.getFullYear()}-${String(nowInTz.getMonth() + 1).padStart(2, '0')}`
 
       const { data: schedules } = await getSupabase()
         .from('pm_schedules')
@@ -2001,9 +2001,9 @@ export const pmApi = {
     const results: { month: string; completed: number; scheduled: number; compliance: number }[] = []
 
     for (let i = months - 1; i >= 0; i--) {
-      const date = new Date()
-      date.setMonth(date.getMonth() - i)
-      const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const nowInTz = getCurrentDateInTimezone()
+      nowInTz.setMonth(nowInTz.getMonth() - i)
+      const yearMonth = `${nowInTz.getFullYear()}-${String(nowInTz.getMonth() + 1).padStart(2, '0')}`
 
       const { data: schedules } = await getSupabase()
         .from('pm_schedules')

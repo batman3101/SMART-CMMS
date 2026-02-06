@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { getConfiguredTimezone } from '@/lib/dateUtils'
+import { getConfiguredTimezone, getCurrentDateInTimezone } from '@/lib/dateUtils'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -64,7 +64,7 @@ export function getStatusTextColor(status: string): string {
 }
 
 export function generateRecordNo(prefix: string = 'MR'): string {
-  const now = new Date()
+  const now = getCurrentDateInTimezone()
   const year = now.getFullYear().toString().slice(-2)
   const month = (now.getMonth() + 1).toString().padStart(2, '0')
   const day = now.getDate().toString().padStart(2, '0')

@@ -407,6 +407,7 @@ export default function MaintenanceMonitorPage() {
                           <p className="text-sm text-muted-foreground">{t('maintenance.startTime')}</p>
                           <p className="font-medium">
                             {new Date(record.start_time).toLocaleTimeString(getLocale(), {
+                              timeZone: 'Asia/Ho_Chi_Minh',
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
@@ -498,6 +499,7 @@ export default function MaintenanceMonitorPage() {
                 <p className="mt-1 text-xs sm:text-sm">
                   {t('maintenance.startDateTime')}:{' '}
                   {new Date(selectedRecord.start_time).toLocaleString(getLocale(), {
+                    timeZone: 'Asia/Ho_Chi_Minh',
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit',

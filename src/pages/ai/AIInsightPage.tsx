@@ -134,6 +134,7 @@ export default function AIInsightPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleString('ko-KR', {
+      timeZone: 'Asia/Ho_Chi_Minh',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

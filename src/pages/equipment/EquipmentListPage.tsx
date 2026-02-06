@@ -635,7 +635,7 @@ export default function EquipmentListPage() {
                   <p className="text-xs sm:text-sm text-muted-foreground">{t('equipment.installDate')}</p>
                   <p className="font-medium text-sm sm:text-base">
                     {selectedEquipment.install_date
-                      ? new Date(selectedEquipment.install_date).toLocaleDateString(getLocale())
+                      ? new Date(selectedEquipment.install_date).toLocaleDateString(getLocale(), { timeZone: 'Asia/Ho_Chi_Minh' })
                       : '-'}
                   </p>
                 </div>

@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs'
 import type { PMTemplate, PMPriority, Equipment } from '@/types'
-import { getTodayInTimezone } from '@/lib/dateUtils'
+import { getTodayInTimezone, formatLocalDate } from '@/lib/dateUtils'
 
 export type ExcelLanguage = 'ko' | 'vi'
 
@@ -388,13 +388,13 @@ export async function uploadPMScheduleExcel(
       // 날짜 처리
       const dateCell = row.getCell(3).value
       if (dateCell instanceof Date) {
-        scheduledDate = dateCell.toISOString().split('T')[0]
+        scheduledDate = formatLocalDate(dateCell)
       } else if (typeof dateCell === 'string') {
         scheduledDate = dateCell.trim()
       } else if (typeof dateCell === 'number') {
         // Excel serial date number
         const date = new Date((dateCell - 25569) * 86400 * 1000)
-        scheduledDate = date.toISOString().split('T')[0]
+        scheduledDate = formatLocalDate(date)
       }
 
       const priorityStr = String(row.getCell(4).value || '').trim()

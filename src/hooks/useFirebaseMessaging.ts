@@ -3,6 +3,7 @@ import { requestNotificationPermission, onForegroundMessage } from '@/lib/fireba
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore, type NotificationType } from '@/stores/notificationStore'
 import { supabase } from '@/lib/supabase'
+import { getConfiguredTimezone, formatDateInTimezone } from '@/lib/dateUtils'
 
 interface UseFcmReturn {
   fcmToken: string | null
@@ -224,8 +225,8 @@ export function useFirebaseMessaging(): UseFcmReturn {
           title: payload.notification.title || 'SMART CMMS 알림',
           message: payload.notification.body || '',
           equipment_code: payload.data?.equipment_code,
-          time: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-          date: now.toLocaleDateString('ko-KR'),
+          time: now.toLocaleTimeString('ko-KR', { timeZone: getConfiguredTimezone(), hour: '2-digit', minute: '2-digit' }),
+          date: formatDateInTimezone(now),
           read: false,
         })
 

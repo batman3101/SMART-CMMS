@@ -6,6 +6,7 @@ import { useNotificationStore, NotificationType } from '@/stores/notificationSto
 import { useAuthStore } from '@/stores/authStore'
 import { equipmentApi, maintenanceApi } from '@/lib/api'
 import type { Equipment, MaintenanceRecord } from '@/types'
+import { getConfiguredTimezone, formatDateInTimezone } from '@/lib/dateUtils'
 
 // 데이터가 stale로 간주되는 시간 (10초로 단축 - 더 빠른 새로고침)
 const STALE_TIME = 10000
@@ -136,8 +137,8 @@ export function useNotificationRealtime(enabled = true) {
         type: mapNotificationType(newNotification.type),
         title: newNotification.title,
         message: newNotification.message,
-        time: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-        date: now.toLocaleDateString('ko-KR'),
+        time: now.toLocaleTimeString('ko-KR', { timeZone: getConfiguredTimezone(), hour: '2-digit', minute: '2-digit' }),
+        date: formatDateInTimezone(now),
         read: newNotification.is_read,
       })
     },

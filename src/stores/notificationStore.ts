@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import { notificationsApi } from '@/lib/api'
 import { isMainSupabaseConnected } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
-import { getTodayInTimezone, getConfiguredTimezone } from '@/lib/dateUtils'
+import { getTodayInTimezone, getConfiguredTimezone, formatDateInTimezone } from '@/lib/dateUtils'
 
 export type NotificationType = 'emergency' | 'long_repair' | 'completed' | 'info' | 'pm_schedule'
 
@@ -221,7 +221,7 @@ export const useNotificationStore = create<NotificationState>()(
               message: n.message as string,
               equipment_code: notificationData.equipment_code as string || undefined,
               time: new Date(n.created_at as string).toLocaleTimeString('ko-KR', { timeZone: getConfiguredTimezone(), hour: '2-digit', minute: '2-digit' }),
-              date: (n.created_at as string).split('T')[0],
+              date: formatDateInTimezone(new Date(n.created_at as string)),
               read: n.is_read as boolean,
               created_at: n.created_at as string,
               data: notificationData,

@@ -104,6 +104,7 @@ export interface Equipment {
   equipment_name_vi?: string
   equipment_type_id: string
   equipment_type?: EquipmentType
+  factory_id?: string
   status: EquipmentStatus
   install_date: string | null
   manufacturer: string | null

@@ -786,19 +786,19 @@ export default function EquipmentMasterPage() {
                   <Label htmlFor="building" className="text-sm">
                     {t('equipment.building')} <span className="text-destructive">*</span>
                   </Label>
-                  <Select
+                  <Input
                     id="building"
+                    list="building-options"
                     value={formData.building}
                     onChange={(e) => setFormData((prev) => ({ ...prev, building: e.target.value }))}
+                    placeholder={t('equipment.buildingPlaceholder') || 'A동'}
                     className="h-9 sm:h-10 text-sm"
-                  >
-                    <option value="">{t('common.select')}</option>
+                  />
+                  <datalist id="building-options">
                     {buildings.map((building) => (
-                      <option key={building} value={building}>
-                        {building}
-                      </option>
+                      <option key={building} value={building} />
                     ))}
-                  </Select>
+                  </datalist>
                   {formErrors.building && <p className="text-xs sm:text-sm text-destructive">{formErrors.building}</p>}
                 </div>
 

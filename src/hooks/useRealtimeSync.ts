@@ -287,8 +287,8 @@ export function useAppRealtime(enabled = true) {
             type: mapNotificationType(data.type),
             title: data.title,
             message: data.message,
-            time: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-            date: now.toLocaleDateString('ko-KR'),
+            time: now.toLocaleTimeString('ko-KR', { timeZone: getConfiguredTimezone(), hour: '2-digit', minute: '2-digit' }),
+            date: formatDateInTimezone(now),
             read: data.is_read,
           })
         },

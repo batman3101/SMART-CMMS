@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { getMonthStartInTimezone, getNowDisplayString } from '@/lib/dateUtils'
+import { getMonthStartInTimezone, getNowDisplayString, formatDateInTimezone } from '@/lib/dateUtils'
 import {
   User,
   Mail,
@@ -234,7 +234,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  {t('profile.joinedAt')}: {user?.created_at?.split('T')[0] || '-'}
+                  {t('profile.joinedAt')}: {user?.created_at ? formatDateInTimezone(new Date(user.created_at)) : '-'}
                 </span>
               </div>
               <div className="flex items-center gap-3">

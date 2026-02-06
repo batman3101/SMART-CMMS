@@ -5,6 +5,7 @@
 
 import { supabase } from './supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 import type {
   Equipment,
   EquipmentType,
@@ -364,7 +365,7 @@ export const maintenanceApi = {
   },
 
   async getTodayRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select(`
@@ -381,7 +382,7 @@ export const maintenanceApi = {
   },
 
   async getTodayCompletedRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     const { data, error } = await getSupabase()
       .from('maintenance_records')
       .select(`
@@ -418,7 +419,7 @@ export const maintenanceApi = {
     used_parts?: { part_code: string; part_name: string; quantity: number }[]
   }): Promise<{ data: MaintenanceRecord | null; error: string | null }> {
     // Generate record_no
-    const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+    const today = getTodayInTimezone().replace(/-/g, '')
     const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase()
     const record_no = `MR${today}-${randomSuffix}`
 
@@ -755,7 +756,7 @@ export const statisticsApi = {
       .eq('status', 'in_progress')
 
     // Get today's records
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     const { data: todayRecords } = await getSupabase()
       .from('maintenance_records')
       .select('status, repair_type:repair_types(code)')
@@ -1553,7 +1554,7 @@ export const pmApi = {
   },
 
   async getTodaySchedules(): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     const { data, error } = await getSupabase()
       .from('pm_schedules')
       .select(`
@@ -1570,7 +1571,7 @@ export const pmApi = {
   },
 
   async getOverdueSchedules(): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
 
     // Get PMs that are past their scheduled date but not completed or cancelled
     const { data, error } = await getSupabase()
@@ -1590,7 +1591,7 @@ export const pmApi = {
   },
 
   async getUpcomingSchedules(days: number = 7): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     const endDate = new Date()
     endDate.setDate(endDate.getDate() + days)
     const endDateStr = endDate.toISOString().split('T')[0]
@@ -1947,7 +1948,7 @@ export const pmApi = {
   },
 
   async getDashboardStats(): Promise<{ data: { total_scheduled: number; completed_this_month: number; overdue_count: number; upcoming_week: number; compliance_rate: number } | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     const weekLater = new Date()
     weekLater.setDate(weekLater.getDate() + 7)
     const monthStart = today.slice(0, 8) + '01'
@@ -2629,7 +2630,7 @@ export const paintApi = {
   },
 
   async getTodaySchedules(): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
 
     const { data, error } = await getSupabase()
       .from('paint_schedules')
@@ -2648,7 +2649,7 @@ export const paintApi = {
   },
 
   async getOverdueSchedules(): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
 
     const { data, error } = await getSupabase()
       .from('paint_schedules')
@@ -2667,7 +2668,7 @@ export const paintApi = {
   },
 
   async getUpcomingSchedules(days: number = 7): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     const endDate = new Date()
     endDate.setDate(endDate.getDate() + days)
     const endDateStr = endDate.toISOString().split('T')[0]
@@ -2884,7 +2885,7 @@ export const paintApi = {
 
   // Dashboard Stats
   async getDashboardStats(): Promise<{ data: PaintDashboardStats | null; error: string | null }> {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     const weekLater = new Date()
     weekLater.setDate(weekLater.getDate() + 7)
     const monthStart = today.slice(0, 8) + '01'

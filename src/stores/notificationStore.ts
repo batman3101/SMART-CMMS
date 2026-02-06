@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { notificationsApi } from '@/lib/api'
 import { isMainSupabaseConnected } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 
 export type NotificationType = 'emergency' | 'long_repair' | 'completed' | 'info' | 'pm_schedule'
 
@@ -64,7 +65,7 @@ const sampleNotifications: Notification[] = [
     message: 'CNC-045 설비에서 긴급수리가 요청되었습니다. 즉시 확인이 필요합니다.',
     equipment_code: 'CNC-045',
     time: '14:35',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayInTimezone(),
     read: false,
     created_at: new Date().toISOString(),
   },
@@ -75,7 +76,7 @@ const sampleNotifications: Notification[] = [
     message: 'CNC-032 수리가 2시간을 초과했습니다. 진행 상황을 확인해주세요.',
     equipment_code: 'CNC-032',
     time: '14:20',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayInTimezone(),
     read: false,
     created_at: new Date().toISOString(),
   },
@@ -86,7 +87,7 @@ const sampleNotifications: Notification[] = [
     message: 'CNC-061 설비 수리가 완료되었습니다. 평점: 9/10',
     equipment_code: 'CNC-061',
     time: '14:05',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayInTimezone(),
     read: false,
     created_at: new Date().toISOString(),
   },

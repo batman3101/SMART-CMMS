@@ -11,6 +11,7 @@
 import { useNotificationStore, NotificationType } from '@/stores/notificationStore'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 import {
   initializeFirebase,
   initializeMessaging,
@@ -117,8 +118,8 @@ class PushNotificationService {
         title: notification?.title || data.title || 'AMMS 알림',
         message: notification?.body || data.body || '',
         equipment_code: data.equipment_code,
-        time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }),
+        date: getTodayInTimezone(),
         read: false,
       })
     }
@@ -497,8 +498,8 @@ export const createSupabaseNotificationHandler = (/* supabase: SupabaseClient */
           title: '긴급수리 발생',
           message: `${newRecord.equipment_code} 설비에서 긴급수리가 요청되었습니다.`,
           equipment_code: newRecord.equipment_code as string,
-          time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-          date: new Date().toISOString().split('T')[0],
+          time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }),
+          date: getTodayInTimezone(),
           read: false,
         })
 
@@ -516,8 +517,8 @@ export const createSupabaseNotificationHandler = (/* supabase: SupabaseClient */
           title: '수리 완료',
           message: `${newRecord.equipment_code} 설비 수리가 완료되었습니다.`,
           equipment_code: newRecord.equipment_code as string,
-          time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-          date: new Date().toISOString().split('T')[0],
+          time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }),
+          date: getTodayInTimezone(),
           read: false,
         })
 

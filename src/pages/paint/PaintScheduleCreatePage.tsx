@@ -13,6 +13,7 @@ import {
   Paintbrush,
   Server,
 } from 'lucide-react'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 import { paintApi, equipmentApi, usersApi } from '@/lib/api'
 import type { Equipment, User, PaintPriority, PaintScheduleCreateForm } from '@/types'
 import { useToast } from '@/components/ui/toast'
@@ -44,7 +45,7 @@ export default function PaintScheduleCreatePage() {
 
   useEffect(() => {
     fetchData()
-    setScheduledDate(new Date().toISOString().split('T')[0])
+    setScheduledDate(getTodayInTimezone())
   }, [])
 
   const fetchData = async () => {

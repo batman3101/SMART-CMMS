@@ -20,6 +20,7 @@ import {
   SkipForward,
   CircleDot,
 } from 'lucide-react'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 import { paintApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/components/ui/toast'
@@ -334,7 +335,7 @@ export default function PaintExecutionPage() {
   }
 
   // Check if schedule is overdue
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayInTimezone()
   const isOverdue = schedule.scheduled_date < today &&
                     (schedule.status === 'scheduled' || schedule.status === 'in_progress')
 
@@ -513,12 +514,12 @@ export default function PaintExecutionPage() {
                                 )}
                                 {stepExec.started_at && (
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    {t('paint.startedAt')}: {new Date(stepExec.started_at).toLocaleString()}
+                                    {t('paint.startedAt')}: {new Date(stepExec.started_at).toLocaleString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh' })}
                                   </p>
                                 )}
                                 {stepExec.completed_at && (
                                   <p className="text-xs text-muted-foreground">
-                                    {t('paint.completedAt')}: {new Date(stepExec.completed_at).toLocaleString()}
+                                    {t('paint.completedAt')}: {new Date(stepExec.completed_at).toLocaleString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh' })}
                                   </p>
                                 )}
                                 {stepExec.notes && (
@@ -662,7 +663,7 @@ export default function PaintExecutionPage() {
                     : '-'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {t('paint.startedAt')}: {execution.started_at ? new Date(execution.started_at).toLocaleTimeString() : '-'}
+                  {t('paint.startedAt')}: {execution.started_at ? new Date(execution.started_at).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh' }) : '-'}
                 </p>
               </CardContent>
             </Card>

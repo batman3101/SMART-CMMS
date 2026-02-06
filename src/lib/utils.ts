@@ -1,12 +1,15 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { getConfiguredTimezone } from '@/lib/dateUtils'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 export function formatDate(date: string | Date, locale: string = 'ko-KR'): string {
+  const tz = getConfiguredTimezone()
   return new Date(date).toLocaleDateString(locale, {
+    timeZone: tz,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -14,7 +17,9 @@ export function formatDate(date: string | Date, locale: string = 'ko-KR'): strin
 }
 
 export function formatDateTime(date: string | Date, locale: string = 'ko-KR'): string {
+  const tz = getConfiguredTimezone()
   return new Date(date).toLocaleString(locale, {
+    timeZone: tz,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

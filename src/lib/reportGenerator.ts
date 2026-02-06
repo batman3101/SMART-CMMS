@@ -442,7 +442,7 @@ export async function generateReport(data: ReportData): Promise<ReportResult> {
   const reportTypeName = type === 'daily' ? 'Daily' :
                          type === 'weekly' ? 'Weekly' :
                          type === 'monthly' ? 'Monthly' : 'Custom'
-  const filename = `${reportTypeName}_Report_${new Date().toISOString().split('T')[0]}.pdf`
+  const filename = `${reportTypeName}_Report_${new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })}.pdf`
 
   // Convert to blob
   const blob = doc.output('blob')

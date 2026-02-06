@@ -31,6 +31,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 import { paintApi, equipmentApi, usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
 import { useAuthStore } from '@/stores/authStore'
@@ -163,7 +164,7 @@ export default function PaintScheduleListPage() {
 
   // Helper to check if a schedule is overdue
   const isOverdue = (schedule: PaintSchedule): boolean => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     return schedule.scheduled_date < today &&
            (schedule.status === 'scheduled' || schedule.status === 'in_progress')
   }

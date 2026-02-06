@@ -27,7 +27,7 @@ export interface AppSettings {
 }
 
 const defaultSettings: AppSettings = {
-  timezone: 'Asia/Seoul',
+  timezone: 'Asia/Ho_Chi_Minh',
   language: 'ko',
   dateFormat: 'yyyy-MM-dd',
   timeFormat: 'HH:mm',

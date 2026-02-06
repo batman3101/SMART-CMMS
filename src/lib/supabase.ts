@@ -455,7 +455,7 @@ export async function fetchDashboardStats() {
     .select('status')
     .eq('is_active', true)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })
   const { data: todayRecords } = await supabase
     .from('maintenance_records')
     .select('status')

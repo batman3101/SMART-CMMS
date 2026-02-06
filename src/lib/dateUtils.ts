@@ -152,3 +152,61 @@ export function formatDisplayTime(
     minute: '2-digit',
   })
 }
+
+/**
+ * 현재 시각을 설정된 타임존 기준 YYYY-MM-DD 형식으로 반환
+ */
+export function getNowDateString(timezone?: string): string {
+  return getTodayInTimezone(timezone)
+}
+
+/**
+ * 현재 시각을 설정된 타임존 기준 YYYY-MM-DDTHH:mm 형식으로 반환
+ * (datetime-local input 및 DB 저장용)
+ */
+export function getNowDateTimeString(timezone?: string): string {
+  const tz = timezone || getConfiguredTimezone()
+  const now = new Date()
+
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+
+  const parts = formatter.formatToParts(now)
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00'
+
+  const year = getPart('year')
+  const month = getPart('month')
+  const day = getPart('day')
+  let hour = getPart('hour')
+  const minute = getPart('minute')
+
+  // 24:xx → 00:xx 보정
+  if (hour === '24') hour = '00'
+
+  return `${year}-${month}-${day}T${hour}:${minute}`
+}
+
+/**
+ * 현재 시각을 설정된 타임존 기준 표시용 문자열로 반환
+ * (예: "2026-02-06 오전 11:32")
+ */
+export function getNowDisplayString(locale: string = 'ko-KR', timezone?: string): string {
+  const tz = timezone || getConfiguredTimezone()
+  const now = new Date()
+
+  return now.toLocaleString(locale, {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}

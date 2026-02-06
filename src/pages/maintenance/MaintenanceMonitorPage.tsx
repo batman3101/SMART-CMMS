@@ -20,6 +20,7 @@ import {
 import { maintenanceApi, settingsApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import { hasPermission } from '@/lib/permissions'
+import { getNowDateTimeString, getCurrentDateInTimezone } from '@/lib/dateUtils'
 import type { MaintenanceRecord, Equipment } from '@/types'
 
 export default function MaintenanceMonitorPage() {
@@ -171,9 +172,9 @@ export default function MaintenanceMonitorPage() {
 
     setSubmitting(true)
     try {
-      // 버튼 클릭 시점의 현재 시간을 완료 시간으로 사용
-      const endTime = new Date()
-      const endTimeStr = endTime.toISOString().slice(0, 16)
+      // 버튼 클릭 시점의 현재 시간을 완료 시간으로 사용 (베트남 타임존 기준)
+      const endTime = getCurrentDateInTimezone()
+      const endTimeStr = getNowDateTimeString()
 
       // Parse start_time with proper timezone handling
       let parsedStartTime: Date

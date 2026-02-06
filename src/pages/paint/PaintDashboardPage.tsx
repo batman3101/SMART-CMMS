@@ -15,6 +15,7 @@ import {
   RefreshCw,
   ListTodo,
 } from 'lucide-react'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 import { paintApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import type { PaintSchedule, PaintDashboardStats, Equipment, PaintTemplate } from '@/types'
@@ -60,7 +61,7 @@ export default function PaintDashboardPage() {
 
       if (statsRes.data) setStats(statsRes.data)
       if (todayRes.data) setTodaySchedules(todayRes.data)
-      if (upcomingRes.data) setUpcomingSchedules(upcomingRes.data.filter(s => s.scheduled_date !== new Date().toISOString().split('T')[0]))
+      if (upcomingRes.data) setUpcomingSchedules(upcomingRes.data.filter(s => s.scheduled_date !== getTodayInTimezone()))
       if (overdueRes.data) setOverdueSchedules(overdueRes.data)
     } catch (error) {
       console.error('Failed to fetch Paint data:', error)

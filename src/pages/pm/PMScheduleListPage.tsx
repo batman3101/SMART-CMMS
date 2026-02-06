@@ -32,6 +32,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
+import { getTodayInTimezone } from '@/lib/dateUtils'
 import { pmApi, equipmentApi, usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
 import type { PMSchedule, PMScheduleFilter, PMScheduleStatus, PMPriority, Equipment, EquipmentType, PMTemplate, User } from '@/types'
@@ -162,7 +163,7 @@ export default function PMScheduleListPage() {
 
   // Helper to check if a PM schedule is overdue
   const isOverdue = (schedule: PMSchedule): boolean => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayInTimezone()
     return schedule.scheduled_date < today &&
            (schedule.status === 'scheduled' || schedule.status === 'in_progress')
   }

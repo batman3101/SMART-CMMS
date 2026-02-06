@@ -22,6 +22,7 @@ import { equipmentApi, maintenanceApi, usersApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import { hasPermission } from '@/lib/permissions'
 import { searchPartsByCode, getPartWithInventory, isPartsSupabaseConnected } from '@/lib/supabase'
+import { getNowDateString, getNowDateTimeString } from '@/lib/dateUtils'
 import type { Equipment, RepairType, User, EquipmentType } from '@/types'
 
 interface PartUsage {
@@ -76,12 +77,12 @@ export default function MaintenanceInputPage() {
 
   // 폼 데이터
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getNowDateString(),
     equipment_id: '',
     equipment_type_id: '',
     repair_type_id: searchParams.get('type') || '',
     technician_id: user?.id || '',
-    start_time: new Date().toISOString().slice(0, 16),
+    start_time: getNowDateTimeString(),
     symptom: '',
   })
 
@@ -343,10 +344,9 @@ export default function MaintenanceInputPage() {
 
     setSubmitting(true)
     try {
-      // 버튼 클릭 시점의 현재 시간을 수리 시작 시간으로 사용
-      const now = new Date()
-      const currentStartTime = now.toISOString().slice(0, 16)
-      const currentDate = now.toISOString().split('T')[0]
+      // 버튼 클릭 시점의 현재 시간을 수리 시작 시간으로 사용 (베트남 타임존 기준)
+      const currentStartTime = getNowDateTimeString()
+      const currentDate = getNowDateString()
 
       // 화면에 표시된 시간도 업데이트
       setFormData((prev) => ({ ...prev, start_time: currentStartTime, date: currentDate }))

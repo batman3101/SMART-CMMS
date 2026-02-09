@@ -1543,6 +1543,20 @@ export const pmApi = {
     return { data, error: error?.message || null }
   },
 
+  async getTemplatesByFactory(factoryId: string): Promise<{ data: PMTemplate[] | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('pm_templates')
+      .select(`
+        *,
+        equipment_type:equipment_types(*)
+      `)
+      .eq('factory_id', factoryId)
+      .eq('is_active', true)
+      .order('name')
+
+    return { data, error: error?.message || null }
+  },
+
   async getTodaySchedules(): Promise<{ data: PMSchedule[] | null; error: string | null }> {
     const today = getTodayInTimezone()
     const { data, error } = await getSupabase()

@@ -37,6 +37,7 @@ import {
   FileSpreadsheet,
   AlertTriangle,
   Loader2,
+  ArrowDownToLine,
 } from 'lucide-react'
 import { pmApi, equipmentApi } from '@/lib/api'
 import type { EquipmentType } from '@/types'
@@ -49,7 +50,8 @@ import {
   type ValidationError,
   type ExcelLanguage,
 } from '@/lib/pmTemplateExcel'
-import type { PMTemplate, PMIntervalType } from '@/types'
+import type { PMTemplate, PMIntervalType, FactoryId } from '@/types'
+import { FACTORIES } from '@/types'
 
 interface ChecklistItem {
   id: string
@@ -86,6 +88,18 @@ export default function PMTemplatesPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<ExcelLanguage>(
     (i18n.language?.startsWith('vi') ? 'vi' : 'ko') as ExcelLanguage
   )
+
+  // Import from other factory states
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+  const [importLoading, setImportLoading] = useState(false)
+  const [importProcessing, setImportProcessing] = useState(false)
+  const [otherFactoryTemplates, setOtherFactoryTemplates] = useState<PMTemplate[]>([])
+  const [selectedImportIds, setSelectedImportIds] = useState<Set<string>>(new Set())
+
+  const otherFactoryId: FactoryId = currentFactory === 'ALT' ? 'ALV' : 'ALT'
+  const otherFactoryName = i18n.language?.startsWith('vi')
+    ? FACTORIES[otherFactoryId].name_vi
+    : FACTORIES[otherFactoryId].name_ko
 
   // 현재 UI 언어에 맞는 템플릿명 반환
   const getLocalizedTemplateName = (template: PMTemplate) => {
@@ -478,6 +492,104 @@ export default function PMTemplatesPage() {
     }
   }
 
+  // 다른 공장 템플릿 가져오기
+  const openImportDialog = async () => {
+    setIsImportDialogOpen(true)
+    setImportLoading(true)
+    setSelectedImportIds(new Set())
+    try {
+      const { data } = await pmApi.getTemplatesByFactory(otherFactoryId)
+      if (data) {
+        // 현재 공장에 이미 같은 이름의 템플릿이 있으면 표시
+        setOtherFactoryTemplates(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch other factory templates:', error)
+    } finally {
+      setImportLoading(false)
+    }
+  }
+
+  const toggleImportSelect = (id: string) => {
+    setSelectedImportIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedImportIds.size === otherFactoryTemplates.length) {
+      setSelectedImportIds(new Set())
+    } else {
+      setSelectedImportIds(new Set(otherFactoryTemplates.map(t => t.id)))
+    }
+  }
+
+  const isTemplateNameDuplicate = (name: string) => {
+    return templates.some(t => t.name === name)
+  }
+
+  const handleImportTemplates = async () => {
+    if (selectedImportIds.size === 0) return
+    setImportProcessing(true)
+    let successCount = 0
+    let failCount = 0
+
+    for (const template of otherFactoryTemplates) {
+      if (!selectedImportIds.has(template.id)) continue
+      try {
+        await pmApi.createTemplate({
+          name: template.name,
+          name_ko: template.name_ko,
+          name_vi: template.name_vi,
+          description: template.description,
+          equipment_type_id: template.equipment_type_id,
+          interval_type: template.interval_type,
+          interval_value: template.interval_value,
+          estimated_duration: template.estimated_duration,
+          checklist_items: template.checklist_items.map((item, idx) => ({
+            id: `item-${Date.now()}-${idx}`,
+            order: item.order || idx + 1,
+            inspection_area: item.inspection_area,
+            description: item.description,
+            description_ko: item.description_ko,
+            description_vi: item.description_vi,
+            is_required: item.is_required,
+          })),
+          required_parts: template.required_parts || [],
+          is_active: true,
+        })
+        successCount++
+      } catch (error) {
+        console.error('Failed to import template:', template.name, error)
+        failCount++
+      }
+    }
+
+    if (successCount > 0) {
+      addToast({
+        type: 'success',
+        title: t('pm.importSuccess'),
+        message: t('pm.importSuccessDesc', { success: successCount, fail: failCount }),
+      })
+      fetchTemplates()
+    } else {
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('pm.importFailed'),
+      })
+    }
+
+    setIsImportDialogOpen(false)
+    setImportProcessing(false)
+  }
+
   // 일괄 업로드 다이얼로그 닫기
   const closeBulkUploadDialog = () => {
     setIsBulkUploadDialogOpen(false)
@@ -501,6 +613,10 @@ export default function PMTemplatesPage() {
           <Button variant="outline" size="sm" onClick={fetchTemplates} className="h-9 px-3">
             <RefreshCw className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">{t('common.refresh')}</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={openImportDialog} className="h-9 px-3">
+            <ArrowDownToLine className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('pm.importFromFactory')}</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setIsBulkUploadDialogOpen(true)} className="h-9 px-3">
             <Upload className="h-4 w-4 sm:mr-2" />
@@ -1134,6 +1250,113 @@ export default function PMTemplatesPage() {
                 <Upload className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
               )}
               {t('pm.uploadAndCreate', { count: uploadResult?.templates.length || 0 })}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Import from Other Factory Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <ArrowDownToLine className="h-4 w-4 sm:h-5 sm:w-5" />
+              {t('pm.importFromFactoryTitle', { factory: otherFactoryName })}
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              {t('pm.importFromFactoryDesc', { factory: otherFactoryName })}
+              {' '}{t('pm.duplicateSkipHint')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-3 sm:py-4">
+            {importLoading ? (
+              <div className="flex h-48 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : otherFactoryTemplates.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                {t('pm.noTemplatesInFactory', { factory: otherFactoryName })}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Select All / Deselect All */}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {t('pm.selectTemplatesToImport')} ({selectedImportIds.size}/{otherFactoryTemplates.length})
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleSelectAll}
+                    className="h-8 text-xs"
+                  >
+                    {selectedImportIds.size === otherFactoryTemplates.length
+                      ? t('pm.deselectAll')
+                      : t('pm.selectAll')}
+                  </Button>
+                </div>
+
+                {/* Template List */}
+                <div className="rounded-lg border max-h-[50vh] overflow-y-auto">
+                  {otherFactoryTemplates.map((template, index) => {
+                    const isDuplicate = isTemplateNameDuplicate(template.name)
+                    const isSelected = selectedImportIds.has(template.id)
+                    return (
+                      <div
+                        key={template.id}
+                        className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
+                          index !== otherFactoryTemplates.length - 1 ? 'border-b' : ''
+                        } ${isDuplicate ? 'opacity-60' : ''}`}
+                        onClick={() => !isDuplicate && toggleImportSelect(template.id)}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={isDuplicate}
+                          onChange={() => toggleImportSelect(template.id)}
+                          className="h-4 w-4 rounded border-gray-300 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm truncate">
+                              {getLocalizedTemplateName(template)}
+                            </p>
+                            {isDuplicate && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                                {t('pm.alreadyExists')}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
+                            <span>{getEquipmentTypeName(template.equipment_type_id)}</span>
+                            <span>{getIntervalLabel(template.interval_type, template.interval_value)}</span>
+                            <span>{t('pm.checklistItems')}: {template.checklist_items.length}</span>
+                            <span>{template.estimated_duration} {t('pm.minutes')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} className="h-9 sm:h-10">
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleImportTemplates}
+              disabled={importProcessing || selectedImportIds.size === 0}
+              className="h-9 sm:h-10 text-xs sm:text-sm"
+            >
+              {importProcessing ? (
+                <Loader2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+              ) : (
+                <ArrowDownToLine className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              )}
+              {t('pm.importSelected', { count: selectedImportIds.size })}
             </Button>
           </DialogFooter>
         </DialogContent>

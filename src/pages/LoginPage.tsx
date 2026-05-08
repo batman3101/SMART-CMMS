@@ -65,6 +65,13 @@ export default function LoginPage() {
           return
         }
 
+        // 비활성 계정(퇴사자 등)은 로그인 차단
+        if (!userData.is_active) {
+          await supabase.auth.signOut()
+          setError(t('auth.accountInactive'))
+          return
+        }
+
         login(userData)
         navigate('/dashboard')
       }

@@ -78,6 +78,7 @@
     "rememberMe": "Ghi nhớ đăng nhập",
     "loginFailed": "Đăng nhập thất bại",
     "userNotFound": "Không tìm thấy người dùng đã đăng ký",
+    "accountInactive": "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.",
     "selectLanguage": "Chọn ngôn ngữ"
   },
   "nav": {

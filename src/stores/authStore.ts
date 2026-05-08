@@ -87,6 +87,13 @@ export const useAuthStore = create<AuthState>()(
               return false
             }
 
+            // 비활성 계정(퇴사자 등)은 세션 무효화하여 앱 접근 차단
+            if (!userData.is_active) {
+              await supabaseSignOut()
+              set({ isAuthenticated: false, isLoading: false, user: null })
+              return false
+            }
+
             // 최신 데이터로 상태 업데이트
             set({ user: userData, isAuthenticated: true, isLoading: false })
           }

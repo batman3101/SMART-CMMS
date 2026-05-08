@@ -40,7 +40,8 @@ import { DEPARTMENTS, POSITIONS, POSITION_ROLE_MAP } from '@/types'
 export default function UserManagementPage() {
   const { t } = useTranslation()
   const { addToast } = useToast()
-  const { currentFactory } = useAuthStore()
+  const { currentFactory, user: currentUser } = useAuthStore()
+  const canManageAdmins = currentUser?.role === 1
 
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
@@ -78,9 +79,11 @@ export default function UserManagementPage() {
     { value: DEPARTMENTS.FACILITY_MANAGEMENT, labelKey: 'admin.departmentFacilityManagement' },
   ]
 
-  // 직책 목록 (번역 키 매핑)
+  // 직책 목록 (번역 키 매핑) - 시스템 관리자 옵션은 시스템 관리자만 부여 가능
   const positionOptions = [
-    { value: POSITIONS.SYSTEM_ADMIN, labelKey: 'admin.positionSystemAdmin' },
+    ...(canManageAdmins
+      ? [{ value: POSITIONS.SYSTEM_ADMIN, labelKey: 'admin.positionSystemAdmin' }]
+      : []),
     { value: POSITIONS.FACILITY_MANAGER, labelKey: 'admin.positionFacilityManager' },
     { value: POSITIONS.REPAIR_STAFF, labelKey: 'admin.positionRepairStaff' },
     { value: POSITIONS.VIEWER, labelKey: 'admin.positionViewer' },
@@ -206,6 +209,14 @@ export default function UserManagementPage() {
   }
 
   const openEditModal = (user: User) => {
+    if (!canManageAdmins && user.role === 1) {
+      addToast({
+        type: 'warning',
+        title: t('admin.cannotModifyAdmin'),
+        message: t('admin.adminHasAllAccess'),
+      })
+      return
+    }
     setEditingUser(user)
     setFormData({
       email: user.email,
@@ -222,6 +233,15 @@ export default function UserManagementPage() {
 
   const handleSave = async () => {
     if (!validateForm()) return
+
+    if (!canManageAdmins && formData.role === 1) {
+      addToast({
+        type: 'error',
+        title: t('common.error'),
+        message: t('admin.cannotModifyAdmin'),
+      })
+      return
+    }
 
     setIsSaving(true)
 
@@ -469,6 +489,7 @@ export default function UserManagementPage() {
                         size="sm"
                         onClick={() => openEditModal(user)}
                         title={t('common.edit')}
+                        disabled={!canManageAdmins && user.role === 1}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -520,6 +541,7 @@ export default function UserManagementPage() {
                       size="sm"
                       className="h-8 w-8 p-0"
                       onClick={() => openEditModal(user)}
+                      disabled={!canManageAdmins && user.role === 1}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>

@@ -57,6 +57,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function RoleGuard({ children, requiredRole }: { children: React.ReactNode; requiredRole: number }) {
+  const { user } = useAuthStore()
+
+  if (user && user.role > requiredRole) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <>{children}</>
+}
+
 function App() {
   const { checkSession } = useAuthStore()
   const { fetchSettings } = useSettingsStore()
@@ -139,10 +149,38 @@ function App() {
 
         {/* Admin */}
         <Route path="admin">
-          <Route path="users" element={<UserManagementPage />} />
-          <Route path="users/bulk-upload" element={<UserBulkUploadPage />} />
-          <Route path="roles" element={<RolePermissionPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route
+            path="users"
+            element={
+              <RoleGuard requiredRole={2}>
+                <UserManagementPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="users/bulk-upload"
+            element={
+              <RoleGuard requiredRole={2}>
+                <UserBulkUploadPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="roles"
+            element={
+              <RoleGuard requiredRole={2}>
+                <RolePermissionPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <RoleGuard requiredRole={1}>
+                <SettingsPage />
+              </RoleGuard>
+            }
+          />
         </Route>
 
         {/* Profile */}

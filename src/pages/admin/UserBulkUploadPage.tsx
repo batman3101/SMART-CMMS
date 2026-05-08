@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/authStore'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -70,6 +71,8 @@ const DEPARTMENT_CODE_MAP: Record<string, DepartmentCode> = {
 
 export default function UserBulkUploadPage() {
   const { t, i18n } = useTranslation()
+  const { user: currentUser } = useAuthStore()
+  const canManageAdmins = currentUser?.role === 1
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [uploadedData, setUploadedData] = useState<UploadRow[]>([])
@@ -171,6 +174,11 @@ export default function UserBulkUploadPage() {
 
       // 직책에서 권한 결정
       const role = POSITION_ROLE_MAP[position as PositionCode] || 4
+
+      // 시스템 관리자 부여는 시스템 관리자만 가능
+      if (!canManageAdmins && role === 1) {
+        errors.push(t('admin.cannotModifyAdmin'))
+      }
 
       return {
         rowNumber: index + 2,

@@ -108,13 +108,13 @@ const navItems: NavItem[] = [
     path: '/admin/users',
     icon: <Users className="h-5 w-5" />,
     labelKey: 'nav.userManagement',
-    requiredRole: 1,
+    requiredRole: 2,
   },
   {
     path: '/admin/roles',
     icon: <Shield className="h-5 w-5" />,
     labelKey: 'nav.rolePermission',
-    requiredRole: 1,
+    requiredRole: 2,
   },
   {
     path: '/admin/settings',

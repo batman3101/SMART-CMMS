@@ -179,6 +179,7 @@
     "info": "Thông tin thiết bị",
     "statusNormal": "Bình thường",
     "statusPM": "Đang PM",
+    "statusPaint": "Đang sơn",
     "statusRepair": "Đang sửa chữa",
     "statusEmergency": "Sửa chữa khẩn cấp",
     "statusStandby": "Chờ",

@@ -83,7 +83,7 @@ export interface PagePermission {
 
 // Equipment types
 export type EquipmentCategory = 'MAIN' | 'SUB'
-export type EquipmentStatus = 'normal' | 'pm' | 'repair' | 'emergency' | 'standby'
+export type EquipmentStatus = 'normal' | 'pm' | 'paint' | 'repair' | 'emergency' | 'standby'
 
 export interface EquipmentType {
   id: string

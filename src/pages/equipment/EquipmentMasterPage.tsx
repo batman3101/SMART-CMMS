@@ -39,6 +39,7 @@ const ITEMS_PER_PAGE = 15
 const statusColors: Record<EquipmentStatus, string> = {
   normal: 'success',
   pm: 'info',
+  paint: 'default',
   repair: 'warning',
   emergency: 'destructive',
   standby: 'secondary',
@@ -318,6 +319,7 @@ export default function EquipmentMasterPage() {
   }
 
   const getStatusLabel = (status: EquipmentStatus) => {
+    if (status === 'paint') return t('equipment.statusPaint')
     return statusOptions.find((o) => o.value === status)?.label || status
   }
 

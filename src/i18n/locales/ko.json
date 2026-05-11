@@ -179,6 +179,7 @@
     "info": "설비 정보",
     "statusNormal": "정상",
     "statusPM": "PM 중",
+    "statusPaint": "도색 중",
     "statusRepair": "수리 중",
     "statusEmergency": "긴급수리",
     "statusStandby": "대기",

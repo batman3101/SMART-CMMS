@@ -115,7 +115,8 @@ async function fetchAllRows<T>(
 type InProgressEquipmentSets = {
   emergencyIds: Set<string>
   repairIds: Set<string>
-  pmIds: Set<string>  // pm_executions + paint_executions 통합
+  pmIds: Set<string>
+  paintIds: Set<string>
 }
 
 async function fetchInProgressEquipmentSets(factoryId: string): Promise<InProgressEquipmentSets> {
@@ -142,6 +143,7 @@ async function fetchInProgressEquipmentSets(factoryId: string): Promise<InProgre
   const emergencyIds = new Set<string>()
   const repairIds = new Set<string>()
   const pmIds = new Set<string>()
+  const paintIds = new Set<string>()
 
   for (const r of (repairRes.data || [])) {
     const code = (r.repair_type as { code?: string } | null)?.code
@@ -152,13 +154,12 @@ async function fetchInProgressEquipmentSets(factoryId: string): Promise<InProgre
     }
   }
   for (const r of (pmRes.data || [])) pmIds.add(r.equipment_id)
-  // 도색 진행중은 별도 EquipmentStatus 값이 없어 'pm' 카테고리로 매핑한다.
-  for (const r of (paintRes.data || [])) pmIds.add(r.equipment_id)
+  for (const r of (paintRes.data || [])) paintIds.add(r.equipment_id)
 
-  return { emergencyIds, repairIds, pmIds }
+  return { emergencyIds, repairIds, pmIds, paintIds }
 }
 
-// Priority: emergency > repair > pm > (stale → normal) > original
+// Priority: emergency > repair > pm > paint > (stale → normal) > original
 function deriveEffectiveStatus(
   equipmentId: string,
   fallbackStatus: EquipmentStatus,
@@ -167,7 +168,8 @@ function deriveEffectiveStatus(
   if (sets.emergencyIds.has(equipmentId)) return 'emergency'
   if (sets.repairIds.has(equipmentId)) return 'repair'
   if (sets.pmIds.has(equipmentId)) return 'pm'
-  if (fallbackStatus === 'repair' || fallbackStatus === 'emergency' || fallbackStatus === 'pm') {
+  if (sets.paintIds.has(equipmentId)) return 'paint'
+  if (fallbackStatus === 'repair' || fallbackStatus === 'emergency' || fallbackStatus === 'pm' || fallbackStatus === 'paint') {
     return 'normal'
   }
   return fallbackStatus
@@ -940,6 +942,7 @@ export const statisticsApi = {
     const statusColors: Record<string, string> = {
       normal: '#10B981',
       pm: '#3B82F6',
+      paint: '#8B5CF6',
       repair: '#F59E0B',
       emergency: '#EF4444',
       standby: '#9CA3AF',

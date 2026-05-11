@@ -29,7 +29,7 @@ import {
 } from 'lucide-react'
 import { maintenanceApi, usersApi, equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
-import type { MaintenanceRecord, RepairType, User, Equipment } from '@/types'
+import type { MaintenanceRecord, RepairType, User, Equipment, EquipmentType } from '@/types'
 
 const ITEMS_PER_PAGE = 15
 
@@ -52,11 +52,13 @@ export default function MaintenanceHistoryPage() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([])
   const [repairTypes, setRepairTypes] = useState<RepairType[]>([])
   const [technicians, setTechnicians] = useState<User[]>([])
+  const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
 
   // 필터 상태
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [repairTypeFilter, setRepairTypeFilter] = useState('')
+  const [equipmentTypeFilter, setEquipmentTypeFilter] = useState('')
   const [technicianFilter, setTechnicianFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState<'in_progress' | 'completed' | ''>('')
   const [search, setSearch] = useState('')
@@ -73,10 +75,11 @@ export default function MaintenanceHistoryPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const [recordsRes, repairTypesRes, techRes] = await Promise.all([
+        const [recordsRes, repairTypesRes, techRes, equipmentTypesRes] = await Promise.all([
           maintenanceApi.getRecords(),
           maintenanceApi.getRepairTypes(),
           usersApi.getTechnicians(),
+          equipmentApi.getEquipmentTypes(),
         ])
 
         if (recordsRes.data) {
@@ -89,6 +92,7 @@ export default function MaintenanceHistoryPage() {
         }
         if (repairTypesRes.data) setRepairTypes(repairTypesRes.data)
         if (techRes.data) setTechnicians(techRes.data)
+        if (equipmentTypesRes.data) setEquipmentTypes(equipmentTypesRes.data)
       } catch (error) {
         console.error('Failed to fetch data:', error)
       } finally {
@@ -111,6 +115,9 @@ export default function MaintenanceHistoryPage() {
       // 수리 유형 필터
       if (repairTypeFilter && record.repair_type_id !== repairTypeFilter) return false
 
+      // 설비 유형 필터
+      if (equipmentTypeFilter && record.equipment?.equipment_type_id !== equipmentTypeFilter) return false
+
       // 담당자 필터
       if (technicianFilter && record.technician_id !== technicianFilter) return false
 
@@ -131,7 +138,7 @@ export default function MaintenanceHistoryPage() {
 
       return true
     })
-  }, [records, equipmentIdFilter, startDate, endDate, repairTypeFilter, technicianFilter, statusFilter, search])
+  }, [records, equipmentIdFilter, startDate, endDate, repairTypeFilter, equipmentTypeFilter, technicianFilter, statusFilter, search])
 
   // Sorting
   const { sortedData, requestSort, getSortDirection } = useTableSort<MaintenanceRecord>(
@@ -188,6 +195,7 @@ export default function MaintenanceHistoryPage() {
     setStartDate('')
     setEndDate('')
     setRepairTypeFilter('')
+    setEquipmentTypeFilter('')
     setTechnicianFilter('')
     setStatusFilter('')
     setSearch('')
@@ -291,6 +299,11 @@ export default function MaintenanceHistoryPage() {
     return eq.equipment_name_ko || eq.equipment_name
   }
 
+  const getEquipmentTypeName = (type: EquipmentType) => {
+    if (i18n.language === 'vi') return type.name_vi || type.name
+    return type.name_ko || type.name
+  }
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -361,7 +374,7 @@ export default function MaintenanceHistoryPage() {
             </div>
 
             {/* 셀렉트 필터들 */}
-            <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-4">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-4">
               <Select
                 className="h-9 text-sm sm:w-[130px]"
                 value={repairTypeFilter}
@@ -374,6 +387,21 @@ export default function MaintenanceHistoryPage() {
                 {repairTypes.map((type) => (
                   <option key={type.id} value={type.id}>
                     {getRepairTypeName(type)}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                className="h-9 text-sm sm:w-[130px]"
+                value={equipmentTypeFilter}
+                onChange={(e) => {
+                  setEquipmentTypeFilter(e.target.value)
+                  setCurrentPage(1)
+                }}
+              >
+                <option value="">{t('equipment.equipmentType')}</option>
+                {equipmentTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {getEquipmentTypeName(type)}
                   </option>
                 ))}
               </Select>

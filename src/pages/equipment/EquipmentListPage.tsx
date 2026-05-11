@@ -33,9 +33,12 @@ import { useTableSort } from '@/hooks/useTableSort'
 import { useAuthStore } from '@/stores/authStore'
 import type { Equipment, EquipmentStatus, EquipmentType } from '@/types'
 
-const statusColors: Record<EquipmentStatus, string> = {
+type StatusBadgeVariant = 'default' | 'success' | 'info' | 'warning' | 'destructive' | 'secondary'
+
+const statusColors: Record<EquipmentStatus, StatusBadgeVariant> = {
   normal: 'success',
   pm: 'info',
+  paint: 'default',
   repair: 'warning',
   emergency: 'destructive',
   standby: 'secondary',
@@ -166,6 +169,7 @@ export default function EquipmentListPage() {
     const labels: Record<EquipmentStatus, string> = {
       normal: t('equipment.statusNormal'),
       pm: t('equipment.statusPM'),
+      paint: t('equipment.statusPaint'),
       repair: t('equipment.statusRepair'),
       emergency: t('equipment.statusEmergency'),
       standby: t('equipment.statusStandby'),
@@ -293,6 +297,7 @@ export default function EquipmentListPage() {
                 <option value="">{t('equipment.status')}</option>
                 <option value="normal">{t('equipment.statusNormal')}</option>
                 <option value="pm">{t('equipment.statusPM')}</option>
+                <option value="paint">{t('equipment.statusPaint')}</option>
                 <option value="repair">{t('equipment.statusRepair')}</option>
                 <option value="emergency">{t('equipment.statusEmergency')}</option>
                 <option value="standby">{t('equipment.statusStandby')}</option>
@@ -337,7 +342,7 @@ export default function EquipmentListPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm">{equipment.equipment_code}</span>
                       <Badge
-                        variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}
+                        variant={statusColors[equipment.status]}
                         className="text-xs"
                       >
                         {getStatusLabel(equipment.status)}
@@ -457,7 +462,7 @@ export default function EquipmentListPage() {
                       <TableCell>{getEquipmentTypeName(equipment.equipment_type)}</TableCell>
                       <TableCell>{getBuilding(equipment)}</TableCell>
                       <TableCell>
-                        <Badge variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
+                        <Badge variant={statusColors[equipment.status]}>
                           {getStatusLabel(equipment.status)}
                         </Badge>
                       </TableCell>
@@ -551,7 +556,7 @@ export default function EquipmentListPage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{equipment.equipment_code}</CardTitle>
-                      <Badge variant={statusColors[equipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
+                      <Badge variant={statusColors[equipment.status]}>
                         {getStatusLabel(equipment.status)}
                       </Badge>
                     </div>
@@ -627,7 +632,7 @@ export default function EquipmentListPage() {
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground">{t('equipment.status')}</p>
-                  <Badge variant={statusColors[selectedEquipment.status] as 'success' | 'info' | 'warning' | 'destructive' | 'secondary'}>
+                  <Badge variant={statusColors[selectedEquipment.status]}>
                     {getStatusLabel(selectedEquipment.status)}
                   </Badge>
                 </div>

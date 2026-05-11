@@ -27,7 +27,7 @@ import {
   Filter,
   Star,
 } from 'lucide-react'
-import { maintenanceApi, usersApi } from '@/lib/api'
+import { maintenanceApi, usersApi, equipmentApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
 import type { MaintenanceRecord, RepairType, User, Equipment } from '@/types'
 
@@ -153,6 +153,27 @@ export default function MaintenanceHistoryPage() {
 
   const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE)
 
+  // records에 매칭 기록이 없으면(이력 0건 설비) API로 직접 조회한다.
+  const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(null)
+  useEffect(() => {
+    if (!equipmentIdFilter) {
+      setCurrentEquipment(null)
+      return
+    }
+    const fromRecords = records.find(r => r.equipment_id === equipmentIdFilter)?.equipment
+    if (fromRecords) {
+      setCurrentEquipment(fromRecords)
+      return
+    }
+    let cancelled = false
+    equipmentApi.getEquipmentById(equipmentIdFilter).then(({ data }) => {
+      if (!cancelled && data) setCurrentEquipment(data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [equipmentIdFilter, records])
+
   const handleRefresh = async () => {
     setLoading(true)
     try {
@@ -170,6 +191,14 @@ export default function MaintenanceHistoryPage() {
     setTechnicianFilter('')
     setStatusFilter('')
     setSearch('')
+    // 설비 상세에서 진입(passedEquipmentId)했을 때만 설비 필터를 유지한다.
+    if (!passedEquipmentId) {
+      setEquipmentIdFilter('')
+    }
+    setCurrentPage(1)
+  }
+
+  const handleClearEquipmentFilter = () => {
     setEquipmentIdFilter('')
     setCurrentPage(1)
   }
@@ -275,7 +304,22 @@ export default function MaintenanceHistoryPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">{t('maintenance.history')}</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">{t('maintenance.historyCount', { count: filteredRecords.length })}</p>
+          {currentEquipment && (
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary" className="text-xs sm:text-sm">
+                {currentEquipment.equipment_code} · {getEquipmentName(currentEquipment)}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearEquipmentFilter}
+                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                ✕ {t('common.resetFilter')}
+              </Button>
+            </div>
+          )}
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">{t('maintenance.historyCount', { count: filteredRecords.length })}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} className="h-9 px-3">

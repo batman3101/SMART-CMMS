@@ -92,7 +92,7 @@ export default function EquipmentListPage() {
       setLoading(true)
       try {
         const [equipRes, typesRes] = await Promise.all([
-          equipmentApi.getEquipments(),
+          equipmentApi.getEquipments({ withEffectiveStatus: true }),
           equipmentApi.getEquipmentTypes(),
         ])
         if (equipRes.error) {
@@ -176,7 +176,7 @@ export default function EquipmentListPage() {
   const handleRefresh = async () => {
     setLoading(true)
     try {
-      const { data, error } = await equipmentApi.getEquipments()
+      const { data, error } = await equipmentApi.getEquipments({ withEffectiveStatus: true })
       if (error) {
         addToast({ type: 'error', title: t('common.error'), message: t('equipment.fetchError') })
         console.error('Refresh error:', error)

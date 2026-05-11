@@ -342,7 +342,8 @@
     "thisWeek": "이번 주",
     "thisMonth": "이번 달",
     "thisQuarter": "이번 분기",
-    "thisYear": "올해"
+    "thisYear": "올해",
+    "last6Months": "최근 6개월"
   },
   "report": {
     "title": "리포트",

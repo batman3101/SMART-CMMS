@@ -342,7 +342,8 @@
     "thisWeek": "Tuần này",
     "thisMonth": "Tháng này",
     "thisQuarter": "Quý này",
-    "thisYear": "Năm nay"
+    "thisYear": "Năm nay",
+    "last6Months": "6 tháng qua"
   },
   "report": {
     "title": "Báo cáo",

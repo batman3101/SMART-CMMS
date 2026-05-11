@@ -150,6 +150,7 @@
     "technicianPerformance": "기술자별 성과",
     "failureTopEquipment": "고장 빈도 상위 설비",
     "today": "오늘",
+    "yesterday": "어제",
     "last7Days": "최근 7일",
     "last30Days": "최근 한 달",
     "customPeriod": "기간 지정",

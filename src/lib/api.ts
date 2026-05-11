@@ -825,7 +825,7 @@ export const statisticsApi = {
   async getEquipmentStatusDistribution(): Promise<{ data: { status: string; value: number; color: string }[] | null; error: string | null }> {
     const { data: equipments } = await getSupabase()
       .from('equipments')
-      .select('status')
+      .select('id, status')
       .eq('factory_id', getCurrentFactoryId())
       .eq('is_active', true)
 
@@ -833,10 +833,13 @@ export const statisticsApi = {
       return { data: null, error: 'Failed to fetch equipment data' }
     }
 
-    // Get in-progress maintenance records to determine actual repair status
+    // maintenance_records is the single source of truth for "under repair right now".
+    // equipments.status can drift (e.g. a completed/deleted record can leave it stuck
+    // at 'repair'), so we always reconcile against in-progress records here — this
+    // keeps the pie chart consistent with the top "수리 중" card on the dashboard.
     const { data: inProgressRecords } = await getSupabase()
       .from('maintenance_records')
-      .select('id')
+      .select('equipment_id')
       .eq('factory_id', getCurrentFactoryId())
       .eq('status', 'in_progress')
 
@@ -848,20 +851,23 @@ export const statisticsApi = {
       standby: '#9CA3AF',
     }
 
+    const inProgressSet = new Set(
+      (inProgressRecords || []).map(r => r.equipment_id)
+    )
+
     const statusCounts: Record<string, number> = {}
-
-    // Count equipment statuses
     equipments.forEach(eq => {
-      statusCounts[eq.status] = (statusCounts[eq.status] || 0) + 1
+      let effectiveStatus: string
+      if (inProgressSet.has(eq.id)) {
+        effectiveStatus = 'repair'
+      } else if (eq.status === 'repair') {
+        // Stale equipment.status without a matching in-progress record — treat as normal
+        effectiveStatus = 'normal'
+      } else {
+        effectiveStatus = eq.status
+      }
+      statusCounts[effectiveStatus] = (statusCounts[effectiveStatus] || 0) + 1
     })
-
-    // Adjust for in-progress repairs
-    const inProgressCount = inProgressRecords?.length || 0
-    if (inProgressCount > 0) {
-      // Subtract from normal count and add to repair count
-      statusCounts['normal'] = Math.max(0, (statusCounts['normal'] || 0) - inProgressCount)
-      statusCounts['repair'] = (statusCounts['repair'] || 0) + inProgressCount
-    }
 
     const distribution = Object.entries(statusCounts)
       .filter(([_status, value]) => value > 0) // Only include statuses with count > 0

@@ -32,6 +32,7 @@ import {
   Line,
 } from 'recharts'
 import { statisticsApi, maintenanceApi } from '@/lib/api'
+import { getTodayInTimezone, getRelativeDateInTimezone } from '@/lib/dateUtils'
 import { useAuthStore } from '@/stores/authStore'
 import type {
   DashboardStats,
@@ -111,6 +112,85 @@ export default function DashboardPage() {
   const [customEndDate, setCustomEndDate] = useState('')
   const [showDateFilterDropdown, setShowDateFilterDropdown] = useState(false)
 
+  // KPI 카드 기간 필터 (MTBF / MTTR / 가동률 — 동일한 윈도우 공유)
+  type KpiFilterType = '30days' | '7days' | 'yesterday' | 'custom'
+  const [kpiFilter, setKpiFilter] = useState<KpiFilterType>('30days')
+  const [kpiCustomStart, setKpiCustomStart] = useState('')
+  const [kpiCustomEnd, setKpiCustomEnd] = useState('')
+  const [showKpiDropdown, setShowKpiDropdown] = useState(false)
+
+  // 필터 라벨 (KPI 카드 보조 텍스트 + 드롭다운 버튼)
+  const getKpiFilterLabel = (filter: KpiFilterType) => {
+    switch (filter) {
+      case 'yesterday':
+        return t('dashboard.yesterday')
+      case '7days':
+        return t('dashboard.last7Days')
+      case '30days':
+        return t('dashboard.last30Days')
+      case 'custom':
+        return kpiCustomStart && kpiCustomEnd
+          ? `${kpiCustomStart} ~ ${kpiCustomEnd}`
+          : t('dashboard.customPeriod')
+    }
+  }
+
+  // 필터 → 실제 startDate/endDate 계산
+  const resolveKpiDateRange = (
+    filter: KpiFilterType,
+    customStart?: string,
+    customEnd?: string
+  ): { startDate: string; endDate: string } => {
+    const today = getTodayInTimezone()
+    switch (filter) {
+      case 'yesterday': {
+        const y = getRelativeDateInTimezone(-1)
+        return { startDate: y, endDate: y }
+      }
+      case '7days':
+        return { startDate: getRelativeDateInTimezone(-7), endDate: today }
+      case 'custom':
+        if (customStart && customEnd) return { startDate: customStart, endDate: customEnd }
+        return { startDate: getRelativeDateInTimezone(-30), endDate: today }
+      case '30days':
+      default:
+        return { startDate: getRelativeDateInTimezone(-30), endDate: today }
+    }
+  }
+
+  // KPI 데이터 로드 (기간 필터 적용)
+  const fetchKpisData = async (
+    filter: KpiFilterType,
+    customStart?: string,
+    customEnd?: string
+  ) => {
+    try {
+      const { startDate, endDate } = resolveKpiDateRange(filter, customStart, customEnd)
+      const { data } = await statisticsApi.getFilteredKPIs({ startDate, endDate })
+      if (data) {
+        setKpis({ mtbf: data.mtbf, mttr: data.mttr, availability: data.availability })
+      }
+    } catch (error) {
+      console.error('Failed to fetch KPI data:', error)
+    }
+  }
+
+  const handleKpiFilterChange = (filter: KpiFilterType) => {
+    setKpiFilter(filter)
+    if (filter !== 'custom') {
+      setShowKpiDropdown(false)
+      fetchKpisData(filter)
+    }
+  }
+
+  const applyKpiCustomRange = () => {
+    if (kpiCustomStart && kpiCustomEnd) {
+      setKpiFilter('custom')
+      setShowKpiDropdown(false)
+      fetchKpisData('custom', kpiCustomStart, kpiCustomEnd)
+    }
+  }
+
   // 기간 필터 라벨
   const getDateFilterLabel = (filter: DateFilterType) => {
     switch (filter) {
@@ -140,6 +220,7 @@ export default function DashboardPage() {
   // 커스텀 기간 적용
   const applyCustomDateRange = () => {
     if (customStartDate && customEndDate) {
+      setRepairDateFilter('custom')
       setShowDateFilterDropdown(false)
       fetchRepairTypeData('custom', customStartDate, customEndDate)
     }
@@ -163,15 +244,27 @@ export default function DashboardPage() {
     setLoading(true)
     try {
       // 1단계: 핵심 데이터 먼저 로드 (stats, inProgress, kpis)
+      // KPI는 현재 선택된 기간 필터를 적용해서 로드 (기본: 최근 30일)
+      const { startDate: kpiStart, endDate: kpiEnd } = resolveKpiDateRange(
+        kpiFilter,
+        kpiCustomStart,
+        kpiCustomEnd
+      )
       const [statsRes, inProgressRes, kpisRes] = await Promise.all([
         statisticsApi.getDashboardStats(),
         maintenanceApi.getInProgressRecords(),
-        statisticsApi.getKPIs(),
+        statisticsApi.getFilteredKPIs({ startDate: kpiStart, endDate: kpiEnd }),
       ])
 
       if (statsRes.data) setStats(statsRes.data)
       if (inProgressRes.data) setInProgressRecords(inProgressRes.data)
-      if (kpisRes.data) setKpis(kpisRes.data)
+      if (kpisRes.data) {
+        setKpis({
+          mtbf: kpisRes.data.mtbf,
+          mttr: kpisRes.data.mttr,
+          availability: kpisRes.data.availability,
+        })
+      }
 
       // 핵심 데이터 로드 후 로딩 해제 (UI 빠르게 표시)
       setLoading(false)
@@ -285,28 +378,106 @@ export default function DashboardPage() {
 
       {/* KPI Cards - 모바일: 1열, 태블릿: 3열 */}
       {kpis && (
-        <div className="grid gap-3 grid-cols-3 md:gap-4">
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.mtbf')}</p>
-              <p className="text-xl sm:text-3xl font-bold text-blue-600">{kpis.mtbf.toFixed(1)}h</p>
-              <p className="hidden sm:block text-xs text-muted-foreground">Mean Time Between Failures</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.mttr')}</p>
-              <p className="text-xl sm:text-3xl font-bold text-yellow-600">{kpis.mttr.toFixed(1)}h</p>
-              <p className="hidden sm:block text-xs text-muted-foreground">Mean Time To Repair</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.availabilityRate')}</p>
-              <p className="text-xl sm:text-3xl font-bold text-green-600">{kpis.availability.toFixed(1)}%</p>
-              <p className="hidden sm:block text-xs text-muted-foreground">Equipment Availability Rate</p>
-            </CardContent>
-          </Card>
+        <div className="space-y-2">
+          {/* KPI 기간 필터 드롭다운 */}
+          <div className="flex items-center justify-end">
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowKpiDropdown(!showKpiDropdown)}
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-8"
+              >
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="truncate max-w-[140px] sm:max-w-none">{getKpiFilterLabel(kpiFilter)}</span>
+                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+              </Button>
+              {showKpiDropdown && (
+                <div className="absolute right-0 top-full z-50 mt-1 w-56 sm:w-64 rounded-md border bg-popover p-2 shadow-lg">
+                  <div className="space-y-1">
+                    <button
+                      className={`w-full rounded px-3 py-2 text-left text-sm hover:bg-muted ${
+                        kpiFilter === '30days' ? 'bg-muted font-medium' : ''
+                      }`}
+                      onClick={() => handleKpiFilterChange('30days')}
+                    >
+                      {t('dashboard.last30Days')}
+                    </button>
+                    <button
+                      className={`w-full rounded px-3 py-2 text-left text-sm hover:bg-muted ${
+                        kpiFilter === '7days' ? 'bg-muted font-medium' : ''
+                      }`}
+                      onClick={() => handleKpiFilterChange('7days')}
+                    >
+                      {t('dashboard.last7Days')}
+                    </button>
+                    <button
+                      className={`w-full rounded px-3 py-2 text-left text-sm hover:bg-muted ${
+                        kpiFilter === 'yesterday' ? 'bg-muted font-medium' : ''
+                      }`}
+                      onClick={() => handleKpiFilterChange('yesterday')}
+                    >
+                      {t('dashboard.yesterday')}
+                    </button>
+                    <div className="border-t pt-2">
+                      <p className="mb-2 px-3 text-xs font-medium text-muted-foreground">
+                        {t('dashboard.customPeriod')}
+                      </p>
+                      <div className="space-y-2 px-3">
+                        <Input
+                          type="date"
+                          value={kpiCustomStart}
+                          onChange={(e) => setKpiCustomStart(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                        <Input
+                          type="date"
+                          value={kpiCustomEnd}
+                          onChange={(e) => setKpiCustomEnd(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={applyKpiCustomRange}
+                          disabled={!kpiCustomStart || !kpiCustomEnd}
+                        >
+                          {t('dashboard.apply')}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-3 grid-cols-3 md:gap-4">
+            <Card>
+              <CardContent className="p-3 sm:p-6">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.mtbf')}</p>
+                <p className="text-xl sm:text-3xl font-bold text-blue-600">{kpis.mtbf.toFixed(1)}h</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground/70">{getKpiFilterLabel(kpiFilter)}</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Mean Time Between Failures</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 sm:p-6">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.mttr')}</p>
+                <p className="text-xl sm:text-3xl font-bold text-yellow-600">{kpis.mttr.toFixed(1)}h</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground/70">{getKpiFilterLabel(kpiFilter)}</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Mean Time To Repair</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 sm:p-6">
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('analytics.availabilityRate')}</p>
+                <p className="text-xl sm:text-3xl font-bold text-green-600">{kpis.availability.toFixed(1)}%</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground/70">{getKpiFilterLabel(kpiFilter)}</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Equipment Availability Rate</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 

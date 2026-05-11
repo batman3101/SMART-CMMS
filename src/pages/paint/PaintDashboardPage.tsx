@@ -255,9 +255,9 @@ export default function PaintDashboardPage() {
         </Card>
 
         {/* Overdue Paint */}
-        <Card className={overdueSchedules.length > 0 ? 'border-red-300' : ''}>
+        <Card className={overdueSchedules.length > 0 ? 'border-red-300 dark:border-red-800' : ''}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg text-red-600">{t('paint.overduePaint')}</CardTitle>
+            <CardTitle className="text-lg text-red-600 dark:text-red-400">{t('paint.overduePaint')}</CardTitle>
             <Badge variant="destructive">{overdueSchedules.length}</Badge>
           </CardHeader>
           <CardContent>
@@ -271,11 +271,11 @@ export default function PaintDashboardPage() {
                 {overdueSchedules.slice(0, 5).map((schedule) => (
                   <div
                     key={schedule.id}
-                    className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-3"
+                    className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950/20"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">
+                        <span className="font-medium text-foreground">
                           {schedule.equipment?.equipment_code}
                         </span>
                         <Badge variant="destructive">{t('paint.statusOverdue')}</Badge>
@@ -283,7 +283,7 @@ export default function PaintDashboardPage() {
                       <p className="text-sm text-muted-foreground">
                         {getEquipmentName(schedule.equipment)}
                       </p>
-                      <p className="text-xs text-red-600">
+                      <p className="text-xs text-red-600 dark:text-red-400">
                         {t('paint.scheduledDate')}: {schedule.scheduled_date}
                       </p>
                     </div>

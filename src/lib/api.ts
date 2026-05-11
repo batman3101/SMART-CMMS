@@ -83,21 +83,123 @@ const getEdgeFunctionUrl = (functionName: string) => {
 }
 
 // ========================================
+// Pagination helper — bypass PostgREST 1000-row default limit
+// ========================================
+// PostgREST returns at most 1000 rows by default. For aggregation/list helpers
+// that need the full result set, page through 1000-row chunks until exhausted.
+// Cap at 100k rows as a runaway-loop safety.
+async function fetchAllRows<T>(
+  build: (range: { from: number; to: number }) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>
+): Promise<{ data: T[]; error: string | null }> {
+  const PAGE = 1000
+  const all: T[] = []
+  let from = 0
+  for (let safety = 0; safety < 100; safety++) {
+    const { data, error } = await build({ from, to: from + PAGE - 1 })
+    if (error) return { data: all, error: error.message }
+    if (!data) break
+    all.push(...(data as T[]))
+    if (data.length < PAGE) break
+    from += PAGE
+  }
+  return { data: all, error: null }
+}
+
+// ========================================
+// Effective equipment status — shared reconciliation
+// ========================================
+// Operational tables (maintenance/pm/paint in_progress) are the single source of truth;
+// equipments.status is a stale-prone cache. Equipment list and dashboard distribution
+// both consume these helpers to guarantee parity.
+
+type InProgressEquipmentSets = {
+  emergencyIds: Set<string>
+  repairIds: Set<string>
+  pmIds: Set<string>  // pm_executions + paint_executions 통합
+}
+
+async function fetchInProgressEquipmentSets(factoryId: string): Promise<InProgressEquipmentSets> {
+  // 도색의 진실 공급원: paint_schedules (도색 페이지가 이 테이블 기준으로 동작).
+  // paint_executions는 step-wise 실행 기록이라 schedule 완료와 동기화가 깨질 수 있음.
+  const [repairRes, pmRes, paintRes] = await Promise.all([
+    getSupabase()
+      .from('maintenance_records')
+      .select('equipment_id, repair_type:repair_types(code)')
+      .eq('factory_id', factoryId)
+      .eq('status', 'in_progress'),
+    getSupabase()
+      .from('pm_executions')
+      .select('equipment_id')
+      .eq('factory_id', factoryId)
+      .eq('status', 'in_progress'),
+    getSupabase()
+      .from('paint_schedules')
+      .select('equipment_id')
+      .eq('factory_id', factoryId)
+      .eq('status', 'in_progress'),
+  ])
+
+  const emergencyIds = new Set<string>()
+  const repairIds = new Set<string>()
+  const pmIds = new Set<string>()
+
+  for (const r of (repairRes.data || [])) {
+    const code = (r.repair_type as { code?: string } | null)?.code
+    if (code === 'EM') {
+      emergencyIds.add(r.equipment_id)
+    } else {
+      repairIds.add(r.equipment_id)
+    }
+  }
+  for (const r of (pmRes.data || [])) pmIds.add(r.equipment_id)
+  // 도색 진행중은 별도 EquipmentStatus 값이 없어 'pm' 카테고리로 매핑한다.
+  for (const r of (paintRes.data || [])) pmIds.add(r.equipment_id)
+
+  return { emergencyIds, repairIds, pmIds }
+}
+
+// Priority: emergency > repair > pm > (stale → normal) > original
+function deriveEffectiveStatus(
+  equipmentId: string,
+  fallbackStatus: EquipmentStatus,
+  sets: InProgressEquipmentSets
+): EquipmentStatus {
+  if (sets.emergencyIds.has(equipmentId)) return 'emergency'
+  if (sets.repairIds.has(equipmentId)) return 'repair'
+  if (sets.pmIds.has(equipmentId)) return 'pm'
+  if (fallbackStatus === 'repair' || fallbackStatus === 'emergency' || fallbackStatus === 'pm') {
+    return 'normal'
+  }
+  return fallbackStatus
+}
+
+// ========================================
 // Equipment API
 // ========================================
 export const equipmentApi = {
-  async getEquipments(): Promise<{ data: Equipment[] | null; error: string | null }> {
+  async getEquipments(options?: { withEffectiveStatus?: boolean }): Promise<{ data: Equipment[] | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
     const { data, error } = await getSupabase()
       .from('equipments')
       .select(`
         *,
         equipment_type:equipment_types(*)
       `)
-      .eq('factory_id', getCurrentFactoryId())
+      .eq('factory_id', factoryId)
       .eq('is_active', true)
       .order('equipment_code')
 
-    return { data, error: error?.message || null }
+    if (error || !data || !options?.withEffectiveStatus) {
+      return { data, error: error?.message || null }
+    }
+
+    const sets = await fetchInProgressEquipmentSets(factoryId)
+    const enriched = data.map(eq => ({
+      ...eq,
+      status: deriveEffectiveStatus(eq.id, eq.status, sets),
+    }))
+
+    return { data: enriched, error: null }
   },
 
   async getEquipmentById(id: string): Promise<{ data: Equipment | null; error: string | null }> {
@@ -313,55 +415,50 @@ export const maintenanceApi = {
     status?: string
     equipmentId?: string
   }): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    let query = getSupabase()
-      .from('maintenance_records')
-      .select(`
-        *,
-        equipment:equipments(*,equipment_type:equipment_types(*)),
-        repair_type:repair_types(*),
-        technician:users(*)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
-      .order('date', { ascending: false })
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<MaintenanceRecord>(({ from, to }) => {
+      let q = getSupabase()
+        .from('maintenance_records')
+        .select(`
+          *,
+          equipment:equipments(*,equipment_type:equipment_types(*)),
+          repair_type:repair_types(*),
+          technician:users(*)
+        `)
+        .eq('factory_id', factoryId)
+        .order('date', { ascending: false })
 
-    if (filter?.startDate) {
-      query = query.gte('date', filter.startDate)
-    }
-    if (filter?.endDate) {
-      query = query.lte('date', filter.endDate)
-    }
-    if (filter?.repairTypeId) {
-      query = query.eq('repair_type_id', filter.repairTypeId)
-    }
-    if (filter?.technicianId) {
-      query = query.eq('technician_id', filter.technicianId)
-    }
-    if (filter?.status) {
-      query = query.eq('status', filter.status)
-    }
-    if (filter?.equipmentId) {
-      query = query.eq('equipment_id', filter.equipmentId)
-    }
+      if (filter?.startDate) q = q.gte('date', filter.startDate)
+      if (filter?.endDate) q = q.lte('date', filter.endDate)
+      if (filter?.repairTypeId) q = q.eq('repair_type_id', filter.repairTypeId)
+      if (filter?.technicianId) q = q.eq('technician_id', filter.technicianId)
+      if (filter?.status) q = q.eq('status', filter.status)
+      if (filter?.equipmentId) q = q.eq('equipment_id', filter.equipmentId)
 
-    const { data, error } = await query
+      return q.range(from, to)
+    })
 
-    return { data, error: error?.message || null }
+    return { data, error }
   },
 
   async getInProgressRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
-    const { data, error } = await getSupabase()
-      .from('maintenance_records')
-      .select(`
-        *,
-        equipment:equipments(*,equipment_type:equipment_types(*)),
-        repair_type:repair_types(*),
-        technician:users(*)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'in_progress')
-      .order('start_time', { ascending: false })
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<MaintenanceRecord>(({ from, to }) =>
+      getSupabase()
+        .from('maintenance_records')
+        .select(`
+          *,
+          equipment:equipments(*,equipment_type:equipment_types(*)),
+          repair_type:repair_types(*),
+          technician:users(*)
+        `)
+        .eq('factory_id', factoryId)
+        .eq('status', 'in_progress')
+        .order('start_time', { ascending: false })
+        .range(from, to)
+    )
 
-    return { data, error: error?.message || null }
+    return { data, error }
   },
 
   async getTodayRecords(): Promise<{ data: MaintenanceRecord[] | null; error: string | null }> {
@@ -782,19 +879,23 @@ export const statisticsApi = {
 
   async getEquipmentFailureRank(limit?: number): Promise<{ data: EquipmentFailureRank[] | null; error: string | null }> {
     const thirtyDaysAgoStr = getRelativeDateInTimezone(-30)
+    const factoryId = getCurrentFactoryId()
 
-    const { data, error } = await getSupabase()
-      .from('maintenance_records')
-      .select(`
-        equipment_id,
-        duration_minutes,
-        equipment:equipments(equipment_code, equipment_name)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
-      .gte('date', thirtyDaysAgoStr)
+    const { data, error } = await fetchAllRows<{ equipment_id: string; duration_minutes: number | null; equipment: EquipmentJoin | null }>(({ from, to }) =>
+      getSupabase()
+        .from('maintenance_records')
+        .select(`
+          equipment_id,
+          duration_minutes,
+          equipment:equipments(equipment_code, equipment_name)
+        `)
+        .eq('factory_id', factoryId)
+        .gte('date', thirtyDaysAgoStr)
+        .range(from, to)
+    )
 
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Aggregate by equipment
@@ -823,25 +924,18 @@ export const statisticsApi = {
   },
 
   async getEquipmentStatusDistribution(): Promise<{ data: { status: string; value: number; color: string }[] | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
     const { data: equipments } = await getSupabase()
       .from('equipments')
       .select('id, status')
-      .eq('factory_id', getCurrentFactoryId())
+      .eq('factory_id', factoryId)
       .eq('is_active', true)
 
     if (!equipments) {
       return { data: null, error: 'Failed to fetch equipment data' }
     }
 
-    // maintenance_records is the single source of truth for "under repair right now".
-    // equipments.status can drift (e.g. a completed/deleted record can leave it stuck
-    // at 'repair'), so we always reconcile against in-progress records here — this
-    // keeps the pie chart consistent with the top "수리 중" card on the dashboard.
-    const { data: inProgressRecords } = await getSupabase()
-      .from('maintenance_records')
-      .select('equipment_id')
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'in_progress')
+    const sets = await fetchInProgressEquipmentSets(factoryId)
 
     const statusColors: Record<string, string> = {
       normal: '#10B981',
@@ -851,21 +945,9 @@ export const statisticsApi = {
       standby: '#9CA3AF',
     }
 
-    const inProgressSet = new Set(
-      (inProgressRecords || []).map(r => r.equipment_id)
-    )
-
     const statusCounts: Record<string, number> = {}
     equipments.forEach(eq => {
-      let effectiveStatus: string
-      if (inProgressSet.has(eq.id)) {
-        effectiveStatus = 'repair'
-      } else if (eq.status === 'repair') {
-        // Stale equipment.status without a matching in-progress record — treat as normal
-        effectiveStatus = 'normal'
-      } else {
-        effectiveStatus = eq.status
-      }
+      const effectiveStatus = deriveEffectiveStatus(eq.id, eq.status, sets)
       statusCounts[effectiveStatus] = (statusCounts[effectiveStatus] || 0) + 1
     })
 
@@ -907,22 +989,19 @@ export const statisticsApi = {
       }
     }
 
-    let query = getSupabase()
-      .from('maintenance_records')
-      .select('repair_type:repair_types(id, code, name, color)')
-      .eq('factory_id', getCurrentFactoryId())
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<{ repair_type: RepairTypeJoin | null }>(({ from, to }) => {
+      let q = getSupabase()
+        .from('maintenance_records')
+        .select('repair_type:repair_types(id, code, name, color)')
+        .eq('factory_id', factoryId)
+      if (queryStartDate) q = q.gte('date', queryStartDate)
+      if (queryEndDate) q = q.lte('date', queryEndDate)
+      return q.range(from, to)
+    })
 
-    if (queryStartDate) {
-      query = query.gte('date', queryStartDate)
-    }
-    if (queryEndDate) {
-      query = query.lte('date', queryEndDate)
-    }
-
-    const { data, error } = await query
-
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Aggregate by repair type
@@ -947,15 +1026,19 @@ export const statisticsApi = {
 
   async getWeeklyRepairTrend(): Promise<{ data: { dayIndex: number; count: number }[] | null; error: string | null }> {
     const sevenDaysAgoStr = getRelativeDateInTimezone(-7)
+    const factoryId = getCurrentFactoryId()
 
-    const { data, error } = await getSupabase()
-      .from('maintenance_records')
-      .select('date')
-      .eq('factory_id', getCurrentFactoryId())
-      .gte('date', sevenDaysAgoStr)
+    const { data, error } = await fetchAllRows<{ date: string }>(({ from, to }) =>
+      getSupabase()
+        .from('maintenance_records')
+        .select('date')
+        .eq('factory_id', factoryId)
+        .gte('date', sevenDaysAgoStr)
+        .range(from, to)
+    )
 
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Aggregate by day of week
@@ -975,16 +1058,20 @@ export const statisticsApi = {
 
   async getTechnicianPerformance(): Promise<{ data: TechnicianPerformance[] | null; error: string | null }> {
     const thirtyDaysAgoStr = getRelativeDateInTimezone(-30)
+    const factoryId = getCurrentFactoryId()
 
-    const { data, error } = await getSupabase()
-      .from('maintenance_records')
-      .select('technician_id, duration_minutes, rating, technician:users(id, name)')
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'completed')
-      .gte('date', thirtyDaysAgoStr)
+    const { data, error } = await fetchAllRows<{ technician_id: string; duration_minutes: number | null; rating: number | null; technician: TechnicianJoin | null }>(({ from, to }) =>
+      getSupabase()
+        .from('maintenance_records')
+        .select('technician_id, duration_minutes, rating, technician:users(id, name)')
+        .eq('factory_id', factoryId)
+        .eq('status', 'completed')
+        .gte('date', thirtyDaysAgoStr)
+        .range(from, to)
+    )
 
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Aggregate by technician
@@ -1033,19 +1120,29 @@ export const statisticsApi = {
   async getKPIs(): Promise<{ data: { mtbf: number; mttr: number; availability: number } | null; error: string | null }> {
     // Calculate KPIs from maintenance records
     const thirtyDaysAgoStr = getRelativeDateInTimezone(-30)
+    const factoryId = getCurrentFactoryId()
 
-    const { data: records } = await getSupabase()
-      .from('maintenance_records')
-      .select('duration_minutes, date')
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'completed')
-      .gte('date', thirtyDaysAgoStr)
-
-    const { data: equipments } = await getSupabase()
-      .from('equipments')
-      .select('id')
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('is_active', true)
+    const [recordsRes, equipmentsRes] = await Promise.all([
+      fetchAllRows<{ duration_minutes: number | null; date: string }>(({ from, to }) =>
+        getSupabase()
+          .from('maintenance_records')
+          .select('duration_minutes, date')
+          .eq('factory_id', factoryId)
+          .eq('status', 'completed')
+          .gte('date', thirtyDaysAgoStr)
+          .range(from, to)
+      ),
+      fetchAllRows<{ id: string }>(({ from, to }) =>
+        getSupabase()
+          .from('equipments')
+          .select('id')
+          .eq('factory_id', factoryId)
+          .eq('is_active', true)
+          .range(from, to)
+      ),
+    ])
+    const records = recordsRes.data
+    const equipments = equipmentsRes.data
 
     const totalEquipment = equipments?.length || 1
     const totalRecords = records?.length || 0
@@ -1087,27 +1184,28 @@ export const statisticsApi = {
     } | null
     error: string | null
   }> {
-    let query = getSupabase()
-      .from('maintenance_records')
-      .select(`
-        duration_minutes,
-        repair_type:repair_types(code),
-        equipment:equipments(building, equipment_type_id)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'completed')
-
-    if (filter?.startDate) {
-      query = query.gte('date', filter.startDate)
-    }
-    if (filter?.endDate) {
-      query = query.lte('date', filter.endDate)
-    }
-
-    const { data: records, error } = await query
+    const factoryId = getCurrentFactoryId()
+    const { data: records, error } = await fetchAllRows<{
+      duration_minutes: number | null
+      repair_type: { code?: string } | null
+      equipment: { building?: string; equipment_type_id?: string } | null
+    }>(({ from, to }) => {
+      let q = getSupabase()
+        .from('maintenance_records')
+        .select(`
+          duration_minutes,
+          repair_type:repair_types(code),
+          equipment:equipments(building, equipment_type_id)
+        `)
+        .eq('factory_id', factoryId)
+        .eq('status', 'completed')
+      if (filter?.startDate) q = q.gte('date', filter.startDate)
+      if (filter?.endDate) q = q.lte('date', filter.endDate)
+      return q.range(from, to)
+    })
 
     if (error) {
-      return { data: null, error: error.message }
+      return { data: null, error }
     }
 
     // Filter by building and equipment type in memory
@@ -1172,26 +1270,23 @@ export const statisticsApi = {
     },
     limit?: number
   ): Promise<{ data: EquipmentFailureRank[] | null; error: string | null }> {
-    let query = getSupabase()
-      .from('maintenance_records')
-      .select(`
-        equipment_id,
-        duration_minutes,
-        equipment:equipments(equipment_code, equipment_name, building, equipment_type_id)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<{ equipment_id: string; duration_minutes: number | null; equipment: (EquipmentJoin & { building?: string; equipment_type_id?: string }) | null }>(({ from, to }) => {
+      let q = getSupabase()
+        .from('maintenance_records')
+        .select(`
+          equipment_id,
+          duration_minutes,
+          equipment:equipments(equipment_code, equipment_name, building, equipment_type_id)
+        `)
+        .eq('factory_id', factoryId)
+      if (filter?.startDate) q = q.gte('date', filter.startDate)
+      if (filter?.endDate) q = q.lte('date', filter.endDate)
+      return q.range(from, to)
+    })
 
-    if (filter?.startDate) {
-      query = query.gte('date', filter.startDate)
-    }
-    if (filter?.endDate) {
-      query = query.lte('date', filter.endDate)
-    }
-
-    const { data, error } = await query
-
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Filter by building and equipment type
@@ -1240,25 +1335,22 @@ export const statisticsApi = {
     building?: string
     equipmentTypeId?: string
   }): Promise<{ data: RepairTypeDistribution[] | null; error: string | null }> {
-    let query = getSupabase()
-      .from('maintenance_records')
-      .select(`
-        repair_type:repair_types(id, code, name),
-        equipment:equipments(building, equipment_type_id)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<{ repair_type: RepairTypeJoin | null; equipment: { building?: string; equipment_type_id?: string } | null }>(({ from, to }) => {
+      let q = getSupabase()
+        .from('maintenance_records')
+        .select(`
+          repair_type:repair_types(id, code, name),
+          equipment:equipments(building, equipment_type_id)
+        `)
+        .eq('factory_id', factoryId)
+      if (filter?.startDate) q = q.gte('date', filter.startDate)
+      if (filter?.endDate) q = q.lte('date', filter.endDate)
+      return q.range(from, to)
+    })
 
-    if (filter?.startDate) {
-      query = query.gte('date', filter.startDate)
-    }
-    if (filter?.endDate) {
-      query = query.lte('date', filter.endDate)
-    }
-
-    const { data, error } = await query
-
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Filter by building and equipment type
@@ -1302,25 +1394,22 @@ export const statisticsApi = {
     building?: string
     equipmentTypeId?: string
   }): Promise<{ data: { monthIndex: number; count: number }[] | null; error: string | null }> {
-    let query = getSupabase()
-      .from('maintenance_records')
-      .select(`
-        date,
-        equipment:equipments(building, equipment_type_id)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<{ date: string; equipment: { building?: string; equipment_type_id?: string } | null }>(({ from, to }) => {
+      let q = getSupabase()
+        .from('maintenance_records')
+        .select(`
+          date,
+          equipment:equipments(building, equipment_type_id)
+        `)
+        .eq('factory_id', factoryId)
+      if (filter?.startDate) q = q.gte('date', filter.startDate)
+      if (filter?.endDate) q = q.lte('date', filter.endDate)
+      return q.range(from, to)
+    })
 
-    if (filter?.startDate) {
-      query = query.gte('date', filter.startDate)
-    }
-    if (filter?.endDate) {
-      query = query.lte('date', filter.endDate)
-    }
-
-    const { data, error } = await query
-
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Filter by building and equipment type
@@ -1360,25 +1449,22 @@ export const statisticsApi = {
     endDate?: string
     equipmentTypeId?: string
   }): Promise<{ data: { building: string; failure_count: number; total_downtime_minutes: number }[] | null; error: string | null }> {
-    let query = getSupabase()
-      .from('maintenance_records')
-      .select(`
-        duration_minutes,
-        equipment:equipments(building, equipment_type_id)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<{ duration_minutes: number | null; equipment: { building?: string; equipment_type_id?: string } | null }>(({ from, to }) => {
+      let q = getSupabase()
+        .from('maintenance_records')
+        .select(`
+          duration_minutes,
+          equipment:equipments(building, equipment_type_id)
+        `)
+        .eq('factory_id', factoryId)
+      if (filter?.startDate) q = q.gte('date', filter.startDate)
+      if (filter?.endDate) q = q.lte('date', filter.endDate)
+      return q.range(from, to)
+    })
 
-    if (filter?.startDate) {
-      query = query.gte('date', filter.startDate)
-    }
-    if (filter?.endDate) {
-      query = query.lte('date', filter.endDate)
-    }
-
-    const { data, error } = await query
-
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Filter by equipment type
@@ -1411,29 +1497,26 @@ export const statisticsApi = {
     building?: string
     equipmentTypeId?: string
   }): Promise<{ data: TechnicianPerformance[] | null; error: string | null }> {
-    let query = getSupabase()
-      .from('maintenance_records')
-      .select(`
-        technician_id,
-        duration_minutes,
-        rating,
-        technician:users(id, name),
-        equipment:equipments(building, equipment_type_id)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'completed')
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<{ technician_id: string; duration_minutes: number | null; rating: number | null; technician: TechnicianJoin | null; equipment: { building?: string; equipment_type_id?: string } | null }>(({ from, to }) => {
+      let q = getSupabase()
+        .from('maintenance_records')
+        .select(`
+          technician_id,
+          duration_minutes,
+          rating,
+          technician:users(id, name),
+          equipment:equipments(building, equipment_type_id)
+        `)
+        .eq('factory_id', factoryId)
+        .eq('status', 'completed')
+      if (filter?.startDate) q = q.gte('date', filter.startDate)
+      if (filter?.endDate) q = q.lte('date', filter.endDate)
+      return q.range(from, to)
+    })
 
-    if (filter?.startDate) {
-      query = query.gte('date', filter.startDate)
-    }
-    if (filter?.endDate) {
-      query = query.lte('date', filter.endDate)
-    }
-
-    const { data, error } = await query
-
-    if (error || !data) {
-      return { data: null, error: error?.message || null }
+    if (error) {
+      return { data: null, error }
     }
 
     // Filter by building and equipment type
@@ -1506,33 +1589,26 @@ export const pmApi = {
     startDate?: string
     endDate?: string
   }): Promise<{ data: PMSchedule[] | null; error: string | null }> {
-    let query = getSupabase()
-      .from('pm_schedules')
-      .select(`
-        *,
-        equipment:equipments(*,equipment_type:equipment_types(*)),
-        template:pm_templates(*),
-        assigned_technician:users(*)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
-      .order('scheduled_date', { ascending: true })
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<PMSchedule>(({ from, to }) => {
+      let q = getSupabase()
+        .from('pm_schedules')
+        .select(`
+          *,
+          equipment:equipments(*,equipment_type:equipment_types(*)),
+          template:pm_templates(*),
+          assigned_technician:users(*)
+        `)
+        .eq('factory_id', factoryId)
+        .order('scheduled_date', { ascending: true })
+      if (filter?.status) q = q.eq('status', filter.status)
+      if (filter?.technicianId) q = q.eq('assigned_technician_id', filter.technicianId)
+      if (filter?.startDate) q = q.gte('scheduled_date', filter.startDate)
+      if (filter?.endDate) q = q.lte('scheduled_date', filter.endDate)
+      return q.range(from, to)
+    })
 
-    if (filter?.status) {
-      query = query.eq('status', filter.status)
-    }
-    if (filter?.technicianId) {
-      query = query.eq('assigned_technician_id', filter.technicianId)
-    }
-    if (filter?.startDate) {
-      query = query.gte('scheduled_date', filter.startDate)
-    }
-    if (filter?.endDate) {
-      query = query.lte('scheduled_date', filter.endDate)
-    }
-
-    const { data, error } = await query
-
-    return { data, error: error?.message || null }
+    return { data, error }
   },
 
   async getTemplates(): Promise<{ data: PMTemplate[] | null; error: string | null }> {
@@ -1750,28 +1826,50 @@ export const pmApi = {
 
   async getComplianceStats(months?: number): Promise<{ data: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] | null; error: string | null }> {
     const monthsToFetch = months || 6
-    const results: { period: string; scheduled_count: number; completed_count: number; overdue_count: number; cancelled_count: number; compliance_rate: number }[] = []
+    const factoryId = getCurrentFactoryId()
+    const sb = getSupabase()
 
+    // 월 경계 [start, nextStart): exclusive 다음달 1일을 사용해 모든 달 길이를 정확히 처리.
+    const monthRanges: { yearMonth: string; start: string; nextStart: string }[] = []
     for (let i = 0; i < monthsToFetch; i++) {
-      const nowInTz = getCurrentDateInTimezone()
-      nowInTz.setMonth(nowInTz.getMonth() - i)
-      const yearMonth = `${nowInTz.getFullYear()}-${String(nowInTz.getMonth() + 1).padStart(2, '0')}`
+      const d = getCurrentDateInTimezone()
+      d.setMonth(d.getMonth() - i)
+      const year = d.getFullYear()
+      const monthIdx = d.getMonth()
+      const yearMonth = `${year}-${String(monthIdx + 1).padStart(2, '0')}`
+      const start = `${yearMonth}-01`
+      const nextYear = monthIdx === 11 ? year + 1 : year
+      const nextMonth = monthIdx === 11 ? 1 : monthIdx + 2
+      const nextStart = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`
+      monthRanges.push({ yearMonth, start, nextStart })
+    }
 
-      const { data: schedules } = await getSupabase()
-        .from('pm_schedules')
-        .select('status')
-        .eq('factory_id', getCurrentFactoryId())
-        .like('scheduled_date', `${yearMonth}%`)
+    // 각 월 × 4 status 카운트를 모두 병렬 실행
+    const counts = await Promise.all(
+      monthRanges.flatMap(({ start, nextStart }) => {
+        const baseQuery = () => sb.from('pm_schedules').select('*', { count: 'exact', head: true })
+          .eq('factory_id', factoryId)
+          .gte('scheduled_date', start)
+          .lt('scheduled_date', nextStart)
+        return [
+          baseQuery().in('status', ['scheduled', 'in_progress']),
+          baseQuery().eq('status', 'completed'),
+          baseQuery().eq('status', 'overdue'),
+          baseQuery().eq('status', 'cancelled'),
+        ]
+      })
+    )
 
-      const scheduled_count = schedules?.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length || 0
-      const completed_count = schedules?.filter(s => s.status === 'completed').length || 0
-      const overdue_count = schedules?.filter(s => s.status === 'overdue').length || 0
-      const cancelled_count = schedules?.filter(s => s.status === 'cancelled').length || 0
+    const results = monthRanges.map((m, idx) => {
+      const base = idx * 4
+      const scheduled_count = counts[base].count ?? 0
+      const completed_count = counts[base + 1].count ?? 0
+      const overdue_count = counts[base + 2].count ?? 0
+      const cancelled_count = counts[base + 3].count ?? 0
       const total = completed_count + overdue_count
       const compliance_rate = total > 0 ? Math.round((completed_count / total) * 100) : 100
-
-      results.push({ period: yearMonth, scheduled_count, completed_count, overdue_count, cancelled_count, compliance_rate })
-    }
+      return { period: m.yearMonth, scheduled_count, completed_count, overdue_count, cancelled_count, compliance_rate }
+    })
 
     return { data: results.reverse(), error: null }
   },
@@ -1827,6 +1925,8 @@ export const pmApi = {
   },
 
   async startExecution(scheduleId: string, technicianId: string): Promise<{ data: unknown | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
+
     // Get schedule info
     const { data: schedule } = await getSupabase()
       .from('pm_schedules')
@@ -1838,10 +1938,33 @@ export const pmApi = {
       return { data: null, error: 'Schedule not found' }
     }
 
-    // Use existing assigned technician if set, otherwise use current user
     const executingTechnicianId = schedule.assigned_technician_id || technicianId
 
-    // Update schedule status (preserve assigned_technician_id if already set)
+    // 같은 schedule에 이미 in_progress execution이 있으면 그것을 재사용한다.
+    // 시작 버튼이 여러 번 눌려도 stale 누적을 방지 (CNC-090에 6건 누적된 사례).
+    const { data: existing } = await getSupabase()
+      .from('pm_executions')
+      .select(`
+        *,
+        schedule:pm_schedules(*),
+        equipment:equipments(*),
+        technician:users(*)
+      `)
+      .eq('factory_id', factoryId)
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'in_progress')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      await getSupabase()
+        .from('pm_schedules')
+        .update({ status: 'in_progress', assigned_technician_id: executingTechnicianId })
+        .eq('id', scheduleId)
+      return { data: existing, error: null }
+    }
+
     await getSupabase()
       .from('pm_schedules')
       .update({
@@ -1850,7 +1973,6 @@ export const pmApi = {
       })
       .eq('id', scheduleId)
 
-    // Create execution with the correct technician
     const { data, error } = await getSupabase()
       .from('pm_executions')
       .insert({
@@ -1861,7 +1983,7 @@ export const pmApi = {
         status: 'in_progress',
         checklist_results: [],
         used_parts: [],
-        factory_id: getCurrentFactoryId(),
+        factory_id: factoryId,
       })
       .select(`
         *,
@@ -1955,105 +2077,153 @@ export const pmApi = {
     return { data, error: error?.message || null }
   },
 
-  async getDashboardStats(): Promise<{ data: { total_scheduled: number; completed_this_month: number; overdue_count: number; upcoming_week: number; compliance_rate: number } | null; error: string | null }> {
+  async getDashboardStats(period?: { startDate: string; endDate: string; equipmentIds?: string[] }): Promise<{ data: { total_scheduled: number; completed_this_month: number; overdue_count: number; upcoming_week: number; compliance_rate: number } | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
     const today = getTodayInTimezone()
     const weekLaterStr = getRelativeDateInTimezone(7)
-    const monthStart = getMonthStartInTimezone()
-    const monthEnd = getMonthEndInTimezone()
+    // period 미전달 시 이번 달 (PMDashboardPage 호환). 전달 시 사용자 지정 기간.
+    const rangeStart = period?.startDate ?? getMonthStartInTimezone()
+    const rangeEnd = period?.endDate ?? getMonthEndInTimezone()
+    const eqIds = period?.equipmentIds
 
-    const { data: schedules } = await getSupabase()
-      .from('pm_schedules')
-      .select('status, scheduled_date')
-      .eq('factory_id', getCurrentFactoryId())
+    // 서버 사이드 count 5개를 병렬로 수행.
+    const sb = getSupabase()
+    const inProgressStatuses = ['scheduled', 'in_progress']
+    const applyEqFilter = <T extends { in: (col: string, vals: string[]) => T }>(q: T) =>
+      eqIds && eqIds.length > 0 ? q.in('equipment_id', eqIds) : q
 
-    // 금주 예정: 오늘부터 7일 이내의 scheduled/in_progress PM
-    const upcomingScheduled = schedules?.filter(s =>
-      s.scheduled_date >= today &&
-      s.scheduled_date <= weekLaterStr &&
-      (s.status === 'scheduled' || s.status === 'in_progress')
-    ).length || 0
+    const [totalRes, completedRes, overdueRes, upcomingRes, overdueInRangeRes] = await Promise.all([
+      applyEqFilter(sb.from('pm_schedules')
+        .select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .gte('scheduled_date', today)
+        .in('status', inProgressStatuses)),
+      applyEqFilter(sb.from('pm_schedules')
+        .select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .gte('scheduled_date', rangeStart)
+        .lte('scheduled_date', rangeEnd)
+        .eq('status', 'completed')),
+      applyEqFilter(sb.from('pm_schedules')
+        .select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .lt('scheduled_date', today)
+        .in('status', inProgressStatuses)),
+      applyEqFilter(sb.from('pm_schedules')
+        .select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .gte('scheduled_date', today)
+        .lte('scheduled_date', weekLaterStr)
+        .in('status', inProgressStatuses)),
+      applyEqFilter(sb.from('pm_schedules')
+        .select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .gte('scheduled_date', rangeStart)
+        .lt('scheduled_date', today)
+        .in('status', inProgressStatuses)),
+    ])
 
-    // 이번 달 완료: 이번 달에 완료된 PM
-    const completedThisMonth = schedules?.filter(s =>
-      s.scheduled_date >= monthStart &&
-      s.scheduled_date <= monthEnd &&
-      s.status === 'completed'
-    ).length || 0
+    const totalScheduled = totalRes.count ?? 0
+    const completedInRange = completedRes.count ?? 0
+    const overdueCount = overdueRes.count ?? 0
+    const upcomingScheduled = upcomingRes.count ?? 0
+    const overdueInRange = overdueInRangeRes.count ?? 0
 
-    // 지연: 예정일이 오늘 이전이고 완료되지 않은 PM (scheduled 또는 in_progress 상태)
-    const overdueCount = schedules?.filter(s =>
-      s.scheduled_date < today &&
-      (s.status === 'scheduled' || s.status === 'in_progress')
-    ).length || 0
+    const totalEvaluated = completedInRange + overdueInRange
+    const complianceRate = totalEvaluated > 0
+      ? Math.round((completedInRange / totalEvaluated) * 100)
+      : (completedInRange > 0 ? 100 : 0)
 
-    // 예정된 PM: 오늘 이후의 scheduled/in_progress PM (오늘 포함)
-    const totalScheduled = schedules?.filter(s =>
-      s.scheduled_date >= today &&
-      (s.status === 'scheduled' || s.status === 'in_progress')
-    ).length || 0
-
-    // PM 준수율 계산: 이번 달 기준 (완료 / (완료 + 지연)) * 100
-    // 이번 달 지연된 PM 수: 예정일이 이번 달 && 오늘 이전 && 미완료
-    const overdueThisMonth = schedules?.filter(s =>
-      s.scheduled_date >= monthStart &&
-      s.scheduled_date < today &&
-      (s.status === 'scheduled' || s.status === 'in_progress')
-    ).length || 0
-
-    const totalEvaluatedThisMonth = completedThisMonth + overdueThisMonth
-    const complianceRate = totalEvaluatedThisMonth > 0
-      ? Math.round((completedThisMonth / totalEvaluatedThisMonth) * 100)
-      : (completedThisMonth > 0 ? 100 : 0)
-
-    const stats = {
-      total_scheduled: totalScheduled,
-      completed_this_month: completedThisMonth,
-      overdue_count: overdueCount,
-      upcoming_week: upcomingScheduled,
-      compliance_rate: complianceRate,
+    return {
+      data: {
+        total_scheduled: totalScheduled,
+        completed_this_month: completedInRange,
+        overdue_count: overdueCount,
+        upcoming_week: upcomingScheduled,
+        compliance_rate: complianceRate,
+      },
+      error: null,
     }
-
-    return { data: stats, error: null }
   },
 
   // PM Analytics - Monthly Trend
-  async getMonthlyTrend(months: number = 6): Promise<{ data: { month: string; completed: number; scheduled: number; compliance: number }[] | null; error: string | null }> {
-    const results: { month: string; completed: number; scheduled: number; compliance: number }[] = []
+  async getMonthlyTrend(months: number = 6, equipmentIds?: string[]): Promise<{ data: { month: string; completed: number; scheduled: number; compliance: number }[] | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
+    const today = getTodayInTimezone()
+    const sb = getSupabase()
+    const inProgressStatuses = ['scheduled', 'in_progress']
+    const applyEqFilter = <T extends { in: (col: string, vals: string[]) => T }>(q: T) =>
+      equipmentIds && equipmentIds.length > 0 ? q.in('equipment_id', equipmentIds) : q
 
+    // 월 경계는 [start, nextStart) — exclusive 다음달 1일을 사용해
+    // 2월/30일 달도 정확히 처리한다 (`-31` 패턴 버그 회피).
+    const monthRanges: { yearMonth: string; start: string; nextStart: string }[] = []
     for (let i = months - 1; i >= 0; i--) {
-      const nowInTz = getCurrentDateInTimezone()
-      nowInTz.setMonth(nowInTz.getMonth() - i)
-      const yearMonth = `${nowInTz.getFullYear()}-${String(nowInTz.getMonth() + 1).padStart(2, '0')}`
-
-      const { data: schedules } = await getSupabase()
-        .from('pm_schedules')
-        .select('status')
-        .eq('factory_id', getCurrentFactoryId())
-        .gte('scheduled_date', `${yearMonth}-01`)
-        .lte('scheduled_date', `${yearMonth}-31`)
-
-      const scheduled = schedules?.length || 0
-      const completed = schedules?.filter(s => s.status === 'completed').length || 0
-      const compliance = scheduled > 0 ? Math.round((completed / scheduled) * 100) : 0
-
-      // Return YYYY-MM format for client-side localization
-      results.push({ month: yearMonth, completed, scheduled, compliance })
+      const d = getCurrentDateInTimezone()
+      d.setMonth(d.getMonth() - i)
+      const year = d.getFullYear()
+      const monthIdx = d.getMonth()
+      const yearMonth = `${year}-${String(monthIdx + 1).padStart(2, '0')}`
+      const start = `${yearMonth}-01`
+      const nextYear = monthIdx === 11 ? year + 1 : year
+      const nextMonth = monthIdx === 11 ? 1 : monthIdx + 2
+      const nextStart = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`
+      monthRanges.push({ yearMonth, start, nextStart })
     }
+
+    const counts = await Promise.all(
+      monthRanges.flatMap(({ start, nextStart }) => [
+        applyEqFilter(sb.from('pm_schedules').select('*', { count: 'exact', head: true })
+          .eq('factory_id', factoryId)
+          .gte('scheduled_date', start)
+          .lt('scheduled_date', nextStart)),
+        applyEqFilter(sb.from('pm_schedules').select('*', { count: 'exact', head: true })
+          .eq('factory_id', factoryId)
+          .gte('scheduled_date', start)
+          .lt('scheduled_date', nextStart)
+          .eq('status', 'completed')),
+        applyEqFilter(sb.from('pm_schedules').select('*', { count: 'exact', head: true })
+          .eq('factory_id', factoryId)
+          .gte('scheduled_date', start)
+          .lt('scheduled_date', today < nextStart ? today : nextStart)
+          .in('status', inProgressStatuses)),
+      ])
+    )
+
+    const results = monthRanges.map((m, idx) => {
+      const base = idx * 3
+      const scheduled = counts[base].count ?? 0
+      const completed = counts[base + 1].count ?? 0
+      const overdue = counts[base + 2].count ?? 0
+      const totalEvaluated = completed + overdue
+      const compliance = totalEvaluated > 0
+        ? Math.round((completed / totalEvaluated) * 100)
+        : (completed > 0 ? 100 : 0)
+      return { month: m.yearMonth, completed, scheduled, compliance }
+    })
 
     return { data: results, error: null }
   },
 
   // PM Analytics - By Equipment Type
-  async getByEquipmentType(locale: string = 'ko'): Promise<{ data: { name: string; completed: number; overdue: number }[] | null; error: string | null }> {
-    const { data: schedules } = await getSupabase()
-      .from('pm_schedules')
-      .select(`
-        status,
-        equipment_id,
-        equipments!inner(equipment_type_id, equipment_types!inner(id, name, name_ko, name_vi))
-      `)
-      .eq('factory_id', getCurrentFactoryId())
+  async getByEquipmentType(locale: string = 'ko', period?: { startDate: string; endDate: string; equipmentIds?: string[] }): Promise<{ data: { name: string; completed: number; overdue: number }[] | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
+    const { data: schedules, error } = await fetchAllRows<Record<string, unknown>>(({ from, to }) => {
+      let q = getSupabase()
+        .from('pm_schedules')
+        .select(`
+          status,
+          equipment_id,
+          equipments!inner(equipment_type_id, equipment_types!inner(id, name, name_ko, name_vi))
+        `)
+        .eq('factory_id', factoryId)
+      if (period?.startDate) q = q.gte('scheduled_date', period.startDate)
+      if (period?.endDate) q = q.lte('scheduled_date', period.endDate)
+      if (period?.equipmentIds && period.equipmentIds.length > 0) q = q.in('equipment_id', period.equipmentIds)
+      return q.range(from, to)
+    })
 
+    if (error) return { data: null, error }
     if (!schedules) return { data: [], error: null }
 
     // Group by equipment type
@@ -2080,18 +2250,26 @@ export const pmApi = {
   },
 
   // PM Analytics - By Technician
-  async getByTechnician(): Promise<{ data: { name: string; completed: number; avgRating: number }[] | null; error: string | null }> {
-    const { data: executions } = await getSupabase()
-      .from('pm_executions')
-      .select(`
-        status,
-        rating,
-        technician_id,
-        users!inner(id, name)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'completed')
+  async getByTechnician(period?: { startDate: string; endDate: string; equipmentIds?: string[] }): Promise<{ data: { name: string; completed: number; avgRating: number }[] | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
+    const { data: executions, error } = await fetchAllRows<Record<string, unknown>>(({ from, to }) => {
+      let q = getSupabase()
+        .from('pm_executions')
+        .select(`
+          status,
+          rating,
+          technician_id,
+          users!inner(id, name)
+        `)
+        .eq('factory_id', factoryId)
+        .eq('status', 'completed')
+      if (period?.startDate) q = q.gte('completed_at', period.startDate)
+      if (period?.endDate) q = q.lte('completed_at', period.endDate + 'T23:59:59')
+      if (period?.equipmentIds && period.equipmentIds.length > 0) q = q.in('equipment_id', period.equipmentIds)
+      return q.range(from, to)
+    })
 
+    if (error) return { data: null, error }
     if (!executions) return { data: [], error: null }
 
     // Group by technician
@@ -2122,37 +2300,50 @@ export const pmApi = {
   },
 
   // PM Analytics - Status Distribution
-  async getStatusDistribution(): Promise<{ data: { status: string; count: number }[] | null; error: string | null }> {
-    const { data: schedules } = await getSupabase()
-      .from('pm_schedules')
-      .select('status')
-      .eq('factory_id', getCurrentFactoryId())
+  async getStatusDistribution(period?: { startDate: string; endDate: string; equipmentIds?: string[] }): Promise<{ data: { status: string; count: number }[] | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
+    const sb = getSupabase()
+    const statuses = ['scheduled', 'in_progress', 'completed', 'overdue', 'cancelled']
 
-    if (!schedules) return { data: [], error: null }
+    const counts = await Promise.all(
+      statuses.map(s => {
+        let q = sb.from('pm_schedules').select('*', { count: 'exact', head: true })
+          .eq('factory_id', factoryId)
+          .eq('status', s)
+        if (period?.startDate) q = q.gte('scheduled_date', period.startDate)
+        if (period?.endDate) q = q.lte('scheduled_date', period.endDate)
+        if (period?.equipmentIds && period.equipmentIds.length > 0) q = q.in('equipment_id', period.equipmentIds)
+        return q
+      })
+    )
 
-    const statusCount: Record<string, number> = {}
-    schedules.forEach((s: { status: string }) => {
-      statusCount[s.status] = (statusCount[s.status] || 0) + 1
-    })
+    const data = statuses
+      .map((status, idx) => ({ status, count: counts[idx].count ?? 0 }))
+      .filter(d => d.count > 0)
 
-    return {
-      data: Object.entries(statusCount).map(([status, count]) => ({ status, count })),
-      error: null
-    }
+    return { data, error: null }
   },
 
   // PM Analytics - Average Completion Time
-  async getAvgCompletionTime(): Promise<{ data: number | null; error: string | null }> {
-    const { data: executions } = await getSupabase()
-      .from('pm_executions')
-      .select('duration_minutes')
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'completed')
-      .not('duration_minutes', 'is', null)
+  async getAvgCompletionTime(period?: { startDate: string; endDate: string; equipmentIds?: string[] }): Promise<{ data: number | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
+    const { data: executions, error } = await fetchAllRows<{ duration_minutes: number }>(({ from, to }) => {
+      let q = getSupabase()
+        .from('pm_executions')
+        .select('duration_minutes')
+        .eq('factory_id', factoryId)
+        .eq('status', 'completed')
+        .not('duration_minutes', 'is', null)
+      if (period?.startDate) q = q.gte('completed_at', period.startDate)
+      if (period?.endDate) q = q.lte('completed_at', period.endDate + 'T23:59:59')
+      if (period?.equipmentIds && period.equipmentIds.length > 0) q = q.in('equipment_id', period.equipmentIds)
+      return q.range(from, to)
+    })
 
+    if (error) return { data: null, error }
     if (!executions || executions.length === 0) return { data: 0, error: null }
 
-    const total = executions.reduce((sum: number, e: { duration_minutes: number }) => sum + e.duration_minutes, 0)
+    const total = executions.reduce((sum, e) => sum + e.duration_minutes, 0)
     return { data: Math.round(total / executions.length), error: null }
   },
 }
@@ -2613,27 +2804,28 @@ export const paintApi = {
 
   // Schedules
   async getSchedules(filter?: PaintScheduleFilter): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
-    let query = getSupabase()
-      .from('paint_schedules')
-      .select(`
-        *,
-        template:paint_templates(*),
-        equipment:equipments(*,equipment_type:equipment_types(*)),
-        assigned_technician:users(*)
-      `)
-      .eq('factory_id', getCurrentFactoryId())
+    const factoryId = getCurrentFactoryId()
+    const { data, error } = await fetchAllRows<PaintSchedule>(({ from, to }) => {
+      let q = getSupabase()
+        .from('paint_schedules')
+        .select(`
+          *,
+          template:paint_templates(*),
+          equipment:equipments(*,equipment_type:equipment_types(*)),
+          assigned_technician:users(*)
+        `)
+        .eq('factory_id', factoryId)
+      if (filter?.start_date) q = q.gte('scheduled_date', filter.start_date)
+      if (filter?.end_date) q = q.lte('scheduled_date', filter.end_date)
+      if (filter?.equipment_id) q = q.eq('equipment_id', filter.equipment_id)
+      if (filter?.equipment_type_id) q = q.eq('equipment.equipment_type_id', filter.equipment_type_id)
+      if (filter?.technician_id) q = q.eq('assigned_technician_id', filter.technician_id)
+      if (filter?.status) q = q.eq('status', filter.status)
+      if (filter?.priority) q = q.eq('priority', filter.priority)
+      return q.order('scheduled_date').range(from, to)
+    })
 
-    if (filter?.start_date) query = query.gte('scheduled_date', filter.start_date)
-    if (filter?.end_date) query = query.lte('scheduled_date', filter.end_date)
-    if (filter?.equipment_id) query = query.eq('equipment_id', filter.equipment_id)
-    if (filter?.equipment_type_id) query = query.eq('equipment.equipment_type_id', filter.equipment_type_id)
-    if (filter?.technician_id) query = query.eq('assigned_technician_id', filter.technician_id)
-    if (filter?.status) query = query.eq('status', filter.status)
-    if (filter?.priority) query = query.eq('priority', filter.priority)
-
-    const { data, error } = await query.order('scheduled_date')
-
-    return { data, error: error?.message || null }
+    return { data, error }
   },
 
   async getTodaySchedules(): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
@@ -2800,7 +2992,8 @@ export const paintApi = {
   },
 
   async startExecution(scheduleId: string, technicianId: string): Promise<{ data: PaintExecution | null; error: string | null }> {
-    // Get schedule info
+    const factoryId = getCurrentFactoryId()
+
     const { data: schedule } = await getSupabase()
       .from('paint_schedules')
       .select('equipment_id')
@@ -2811,7 +3004,30 @@ export const paintApi = {
       return { data: null, error: '일정을 찾을 수 없습니다.' }
     }
 
-    // Create execution record
+    // 같은 schedule에 in_progress execution이 이미 있으면 재사용 (stale 누적 방지).
+    const { data: existing } = await getSupabase()
+      .from('paint_executions')
+      .select(`
+        *,
+        schedule:paint_schedules(*),
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        technician:users(*)
+      `)
+      .eq('factory_id', factoryId)
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'in_progress')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      await getSupabase()
+        .from('paint_schedules')
+        .update({ status: 'in_progress', updated_at: new Date().toISOString() })
+        .eq('id', scheduleId)
+      return { data: existing as PaintExecution, error: null }
+    }
+
     const { data, error } = await getSupabase()
       .from('paint_executions')
       .insert({
@@ -2820,7 +3036,7 @@ export const paintApi = {
         technician_id: technicianId,
         started_at: new Date().toISOString(),
         status: 'in_progress',
-        factory_id: getCurrentFactoryId(),
+        factory_id: factoryId,
       })
       .select(`
         *,
@@ -2890,48 +3106,46 @@ export const paintApi = {
 
   // Dashboard Stats
   async getDashboardStats(): Promise<{ data: PaintDashboardStats | null; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
     const today = getTodayInTimezone()
     const weekLaterStr = getRelativeDateInTimezone(7)
     const monthStart = getMonthStartInTimezone()
     const monthEnd = getMonthEndInTimezone()
 
-    const { data: schedules } = await getSupabase()
-      .from('paint_schedules')
-      .select('status, scheduled_date')
-      .eq('factory_id', getCurrentFactoryId())
+    // 서버 사이드 count 5개를 병렬로 (1000건 default limit 회피)
+    const sb = getSupabase()
+    const inProgressStatuses = ['scheduled', 'in_progress']
+    const [totalRes, completedRes, overdueRes, upcomingRes, overdueMonthRes] = await Promise.all([
+      sb.from('paint_schedules').select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .gte('scheduled_date', today)
+        .in('status', inProgressStatuses),
+      sb.from('paint_schedules').select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .gte('scheduled_date', monthStart)
+        .lte('scheduled_date', monthEnd)
+        .eq('status', 'completed'),
+      sb.from('paint_schedules').select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .lt('scheduled_date', today)
+        .in('status', inProgressStatuses),
+      sb.from('paint_schedules').select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .gte('scheduled_date', today)
+        .lte('scheduled_date', weekLaterStr)
+        .in('status', inProgressStatuses),
+      sb.from('paint_schedules').select('*', { count: 'exact', head: true })
+        .eq('factory_id', factoryId)
+        .gte('scheduled_date', monthStart)
+        .lt('scheduled_date', today)
+        .in('status', inProgressStatuses),
+    ])
 
-    // 예정된 도색: 오늘 이후의 scheduled/in_progress (오늘 포함) - PM과 동일
-    const totalScheduled = schedules?.filter(s =>
-      s.scheduled_date >= today &&
-      (s.status === 'scheduled' || s.status === 'in_progress')
-    ).length || 0
-
-    // 이번 달 완료
-    const completedThisMonth = schedules?.filter(s =>
-      s.scheduled_date >= monthStart &&
-      s.scheduled_date <= monthEnd &&
-      s.status === 'completed'
-    ).length || 0
-
-    // 지연: 예정일이 오늘 이전이고 미완료 (scheduled 또는 in_progress)
-    const overdueCount = schedules?.filter(s =>
-      s.scheduled_date < today &&
-      (s.status === 'scheduled' || s.status === 'in_progress')
-    ).length || 0
-
-    // 금주 예정: 오늘부터 7일 이내의 scheduled/in_progress - PM과 동일
-    const upcomingWeek = schedules?.filter(s =>
-      s.scheduled_date >= today &&
-      s.scheduled_date <= weekLaterStr &&
-      (s.status === 'scheduled' || s.status === 'in_progress')
-    ).length || 0
-
-    // 준수율: 이번 달 기준 (완료 / (완료 + 지연))
-    const overdueThisMonth = schedules?.filter(s =>
-      s.scheduled_date >= monthStart &&
-      s.scheduled_date < today &&
-      (s.status === 'scheduled' || s.status === 'in_progress')
-    ).length || 0
+    const totalScheduled = totalRes.count ?? 0
+    const completedThisMonth = completedRes.count ?? 0
+    const overdueCount = overdueRes.count ?? 0
+    const upcomingWeek = upcomingRes.count ?? 0
+    const overdueThisMonth = overdueMonthRes.count ?? 0
 
     const totalEvaluatedThisMonth = completedThisMonth + overdueThisMonth
     const complianceRate = totalEvaluatedThisMonth > 0
@@ -3114,15 +3328,20 @@ export const paintApi = {
     if (!error && data) {
       // Check if this was the last step (step 6)
       if (data.step_order === 6) {
-        // Complete the schedule
-        await getSupabase()
-          .from('paint_schedules')
-          .update({
-            status: 'completed',
-            current_step: 6,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', data.schedule_id)
+        const now = new Date().toISOString()
+        // schedule + execution을 동시에 완료 처리한다. paint_executions를
+        // 함께 닫지 않으면 in_progress로 stuck되어 효과적 status 추론이 깨진다.
+        await Promise.all([
+          getSupabase()
+            .from('paint_schedules')
+            .update({ status: 'completed', current_step: 6, updated_at: now })
+            .eq('id', data.schedule_id),
+          getSupabase()
+            .from('paint_executions')
+            .update({ status: 'completed', completed_at: now })
+            .eq('schedule_id', data.schedule_id)
+            .eq('status', 'in_progress'),
+        ])
       }
     }
 

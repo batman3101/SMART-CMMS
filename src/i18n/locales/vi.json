@@ -1073,5 +1073,21 @@
     "searchEquipmentPlaceholder": "Tim theo ma hoac ten thiet bi...",
     "allEquipmentSelected": "Tat ca thiet bi (chon de loc)",
     "equipmentSelectedCount": "{{count}} thiet bi da chon"
+  },
+  "pwa": {
+    "installTitle": "Cài đặt ứng dụng",
+    "installDesc": "Cài SMART CMMS vào màn hình chính để mở nhanh như ứng dụng và nhận thông báo đẩy.",
+    "benefit1": "Mở trực tiếp từ màn hình chính",
+    "benefit2": "Toàn màn hình · Tải nhanh",
+    "benefit3": "Nhận thông báo đẩy",
+    "installButton": "Cài đặt ngay",
+    "installing": "Đang cài đặt...",
+    "later": "Để sau",
+    "dontShowAgain": "Không hiển thị lại",
+    "headerInstall": "Cài app",
+    "iosTitle": "Cách cài trên iPhone / iPad (Safari)",
+    "iosStep1": "Nhấn nút Chia sẻ ở dưới cùng",
+    "iosStep2": "Chọn 'Thêm vào MH chính'",
+    "iosStep3": "Nhấn 'Thêm' để hoàn tất"
   }
 }

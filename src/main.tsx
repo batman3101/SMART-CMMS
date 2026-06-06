@@ -13,8 +13,11 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { ToastProvider } from './components/ui/toast'
+import PWAInstallPrompt from './components/pwa/PWAInstallPrompt'
 import './index.css'
 import './i18n'
+// PWA 설치 이벤트(beforeinstallprompt)를 React 마운트 전에 포착하도록 최우선 import
+import './lib/pwaInstall'
 
 // iOS Safari 감지
 const isIOSSafari = (): boolean => {
@@ -45,6 +48,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <ToastProvider>
         <App />
+        {/* 최초 접속 시 PWA 설치 안내 팝업 (로그인 화면 포함 전역 노출) */}
+        <PWAInstallPrompt />
       </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>,

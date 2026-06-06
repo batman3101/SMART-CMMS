@@ -1073,5 +1073,21 @@
     "searchEquipmentPlaceholder": "설비코드 또는 설비명으로 검색...",
     "allEquipmentSelected": "전체 설비 대상 (설비를 선택하여 필터링)",
     "equipmentSelectedCount": "{{count}}개 설비 선택됨"
+  },
+  "pwa": {
+    "installTitle": "앱으로 설치하기",
+    "installDesc": "SMART CMMS를 홈 화면에 설치하면 앱처럼 빠르게 실행하고 푸시 알림을 받을 수 있습니다.",
+    "benefit1": "홈 화면에서 바로 실행",
+    "benefit2": "전체 화면 · 빠른 로딩",
+    "benefit3": "푸시 알림 수신",
+    "installButton": "지금 설치",
+    "installing": "설치 중...",
+    "later": "나중에",
+    "dontShowAgain": "다시 보지 않기",
+    "headerInstall": "앱 설치",
+    "iosTitle": "iPhone / iPad 설치 방법 (Safari)",
+    "iosStep1": "하단 공유 버튼을 누르세요",
+    "iosStep2": "'홈 화면에 추가'를 선택하세요",
+    "iosStep3": "'추가'를 눌러 완료하세요"
   }
 }

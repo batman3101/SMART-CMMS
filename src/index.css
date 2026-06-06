@@ -121,3 +121,29 @@
     }
   }
 }
+
+/* ───────────── PWA 설치 모달 애니메이션 ─────────────
+   tailwindcss-animate 미설치 → Radix data-state 기반 자체 키프레임.
+   Radix Presence 가 closed 애니메이션 종료까지 언마운트를 지연한다. */
+@keyframes pwaFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pwaFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes pwaSheetUpIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes pwaSheetUpOut { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+.pwa-overlay[data-state='open'] { animation: pwaFadeIn 0.2s ease-out; }
+.pwa-overlay[data-state='closed'] { animation: pwaFadeOut 0.15s ease-in; }
+
+/* 모바일: 하단에서 슬라이드업 */
+.pwa-sheet[data-state='open'] { animation: pwaSheetUpIn 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+.pwa-sheet[data-state='closed'] { animation: pwaSheetUpOut 0.2s ease-in; }
+
+/* 데스크톱(중앙 모달): translate 중앙정렬을 유지해야 하므로 투명도만 애니메이션 */
+@media (min-width: 640px) {
+  .pwa-sheet[data-state='open'] { animation: pwaFadeIn 0.18s ease-out; }
+  .pwa-sheet[data-state='closed'] { animation: pwaFadeOut 0.14s ease-in; }
+}
+
+/* 모션 최소화 선호 시 애니메이션 제거 */
+@media (prefers-reduced-motion: reduce) {
+  .pwa-overlay[data-state], .pwa-sheet[data-state] { animation: none; }
+}

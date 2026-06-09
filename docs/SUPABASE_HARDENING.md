@@ -31,10 +31,25 @@
 - **`multiple_permissive_policies` ×40 (WARN)** — `equipment_types`·`repair_types`·`role_permissions`·`user_push_settings` 등에서 동일 역할/액션에 다중 permissive 정책. 중복(예: `equipment_types`의 "read"와 "view") 통합 권장.
 - **레포 동기화** — 원격엔 마이그레이션 33·엣지함수 7개인데 로컬은 일부만 존재. `supabase db pull` / `supabase functions download`로 레포를 프로덕션과 일치시키기 권장.
 
-## 적용 순서 (지시 시)
-1. `supabase/functions/ai-chat` 배포 (deploy_edge_function) — 누수 차단 최우선
-2. `20260609090001_security_hardening.sql`
-3. `20260609090002_add_missing_fk_indexes.sql`
-4. `20260609090003_optimize_rls_initplan.sql`
-5. `get_advisors`(security/performance) 재실행으로 해소 확인
-6. git: 브랜치 → main 머지
+## ✅ 적용 완료 & 검증 (2026-06-09, 프로덕션 반영됨)
+배포·마이그레이션을 프로덕션에 적용하고 `get_advisors`로 검증함. **main 머지는 별도 지시 대기.**
+
+| 검증 항목 | 시작 | 적용 후 |
+|------|------|---------|
+| `ai-chat` 누수/IDOR | 취약 | **v16 배포** (JWT 신원 도출, body 미신뢰) ✅ |
+| `function_search_path_mutable` | 10 | **0** ✅ |
+| `anon` SECURITY DEFINER 실행(0028) | 3 | **0** ✅ |
+| `auth_rls_initplan` | 88 | **0** ✅ |
+| `unindexed_foreign_keys` | 4 | **0** ✅ |
+
+**적용된 마이그레이션(원격 기록):** `security_hardening_search_path_and_anon_rpc` → `add_missing_fk_indexes` → `optimize_rls_initplan` → `restrict_security_definer_grants`(090001의 anon revoke 보정: PUBLIC revoke+authenticated grant) → `optimize_rls_initplan_v2`(090003 보정: 안쪽 `auth.uid()`까지 래핑).
+
+**남은 항목(의도적/권고, 미해소가 정상):**
+- `authenticated` SECURITY DEFINER 실행(0029) ×2 — `get_user_factory_id`/`get_user_role`. **RLS가 authenticated 컨텍스트에서 호출하므로 EXECUTE 유지가 정상**(수정 시 RLS 깨짐).
+- 유출 비밀번호 보호 — **Supabase 대시보드 토글**(코드 아님, 직접).
+- `unused_index` ×44(새 FK 인덱스 4개 포함, 곧 사용됨) · `multiple_permissive_policies` ×40 — INFO/권고, 운영 확인 후 선별.
+- `ai-generate-insights` — 동일 body-신뢰 IDOR. 레포에 없어 별도 download→JWT 수정→deploy 권장.
+
+## 잔여(다음 단계)
+- **main 머지** (지시 시): `chore/supabase-factory-hardening` → main.
+- 레포 동기화: `supabase db pull` / `supabase functions download`로 원격 33 마이그레이션·7 함수와 일치.

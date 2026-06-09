@@ -1,15 +1,21 @@
-# 0001 — 공장 격리(factory isolation)는 RLS로 강제한다
+# 0001 — 공장 격리(factory isolation): RLS + 클라이언트 seam + service-role 함수 스코프
 
 ## 맥락
-멀티테넌트(공장별 `factory_id`) 격리가 클라이언트 코드에 손으로 작성한 `.eq('factory_id', …)` 약 110곳에만 의존하고 있었다. Postgres RLS가 없어, 한 곳만 빠뜨려도(실제로 `ai-chat` 엣지 함수가 `factory_id`를 누락했었음) 공장 간 데이터 누수가 조용히 발생한다.
+멀티테넌트(공장별 `factory_id`) 격리가 필요하다. 실제 원격 DB는 **이미 26개 테이블 전부에 RLS가 활성**이고 마이그레이션 `update_rls_policies_factory_scoped` 등으로 **factory 스코프 RLS가 강제**되어 있다(헬퍼 `get_user_factory_id(auth.uid())` 기반). 즉 일반 authenticated 클라이언트 경로는 서버에서 격리된다.
+
+> 참고: 이 ADR 초안은 한때 "RLS 부재"로 잘못 기술했다. 로컬 `supabase/migrations` 폴더가 원격과 동기화되지 않아(3개 파일) 생긴 오류이며, 본 문서에서 정정한다.
 
 ## 결정
-- **클라이언트:** `scopedDb()` seam(`src/lib/scopedDb.ts`)을 도입해 스코프를 구조적으로 강제한다. 스코프 테이블은 자동으로 `factory_id`가 적용되고, 전역 테이블은 명시적 `.global`로만 접근한다 — 누락이 불가능해진다.
-- **서버(별도 트랙):** 모든 테넌트 테이블에 Postgres RLS 정책으로 `factory_id` 격리를 강제한다. RLS가 진실의 원천이며, `scopedDb`는 그때까지의 단일 방어선이자 이후에도 쿼리 편의를 제공한다.
+격리를 **3중**으로 둔다.
+1. **서버 RLS (진실의 원천)** — 이미 적용됨. authenticated 클라이언트의 모든 직접 쿼리를 factory로 격리.
+2. **클라이언트 `scopedDb()` seam** — `src/lib/scopedDb.ts`. 구조적으로 factory 스코프를 강제하는 다층 방어(누락 방지) + 점진 이관 대상.
+3. **service-role 엣지 함수의 명시적 스코프** — service-role 키는 **RLS를 우회**하므로, 엣지 함수는 반드시 `factory_id`를 받아 모든 쿼리에 `.eq('factory_id', …)`를 적용해야 한다. (`ai-generate-insights`는 준수, `ai-chat`은 누락되어 본 작업에서 수정.)
 
 ## 상태
-- `scopedDb` seam: 도입됨(equipment 읽기부터 점진 이관 중, 잔여 ~100 호출 지점은 incremental).
-- RLS 정책: **예정**(별도 작업). 현재 `supabase/migrations`에 RLS 정책 없음.
+- RLS: 적용됨(factory 스코프).
+- `scopedDb`: 도입, equipment 읽기부터 점진 이관 중.
+- 엣지 함수: `ai-chat` factory 스코프 수정(배포 대기). 나머지 service-role 함수 감사 권장.
+- 추가 하드닝: `docs/SUPABASE_HARDENING.md` 참조(search_path, anon RPC 회수, RLS initplan, FK 인덱스).
 
 ## 비고
-RLS 적용 전까지 신규 데이터 접근은 반드시 `scopedDb()` 또는 의도적 `.global`을 거쳐야 한다. 직접 `getSupabase().from(...)`에 수동 `factory_id` 필터를 추가하는 패턴은 지양한다.
+service-role을 쓰는 신규 엣지 함수/스크립트는 **반드시 factory_id로 명시 스코프**할 것. RLS에 의존할 수 없다(우회됨).

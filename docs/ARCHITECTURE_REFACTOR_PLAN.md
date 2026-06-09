@@ -46,7 +46,7 @@
 - [ ] ⛔ **P5 정리** — (보류) 중복 스코프/에러 처리 제거, 결정 사항 ADR 기록
 
 **P1 탐색 결과 (확인된 사실):**
-- 🔴 **RLS 사실상 없음** — 마이그레이션 3개뿐(FCM·알림·used_parts). 공장 격리를 막는 유일한 장치가 손으로 쓴 `.eq('factory_id')` **110개**. → 클라이언트 단일 방어선.
+- ⚠️ **정정(2026-06-09):** RLS는 **이미 26개 테이블 전부 활성·factory 스코프**되어 있음(원격 마이그레이션 33개). 로컬 `supabase/migrations`가 3개뿐이라 초기에 "RLS 부재"로 오판했던 것. 실제 위험은 **service-role 엣지 함수가 RLS를 우회**(→ `ai-chat` 누수). 상세·조치: `docs/SUPABASE_HARDENING.md`.
 - `.from(` **156회** vs 스코프 **110회** → 약 **46개 쿼리는 의도적 전역**(equipment_types·repair_types·factories 등). seam은 전역/스코프를 **명시 구분** 필요.
 - 엣지 함수 **2개**: `ai-generate-insights`(factory_id 정상) · `ai-chat`(누락). 누수면 좁음.
 - 별도 **parts DB**(`partsSupabase`, `resolveFactoryId(code)`)는 메인 DB(`getCurrentFactoryId()` UUID)와 스코프 의미가 다름 → seam에서 혼동 금지.
@@ -189,7 +189,7 @@
 - **#4**: `useDataSync.ts` 삭제, `useRealtimeSync.ts`의 죽은 per-entity 훅 3개 제거, 장비 realtime UPDATE를 enriched 리로드로.
 
 **잔여 (incremental — 빌드 영향 없음):**
-- #2: 나머지 ~100개 수동 `factory_id` 호출 지점의 scopedDb 점진 이관 + **RLS 정책**(ADR `0001-factory-isolation`).
+- #2: 나머지 ~100개 수동 `factory_id` 호출 지점의 scopedDb 점진 이관. (RLS는 이미 적용됨 — 별도 Supabase 하드닝은 `docs/SUPABASE_HARDENING.md`: ai-chat 누수 수정·search_path·RLS initplan·FK 인덱스, 적용/머지 게이트.)
 - #3: maintenance 캐시 훅 + 나머지 equipment 페이지(Analytics/Report/MaintenanceInput 등) 점진 연결.
 
 _마지막 갱신: 2026-06-09 · 구현(P3) 완료·빌드 그린 → 커밋/푸시/머지 진행._

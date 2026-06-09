@@ -13,8 +13,8 @@
 ## 🔴 보안 — 수정 완료 (배포 대기)
 | 항목 | 상태 | 산출물 |
 |------|------|--------|
-| **ai-chat 공장 간 누수** — service-role로 RLS 우회, `factory_id` 미적용 채 전 공장 데이터를 AI 컨텍스트에 노출 | ✅ 수정 | `supabase/functions/ai-chat/index.ts` — `factory_id` 필수화 + 모든 쿼리 `.eq('factory_id', …)` |
-| `ai-generate-insights` | ✅ 이미 정상 | (이미 `factory_id` 필수 + 스코프됨 — 변경 불필요) |
+| **ai-chat 공장 간 누수** — service-role로 RLS 우회, `factory_id` 미적용 채 전 공장 데이터를 AI 컨텍스트에 노출 | ✅ 수정 | `supabase/functions/ai-chat/index.ts` — **호출자 JWT에서 사용자 인증 → 본인 `factory_id` 서버 도출**(body 미신뢰, IDOR 차단) + 모든 쿼리 `.eq('factory_id', …)` |
+| `ai-generate-insights` — **동일 IDOR 소지** | ⚠️ 권장 | `factory_id`로 스코프하나 그 값을 **요청 body에서 신뢰** → 로그인 사용자가 타 공장 id 전달 시 탈취 가능. ai-chat과 **동일하게 JWT 도출**로 수정 권장(레포에 없어 download→수정→deploy 별도) |
 | `send-notification`/`admin-user-management`/`notify-*` | ⏳ 감사 권장 | service-role 사용 시 동일 패턴 점검 필요 (이번엔 ai-* 중심 처리) |
 | 함수 `search_path` 미설정 ×10 (0011) | ✅ 마이그레이션 | `20260609090001_security_hardening.sql` |
 | SECURITY DEFINER 헬퍼 anon RPC 노출 (0028/0029) | ✅ 마이그레이션 | 동 파일 — `get_user_factory_id`/`get_user_role` anon EXECUTE 회수(authenticated는 RLS가 필요로 하므로 유지), `notify_long_repair` anon·authenticated 회수 |

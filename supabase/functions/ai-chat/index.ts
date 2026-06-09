@@ -56,9 +56,6 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const message = body.message;
     language = body.language || 'ko';
-    // Factory scoping: this function uses the service-role key (which bypasses RLS),
-    // so every query MUST be scoped by factory_id explicitly or it leaks across factories.
-    const factory_id = body.factory_id;
 
     if (!message) {
       return new Response(
@@ -67,16 +64,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!factory_id) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+
+    // Authenticate the caller from their JWT — NEVER trust a factory_id from the body.
+    // This function uses the service-role key (which bypasses RLS), so factory scoping
+    // must be derived server-side from the authenticated user, or any logged-in user
+    // could read another factory's data by passing its id (IDOR / tenancy bypass).
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'factory_id is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    // Service-role client for the read-only aggregation below, strictly scoped to the
+    // factory_id resolved from the authenticated user's own record (not the request body).
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: userRow, error: userRowError } = await supabase
+      .from('users')
+      .select('factory_id')
+      .eq('auth_user_id', user.id)
+      .single();
+    const factory_id = userRow?.factory_id;
+    if (userRowError || !factory_id) {
+      return new Response(
+        JSON.stringify({ error: 'Factory could not be resolved for the current user' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // ========== 날짜 범위 계산 ==========
     const now = new Date();

@@ -9,7 +9,7 @@
 격리를 **3중**으로 둔다.
 1. **서버 RLS (진실의 원천)** — 이미 적용됨. authenticated 클라이언트의 모든 직접 쿼리를 factory로 격리.
 2. **클라이언트 `scopedDb()` seam** — `src/lib/scopedDb.ts`. 구조적으로 factory 스코프를 강제하는 다층 방어(누락 방지) + 점진 이관 대상.
-3. **service-role 엣지 함수의 명시적 스코프** — service-role 키는 **RLS를 우회**하므로, 엣지 함수는 반드시 `factory_id`를 받아 모든 쿼리에 `.eq('factory_id', …)`를 적용해야 한다. (`ai-generate-insights`는 준수, `ai-chat`은 누락되어 본 작업에서 수정.)
+3. **service-role 엣지 함수의 명시적 스코프** — service-role 키는 **RLS를 우회**하므로, 엣지 함수는 `factory_id`를 **요청 body가 아니라 호출자 JWT에서 서버 도출**(body 신뢰 시 IDOR/테넌시 우회)해 모든 쿼리에 `.eq('factory_id', …)`를 적용해야 한다. (`ai-chat`은 본 작업에서 JWT 기반으로 수정. `ai-generate-insights`는 스코프는 하나 body 값을 신뢰하므로 동일 수정 권장.)
 
 ## 상태
 - RLS: 적용됨(factory 스코프).

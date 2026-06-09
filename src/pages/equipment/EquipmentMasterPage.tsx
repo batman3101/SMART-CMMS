@@ -123,7 +123,7 @@ export default function EquipmentMasterPage() {
       setLoading(true)
       try {
         const [equipRes, typesRes] = await Promise.all([
-          equipmentApi.getEquipments(),
+          equipmentApi.getEquipments({ raw: true }),
           equipmentApi.getEquipmentTypes(),
         ])
         if (equipRes.data) setEquipments(equipRes.data)
@@ -311,7 +311,7 @@ export default function EquipmentMasterPage() {
   const handleRefresh = async () => {
     setLoading(true)
     try {
-      const { data } = await equipmentApi.getEquipments()
+      const { data } = await equipmentApi.getEquipments({ raw: true })
       if (data) setEquipments(data)
     } finally {
       setLoading(false)

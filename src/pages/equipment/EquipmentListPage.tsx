@@ -29,6 +29,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { equipmentApi } from '@/lib/api'
+import { useEquipmentData } from '@/data/useEquipmentData'
 import { useTableSort } from '@/hooks/useTableSort'
 import { useAuthStore } from '@/stores/authStore'
 import type { Equipment, EquipmentStatus, EquipmentType } from '@/types'
@@ -74,7 +75,8 @@ export default function EquipmentListPage() {
     return i18n.language === 'vi' ? 'vi-VN' : 'ko-KR'
   }
   const [loading, setLoading] = useState(true)
-  const [equipments, setEquipments] = useState<Equipment[]>([])
+  // #3: equipment comes from the shared cache (realtime-fed), not a local copy.
+  const { equipments, refresh: refreshEquipments } = useEquipmentData()
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
 
   // 필터 상태
@@ -91,24 +93,16 @@ export default function EquipmentListPage() {
 
   // 데이터 로드
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchTypes = async () => {
       setLoading(true)
       try {
-        const [equipRes, typesRes] = await Promise.all([
-          equipmentApi.getEquipments({ withEffectiveStatus: true }),
-          equipmentApi.getEquipmentTypes(),
-        ])
-        if (equipRes.error) {
-          addToast({ type: 'error', title: t('common.error'), message: t('equipment.fetchError') })
-          console.error('Equipment fetch error:', equipRes.error)
-        }
+        const typesRes = await equipmentApi.getEquipmentTypes()
         if (typesRes.error) {
           console.error('Equipment types fetch error:', typesRes.error)
         }
-        if (equipRes.data) setEquipments(equipRes.data)
         if (typesRes.data) setEquipmentTypes(typesRes.data)
       } catch (error) {
-        console.error('Failed to fetch equipment data:', error)
+        console.error('Failed to fetch equipment types:', error)
         addToast({
           type: 'error',
           title: t('common.error'),
@@ -118,7 +112,8 @@ export default function EquipmentListPage() {
         setLoading(false)
       }
     }
-    fetchData()
+    fetchTypes()
+    // #3: equipment list is sourced from the shared cache; only types are fetched here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFactory])
 
@@ -180,13 +175,12 @@ export default function EquipmentListPage() {
   const handleRefresh = async () => {
     setLoading(true)
     try {
-      const { data, error } = await equipmentApi.getEquipments({ withEffectiveStatus: true })
+      const { error } = await refreshEquipments()
       if (error) {
         addToast({ type: 'error', title: t('common.error'), message: t('equipment.fetchError') })
         console.error('Refresh error:', error)
         return
       }
-      if (data) setEquipments(data)
       addToast({ type: 'success', title: t('common.success'), message: t('common.refreshSuccess') })
     } catch (error) {
       console.error('Failed to refresh:', error)

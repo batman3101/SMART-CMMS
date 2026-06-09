@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react'
-import { useRealtimeSubscription, useMultiTableRealtime } from './useRealtimeSubscription'
+import { useMultiTableRealtime } from './useRealtimeSubscription'
 import { useEquipmentStore } from '@/stores/equipmentStore'
 import { useMaintenanceStore } from '@/stores/maintenanceStore'
 import { useNotificationStore, NotificationType } from '@/stores/notificationStore'
@@ -13,89 +13,6 @@ const STALE_TIME = 10000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>
-
-/**
- * 장비 테이블 실시간 동기화 훅
- */
-export function useEquipmentRealtime(enabled = true) {
-  const { addEquipment, updateEquipment, deleteEquipment, setEquipments } = useEquipmentStore()
-
-  // 초기 데이터 로드
-  const loadEquipments = useCallback(async () => {
-    const { data } = await equipmentApi.getEquipments()
-    if (data) {
-      setEquipments(data as Equipment[])
-    }
-  }, [setEquipments])
-
-  useEffect(() => {
-    if (enabled) {
-      loadEquipments()
-    }
-  }, [enabled, loadEquipments])
-
-  // Realtime 구독
-  useRealtimeSubscription({
-    table: 'equipments',
-    enabled,
-    onInsert: (newEquipment: AnyRecord) => {
-      console.log('[Realtime] Equipment inserted:', newEquipment)
-      addEquipment(newEquipment as Equipment)
-    },
-    onUpdate: (updatedEquipment: AnyRecord) => {
-      console.log('[Realtime] Equipment updated:', updatedEquipment)
-      updateEquipment(updatedEquipment.id, updatedEquipment as Partial<Equipment>)
-    },
-    onDelete: (deletedEquipment: AnyRecord) => {
-      console.log('[Realtime] Equipment deleted:', deletedEquipment)
-      deleteEquipment(deletedEquipment.id)
-    },
-  })
-
-  return { refresh: loadEquipments }
-}
-
-/**
- * 정비 기록 테이블 실시간 동기화 훅
- */
-export function useMaintenanceRealtime(enabled = true) {
-  const { updateRecord, deleteRecord, setRecords } = useMaintenanceStore()
-
-  // 초기 데이터 로드
-  const loadRecords = useCallback(async () => {
-    const { data } = await maintenanceApi.getRecords()
-    if (data) {
-      setRecords(data as MaintenanceRecord[])
-    }
-  }, [setRecords])
-
-  useEffect(() => {
-    if (enabled) {
-      loadRecords()
-    }
-  }, [enabled, loadRecords])
-
-  // Realtime 구독
-  useRealtimeSubscription({
-    table: 'maintenance_records',
-    enabled,
-    onInsert: () => {
-      console.log('[Realtime] Maintenance record inserted')
-      // 관계 데이터를 위해 전체 리로드
-      loadRecords()
-    },
-    onUpdate: (updatedRecord: AnyRecord) => {
-      console.log('[Realtime] Maintenance record updated:', updatedRecord)
-      updateRecord(updatedRecord.id, updatedRecord as Partial<MaintenanceRecord>)
-    },
-    onDelete: (deletedRecord: AnyRecord) => {
-      console.log('[Realtime] Maintenance record deleted:', deletedRecord)
-      deleteRecord(deletedRecord.id)
-    },
-  })
-
-  return { refresh: loadRecords }
-}
 
 /**
  * DB의 알림 타입을 앱의 NotificationType으로 변환
@@ -116,48 +33,21 @@ function mapNotificationType(dbType: string): NotificationType {
 }
 
 /**
- * 알림 실시간 동기화 훅
- */
-export function useNotificationRealtime(enabled = true) {
-  const { user } = useAuthStore()
-  const { addNotification } = useNotificationStore()
-
-  // 사용자별 알림 필터
-  const filter = user?.id ? `user_id=eq.${user.id}` : undefined
-
-  useRealtimeSubscription({
-    table: 'notifications',
-    filter,
-    enabled: enabled && !!user?.id,
-    onInsert: (newNotification: AnyRecord) => {
-      console.log('[Realtime] New notification:', newNotification)
-
-      const now = new Date(newNotification.created_at)
-      addNotification({
-        type: mapNotificationType(newNotification.type),
-        title: newNotification.title,
-        message: newNotification.message,
-        time: now.toLocaleTimeString('ko-KR', { timeZone: getConfiguredTimezone(), hour: '2-digit', minute: '2-digit' }),
-        date: formatDateInTimezone(now),
-        read: newNotification.is_read,
-      })
-    },
-  })
-}
-
-/**
- * 앱 전체 실시간 동기화 훅
- * MainLayout이나 App 컴포넌트에서 한 번 호출
+ * 앱 전체 실시간 동기화 훅 (#4: 단일 sync 모듈)
+ * MainLayout이나 App 컴포넌트에서 한 번 호출.
  *
  * 기능:
- * - Supabase Realtime 구독
+ * - Supabase Realtime 구독 (중앙 테이블 레지스트리)
  * - 페이지 포커스 시 자동 새로고침
  * - 네트워크 재연결 시 자동 새로고침
  * - stale 데이터 자동 갱신
+ *
+ * equipment/maintenance 캐시 스토어를 갱신하며, 장비 변경은 effective status가
+ * 유지되도록 enriched 리로드로 처리한다.
  */
 export function useAppRealtime(enabled = true) {
   const { user, currentFactory, refreshUser } = useAuthStore()
-  const { updateEquipment, setEquipments } = useEquipmentStore()
+  const { setEquipments } = useEquipmentStore()
   const { updateRecord, setRecords, deleteRecord } = useMaintenanceStore()
   const { addNotification } = useNotificationStore()
   const lastFetchRef = useRef<number>(0)
@@ -167,7 +57,7 @@ export function useAppRealtime(enabled = true) {
     return Date.now() - lastFetchRef.current > STALE_TIME
   }, [])
 
-  // 초기 데이터 로드
+  // 초기 데이터 로드 (equipment는 기본 effective status로 enriched)
   const loadAllData = useCallback(async () => {
     console.log('[DataSync] Loading all data...')
     const [equipmentsResult, recordsResult] = await Promise.all([
@@ -241,7 +131,7 @@ export function useAppRealtime(enabled = true) {
     }
   }, [enabled, loadAllData])
 
-  // 여러 테이블 구독
+  // 여러 테이블 구독 (중앙 레지스트리)
   useMultiTableRealtime(
     [
       {
@@ -251,9 +141,10 @@ export function useAppRealtime(enabled = true) {
           console.log('[Realtime] Equipment inserted')
           loadAllData() // 관계 데이터 포함하여 리로드
         },
-        onUpdate: (data: AnyRecord) => {
-          console.log('[Realtime] Equipment updated:', data)
-          updateEquipment(data.id, data as Partial<Equipment>)
+        onUpdate: () => {
+          // effective status가 유지되도록 enriched 리로드 (raw granular 갱신 금지)
+          console.log('[Realtime] Equipment updated')
+          loadAllData()
         },
         onDelete: () => {
           console.log('[Realtime] Equipment deleted')

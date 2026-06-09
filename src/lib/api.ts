@@ -5,6 +5,8 @@
 
 import { supabase } from './supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { scopedDb } from './scopedDb'
+import { toErrorMessage } from './dataErrors'
 import { getTodayInTimezone, getRelativeDateInTimezone, getMonthEndInTimezone, getMonthStartInTimezone, getCurrentDateInTimezone } from '@/lib/dateUtils'
 import type {
   Equipment,
@@ -179,24 +181,25 @@ function deriveEffectiveStatus(
 // Equipment API
 // ========================================
 export const equipmentApi = {
-  async getEquipments(options?: { withEffectiveStatus?: boolean }): Promise<{ data: Equipment[] | null; error: string | null }> {
-    const factoryId = getCurrentFactoryId()
-    const { data, error } = await getSupabase()
+  async getEquipments(options?: { raw?: boolean; withEffectiveStatus?: boolean }): Promise<{ data: Equipment[] | null; error: string | null }> {
+    const db = scopedDb()
+    const { data, error } = await db
       .from('equipments')
       .select(`
         *,
         equipment_type:equipment_types(*)
       `)
-      .eq('factory_id', factoryId)
       .eq('is_active', true)
       .order('equipment_code')
 
-    if (error || !data || !options?.withEffectiveStatus) {
-      return { data, error: error?.message || null }
+    // #1: effective status is the default. Master/bulk callers that need the raw
+    // stored status opt out with { raw: true }.
+    if (error || !data || options?.raw === true) {
+      return { data, error: toErrorMessage(error) }
     }
 
-    const sets = await fetchInProgressEquipmentSets(factoryId)
-    const enriched = data.map(eq => ({
+    const sets = await fetchInProgressEquipmentSets(db.factoryId)
+    const enriched = data.map((eq: Equipment) => ({
       ...eq,
       status: deriveEffectiveStatus(eq.id, eq.status, sets),
     }))
@@ -205,17 +208,16 @@ export const equipmentApi = {
   },
 
   async getEquipmentById(id: string): Promise<{ data: Equipment | null; error: string | null }> {
-    const { data, error } = await getSupabase()
+    const { data, error } = await scopedDb()
       .from('equipments')
       .select(`
         *,
         equipment_type:equipment_types(*)
       `)
-      .eq('factory_id', getCurrentFactoryId())
       .eq('id', id)
       .single()
 
-    return { data, error: error?.message || null }
+    return { data, error: toErrorMessage(error) }
   },
 
   async getEquipmentTypes(): Promise<{ data: EquipmentType[] | null; error: string | null }> {
@@ -926,18 +928,13 @@ export const statisticsApi = {
   },
 
   async getEquipmentStatusDistribution(): Promise<{ data: { status: string; value: number; color: string }[] | null; error: string | null }> {
-    const factoryId = getCurrentFactoryId()
-    const { data: equipments } = await getSupabase()
-      .from('equipments')
-      .select('id, status')
-      .eq('factory_id', factoryId)
-      .eq('is_active', true)
+    // #1: derive from the single enriched equipment read so the dashboard pie
+    // always matches the equipment list (one fetch, one effective-status derivation).
+    const { data: equipments, error } = await equipmentApi.getEquipments()
 
-    if (!equipments) {
-      return { data: null, error: 'Failed to fetch equipment data' }
+    if (error || !equipments) {
+      return { data: null, error: error || 'Failed to fetch equipment data' }
     }
-
-    const sets = await fetchInProgressEquipmentSets(factoryId)
 
     const statusColors: Record<string, string> = {
       normal: '#10B981',
@@ -950,8 +947,7 @@ export const statisticsApi = {
 
     const statusCounts: Record<string, number> = {}
     equipments.forEach(eq => {
-      const effectiveStatus = deriveEffectiveStatus(eq.id, eq.status, sets)
-      statusCounts[effectiveStatus] = (statusCounts[effectiveStatus] || 0) + 1
+      statusCounts[eq.status] = (statusCounts[eq.status] || 0) + 1
     })
 
     const distribution = Object.entries(statusCounts)
@@ -2505,7 +2501,7 @@ export const aiApi = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ message, language }),
+        body: JSON.stringify({ message, language, factory_id: getCurrentFactoryId() }),
       })
 
       if (!response.ok) {

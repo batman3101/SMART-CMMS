@@ -7,11 +7,15 @@ import { supabase } from './supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { scopedDb } from './scopedDb'
 import { toErrorMessage } from './dataErrors'
+import { computeItemGrade, hasMeasurement } from './grade'
 import { getTodayInTimezone, getRelativeDateInTimezone, getMonthEndInTimezone, getMonthStartInTimezone, getCurrentDateInTimezone } from '@/lib/dateUtils'
 import type {
   Equipment,
   EquipmentType,
   EquipmentStatus,
+  EquipmentGradeCriteria,
+  EquipmentGradeCheck,
+  GradeCheckInput,
   RepairType,
   MaintenanceRecord,
   User,
@@ -344,6 +348,108 @@ export const equipmentApi = {
       .eq('id', id)
 
     return { error: error?.message || null }
+  },
+}
+
+// ========================================
+// Equipment Grade API (설비 등급)
+// ========================================
+export const gradeApi = {
+  // The grading standard (checksheet) is company-wide → global table, not factory-scoped.
+  async getCriteria(includeInactive = false): Promise<{ data: EquipmentGradeCriteria[] | null; error: string | null }> {
+    let query = getSupabase()
+      .from('equipment_grade_criteria')
+      .select('*')
+      .order('display_order')
+
+    if (!includeInactive) query = query.eq('is_active', true)
+
+    const { data, error } = await query
+    return { data: data as EquipmentGradeCriteria[] | null, error: toErrorMessage(error) }
+  },
+
+  // Current measurements for one equipment (factory-scoped).
+  async getChecks(equipmentId: string): Promise<{ data: EquipmentGradeCheck[] | null; error: string | null }> {
+    const { data, error } = await scopedDb()
+      .from('equipment_grade_checks')
+      .select('*')
+      .eq('equipment_id', equipmentId)
+
+    return { data: data as EquipmentGradeCheck[] | null, error: toErrorMessage(error) }
+  },
+
+  /**
+   * Save a full checksheet for an equipment. Items with a measurement are upserted
+   * (with the item grade computed here, the single source of truth); items left blank
+   * are deleted so the stored state always matches the form. The DB trigger then
+   * recomputes equipments.grade. Re-callable any time → supports continuous re-grading.
+   */
+  async saveChecksheet(equipmentId: string, inputs: GradeCheckInput[]): Promise<{ error: string | null }> {
+    const { data: criteria, error: cErr } = await this.getCriteria(true)
+    if (cErr || !criteria) return { error: cErr ?? 'Failed to load grade criteria' }
+
+    const byId = new Map(criteria.map((c) => [c.id, c]))
+    const userId = useAuthStore.getState().user?.id ?? null
+    const nowIso = new Date().toISOString()
+
+    const toUpsert: Record<string, unknown>[] = []
+    const toDelete: string[] = []
+
+    for (const input of inputs) {
+      const c = byId.get(input.criteria_id)
+      if (!c) continue
+
+      const measurement = {
+        measured_value: input.measured_value ?? null,
+        measured_bool: input.measured_bool ?? null,
+        measured_text: input.measured_text ?? null,
+      }
+
+      if (!hasMeasurement(c.comparison, measurement)) {
+        toDelete.push(input.criteria_id)
+        continue
+      }
+
+      toUpsert.push({
+        equipment_id: equipmentId,
+        criteria_id: input.criteria_id,
+        measured_value: measurement.measured_value,
+        measured_bool: measurement.measured_bool,
+        measured_text: measurement.measured_text,
+        item_grade: computeItemGrade(c, measurement),
+        notes: input.notes ?? null,
+        checked_by: userId,
+        checked_at: nowIso,
+      })
+    }
+
+    if (toUpsert.length > 0) {
+      const { error } = await scopedDb()
+        .from('equipment_grade_checks')
+        .upsert(toUpsert, { onConflict: 'equipment_id,criteria_id' })
+      if (error) return { error: toErrorMessage(error) }
+    }
+
+    if (toDelete.length > 0) {
+      const { error } = await scopedDb()
+        .from('equipment_grade_checks')
+        .delete()
+        .eq('equipment_id', equipmentId)
+        .in('criteria_id', toDelete)
+      if (error) return { error: toErrorMessage(error) }
+    }
+
+    return { error: null }
+  },
+
+  // Criteria management (admin/manager). Used by the grade criteria page.
+  async updateCriteria(id: string, updates: Partial<EquipmentGradeCriteria>): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('equipment_grade_criteria')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    return { error: toErrorMessage(error) }
   },
 }
 

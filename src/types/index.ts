@@ -110,9 +110,98 @@ export interface Equipment {
   manufacturer: string | null
   building: string
   building_vi?: string
+  grade?: GradeLetter | null              // 자동 산정된 종합 등급 (등급 미평가 시 null)
+  grade_evaluated_at?: string | null      // 마지막 등급 평가 시각
   is_active: boolean
   created_at: string
   updated_at: string
+}
+
+// ========================================
+// Equipment Grade (설비 등급) Types
+// ========================================
+
+// 등급 (A+ 최상 → D 최하)
+export type GradeLetter = 'A+' | 'A' | 'B' | 'C' | 'D'
+
+// 평가 항목별 비교 방식
+// - lower_is_better : 측정값이 작을수록 좋음 (예: 런아웃 ≤3μm → A+)
+// - higher_is_better: 측정값이 클수록 좋음 (예: 클램핑력 ≥2.7KN → A+)
+// - level_count     : 단계 수가 많을수록 좋음 (밸런서 9단계 → A+)
+// - range           : 허용 범위 내이면 통과(등급 영향 없음), 벗어나면 D
+// - pass_fail       : OK이면 통과(등급 영향 없음), NG이면 D
+export type GradeComparison =
+  | 'lower_is_better'
+  | 'higher_is_better'
+  | 'level_count'
+  | 'range'
+  | 'pass_fail'
+
+// 등급 평가 기준 (체크시트 항목 마스터)
+export interface EquipmentGradeCriteria {
+  id: string
+  item_no: number
+  ref_no: number | null
+  category_ko: string | null
+  category_vi: string | null
+  item_ko: string | null
+  item_vi: string | null
+  position_ko: string | null
+  position_vi: string | null
+  condition_ko: string | null
+  condition_vi: string | null
+  device_ko: string | null
+  device_vi: string | null
+  unit: string | null
+  comparison: GradeComparison
+  threshold_a_plus: number | null
+  threshold_a: number | null
+  threshold_b: number | null
+  threshold_c: number | null
+  range_min: number | null
+  range_max: number | null
+  raw_a_plus: string | null
+  raw_a: string | null
+  raw_b: string | null
+  raw_c: string | null
+  raw_d: string | null
+  included_in_grade: boolean
+  display_order: number
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+// 설비별 등급 측정 기록 (상시 재평가/수정 가능)
+export interface EquipmentGradeCheck {
+  id: string
+  equipment_id: string
+  criteria_id: string
+  factory_id: string
+  measured_value: number | null
+  measured_bool: boolean | null
+  measured_text: string | null
+  item_grade: GradeLetter | null
+  checked_by: string | null
+  checked_at: string | null
+  notes: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+// 체크시트 한 행: 기준 + (있다면) 현재 측정 기록
+export interface GradeChecksheetRow {
+  criteria: EquipmentGradeCriteria
+  check: EquipmentGradeCheck | null
+}
+
+// 체크시트 저장 시 항목별 입력값
+export interface GradeCheckInput {
+  criteria_id: string
+  measured_value?: number | null
+  measured_bool?: boolean | null
+  measured_text?: string | null
+  notes?: string | null
 }
 
 // Repair types

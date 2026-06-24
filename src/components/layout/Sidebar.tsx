@@ -43,6 +43,7 @@ const navItems: NavItem[] = [
     children: [
       { path: '/equipment', labelKey: 'nav.equipmentList' },
       { path: '/equipment/master', labelKey: 'nav.equipmentMaster' },
+      { path: '/equipment/grade-criteria', labelKey: 'nav.gradeCriteria' },
       { path: '/equipment/bulk-upload', labelKey: 'nav.equipmentBulkUpload' },
     ],
   },

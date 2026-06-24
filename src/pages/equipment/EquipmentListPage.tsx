@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Eye,
   Wrench,
+  Gauge,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -32,6 +33,8 @@ import { equipmentApi } from '@/lib/api'
 import { useEquipmentData } from '@/data/useEquipmentData'
 import { useTableSort } from '@/hooks/useTableSort'
 import { useAuthStore } from '@/stores/authStore'
+import { GradeBadge } from '@/components/equipment/GradeBadge'
+import GradeChecksheetDialog from '@/components/equipment/GradeChecksheetDialog'
 import type { Equipment, EquipmentStatus, EquipmentType } from '@/types'
 
 type StatusBadgeVariant = 'default' | 'success' | 'info' | 'warning' | 'destructive' | 'secondary'
@@ -90,6 +93,9 @@ export default function EquipmentListPage() {
 
   // 선택된 설비
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null)
+
+  // 등급 체크시트 대상 설비
+  const [gradeEquipment, setGradeEquipment] = useState<Equipment | null>(null)
 
   // 데이터 로드
   useEffect(() => {
@@ -341,6 +347,7 @@ export default function EquipmentListPage() {
                       >
                         {getStatusLabel(equipment.status)}
                       </Badge>
+                      {equipment.grade && <GradeBadge grade={equipment.grade} size="sm" />}
                     </div>
                     <p className="text-xs text-muted-foreground truncate mt-1">{getEquipmentName(equipment)}</p>
                     <div className="flex gap-2 text-xs text-muted-foreground mt-1">
@@ -350,6 +357,18 @@ export default function EquipmentListPage() {
                     </div>
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setGradeEquipment(equipment)
+                      }}
+                      title={t('grade.evaluate')}
+                    >
+                      <Gauge className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -445,6 +464,7 @@ export default function EquipmentListPage() {
                     >
                       {t('equipment.status')}
                     </SortableTableHead>
+                    <TableHead className="text-center">{t('grade.label')}</TableHead>
                     <TableHead className="text-center">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -461,7 +481,18 @@ export default function EquipmentListPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
+                        <GradeBadge grade={equipment.grade} />
+                      </TableCell>
+                      <TableCell className="text-center">
                         <div className="flex justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setGradeEquipment(equipment)}
+                            title={t('grade.evaluate')}
+                          >
+                            <Gauge className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -478,7 +509,7 @@ export default function EquipmentListPage() {
                   ))}
                   {paginatedEquipments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                      <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                         {t('common.noSearchResults')}
                       </TableCell>
                     </TableRow>
@@ -550,9 +581,12 @@ export default function EquipmentListPage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{equipment.equipment_code}</CardTitle>
-                      <Badge variant={statusColors[equipment.status]}>
-                        {getStatusLabel(equipment.status)}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        {equipment.grade && <GradeBadge grade={equipment.grade} size="sm" />}
+                        <Badge variant={statusColors[equipment.status]}>
+                          {getStatusLabel(equipment.status)}
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -631,6 +665,10 @@ export default function EquipmentListPage() {
                   </Badge>
                 </div>
                 <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t('grade.label')}</p>
+                  <GradeBadge grade={selectedEquipment.grade} showUnratedText />
+                </div>
+                <div>
                   <p className="text-xs sm:text-sm text-muted-foreground">{t('equipment.installDate')}</p>
                   <p className="font-medium text-sm sm:text-base">
                     {selectedEquipment.install_date
@@ -665,6 +703,17 @@ export default function EquipmentListPage() {
                   variant="outline"
                   className="flex-1"
                   onClick={() => {
+                    setGradeEquipment(selectedEquipment)
+                    setSelectedEquipment(null)
+                  }}
+                >
+                  <Gauge className="mr-2 h-4 w-4" />
+                  {t('grade.evaluate')}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
                     const equipmentId = selectedEquipment.id
                     setSelectedEquipment(null)
                     navigate('/maintenance/history', {
@@ -678,6 +727,19 @@ export default function EquipmentListPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* 등급 체크시트 - 항목별 측정값 입력 → 자동 등급 산정 (상시 재평가 가능) */}
+      {gradeEquipment && (
+        <GradeChecksheetDialog
+          equipment={gradeEquipment}
+          open={!!gradeEquipment}
+          onClose={() => setGradeEquipment(null)}
+          onSaved={() => {
+            // 등급 캐시 갱신 → 목록의 등급 배지 즉시 반영
+            void refreshEquipments()
+          }}
+        />
       )}
     </div>
   )

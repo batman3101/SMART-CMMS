@@ -8,6 +8,7 @@ import DashboardPage from '@/pages/DashboardPage'
 import EquipmentListPage from '@/pages/equipment/EquipmentListPage'
 import EquipmentMasterPage from '@/pages/equipment/EquipmentMasterPage'
 import EquipmentBulkUploadPage from '@/pages/equipment/EquipmentBulkUploadPage'
+import GradeCriteriaPage from '@/pages/equipment/GradeCriteriaPage'
 import MaintenanceInputPage from '@/pages/maintenance/MaintenanceInputPage'
 import MaintenanceHistoryPage from '@/pages/maintenance/MaintenanceHistoryPage'
 import MaintenanceMonitorPage from '@/pages/maintenance/MaintenanceMonitorPage'
@@ -98,6 +99,14 @@ function App() {
           <Route path="list" element={<EquipmentListPage />} />
           <Route path="master" element={<EquipmentMasterPage />} />
           <Route path="bulk-upload" element={<EquipmentBulkUploadPage />} />
+          <Route
+            path="grade-criteria"
+            element={
+              <RoleGuard requiredRole={2}>
+                <GradeCriteriaPage />
+              </RoleGuard>
+            }
+          />
         </Route>
 
         {/* Maintenance Management */}

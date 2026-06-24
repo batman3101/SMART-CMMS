@@ -189,6 +189,152 @@ describe('computeOverallGrade', () => {
   })
 })
 
+// --- computeOverallGrade: explicit rule scenarios --------------------------
+
+describe('computeOverallGrade: worst-grade-wins rules', () => {
+  it('rule 1a: all items A+ → overall A+', () => {
+    expect(computeOverallGrade(['A+', 'A+', 'A+'])).toBe('A+')
+  })
+
+  it('rule 1b: all items A → overall A', () => {
+    expect(computeOverallGrade(['A', 'A', 'A'])).toBe('A')
+  })
+
+  it('rule 2: all items A but one item B → overall B', () => {
+    expect(computeOverallGrade(['A', 'A', 'B', 'A'])).toBe('B')
+  })
+
+  it('rule 3a: mix {A+, A, A, B} → overall B', () => {
+    expect(computeOverallGrade(['A+', 'A', 'A', 'B'])).toBe('B')
+  })
+
+  it('rule 3b: mix {A, A, C} → overall C', () => {
+    expect(computeOverallGrade(['A', 'A', 'C'])).toBe('C')
+  })
+})
+
+// --- computeChecksheetGrade: excluded items must not affect overall --------
+
+describe('computeChecksheetGrade: excluded item does not affect overall', () => {
+  it('excluded item graded D among included A items → overall stays A', () => {
+    // included items: two A-grade measurements
+    // excluded item: graded D (must not drag overall down)
+    const entries: ChecksheetEntry[] = [
+      {
+        criteria: criteria({ comparison: 'higher_is_better', threshold_a_plus: 2.7, threshold_a: 2.2, threshold_b: 2.0, threshold_c: 1.8, included_in_grade: true }),
+        measurement: { measured_value: 2.3 }, // A
+      },
+      {
+        criteria: criteria({ comparison: 'higher_is_better', threshold_a_plus: 2.7, threshold_a: 2.2, threshold_b: 2.0, threshold_c: 1.8, included_in_grade: true }),
+        measurement: { measured_value: 2.4 }, // A
+      },
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: false }),
+        measurement: { measured_value: 99 }, // D — but excluded
+      },
+    ]
+    const res = computeChecksheetGrade(entries)
+    expect(res.overall).toBe('A')          // excluded D must not pull overall down
+    expect(res.includedTotal).toBe(2)
+    expect(res.measuredCount).toBe(3)      // all three were measured (D item counted for display)
+  })
+
+  it('all included items A+ with excluded item B → overall A+', () => {
+    const entries: ChecksheetEntry[] = [
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 2 }, // A+
+      },
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 1 }, // A+
+      },
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: false }),
+        measurement: { measured_value: 7 }, // B — but excluded
+      },
+    ]
+    const res = computeChecksheetGrade(entries)
+    expect(res.overall).toBe('A+')
+    expect(res.includedTotal).toBe(2)
+  })
+
+  it('all included A, one included B → overall B (worst included wins)', () => {
+    const entries: ChecksheetEntry[] = [
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 4 }, // A
+      },
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 5 }, // A
+      },
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 7 }, // B
+      },
+    ]
+    const res = computeChecksheetGrade(entries)
+    expect(res.overall).toBe('B')
+    expect(res.includedTotal).toBe(3)
+  })
+
+  it('included mix {A+, A, A, C} → overall C', () => {
+    const entries: ChecksheetEntry[] = [
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 2 }, // A+
+      },
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 5 }, // A
+      },
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 4 }, // A
+      },
+      {
+        criteria: criteria({ comparison: 'lower_is_better', threshold_a_plus: 3, threshold_a: 6, threshold_b: 8, threshold_c: 10, included_in_grade: true }),
+        measurement: { measured_value: 9 }, // C
+      },
+    ]
+    expect(computeChecksheetGrade(entries).overall).toBe('C')
+  })
+})
+
+// --- new Spindle vibration items (스핀들 진동) per the ALMUS standard ---------
+
+describe('computeItemGrade: spindle vibration items (new)', () => {
+  // item 25 — vibration @ Spindle, 3 KRPM: ≤1.5 A+, ≤2.0 A, ≤2.5 B, ≤3.5 C, >3.5 D (m/s²)
+  const VIB_3KRPM = spec('lower_is_better', {
+    threshold_a_plus: 1.5, threshold_a: 2.0, threshold_b: 2.5, threshold_c: 3.5,
+  })
+  // item 26 — vibration @ Spindle motor, 24 KRPM: ≤8.5 A+, ≤10 A, ≤12 B, ≤15 C, >15 D (m/s²)
+  const VIB_24KRPM = spec('lower_is_better', {
+    threshold_a_plus: 8.5, threshold_a: 10, threshold_b: 12, threshold_c: 15,
+  })
+
+  it.each([
+    [1.5, 'A+'], [1.0, 'A+'],
+    [2.0, 'A'], [1.8, 'A'],
+    [2.5, 'B'], [2.3, 'B'],
+    [3.5, 'C'], [3.0, 'C'],
+    [3.6, 'D'], [10, 'D'],
+  ])('3 KRPM value %p -> %s', (value, expected) => {
+    expect(computeItemGrade(VIB_3KRPM, { measured_value: value })).toBe(expected)
+  })
+
+  it.each([
+    [8.5, 'A+'], [5, 'A+'],
+    [10, 'A'], [9, 'A'],
+    [12, 'B'], [11, 'B'],
+    [15, 'C'], [13, 'C'],
+    [15.1, 'D'], [20, 'D'],
+  ])('24 KRPM value %p -> %s', (value, expected) => {
+    expect(computeItemGrade(VIB_24KRPM, { measured_value: value })).toBe(expected)
+  })
+})
+
 // --- computeChecksheetGrade ------------------------------------------------
 
 describe('computeChecksheetGrade', () => {

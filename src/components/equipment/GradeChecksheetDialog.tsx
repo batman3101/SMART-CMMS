@@ -154,9 +154,9 @@ export default function GradeChecksheetDialog({ equipment, open, onClose, onSave
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
-      <div className="flex w-full max-h-[95vh] flex-col overflow-hidden rounded-t-xl bg-background sm:max-h-[90vh] sm:max-w-4xl sm:rounded-xl">
+      <div className="flex w-full h-[100dvh] flex-col overflow-hidden rounded-t-xl bg-background sm:h-auto sm:max-h-[90dvh] sm:max-w-4xl sm:rounded-xl">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 border-b p-4 sm:p-5">
+        <div className="shrink-0 flex items-center justify-between gap-3 border-b p-4 sm:p-5">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold sm:text-lg">
               {t('grade.checksheetTitle', { code: equipment.equipment_code })}
@@ -177,7 +177,7 @@ export default function GradeChecksheetDialog({ equipment, open, onClose, onSave
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
           {loading ? (
             <div className="flex h-40 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -259,7 +259,7 @@ export default function GradeChecksheetDialog({ equipment, open, onClose, onSave
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t p-4 sm:p-5">
+        <div className="shrink-0 flex items-center justify-end gap-2 border-t bg-background p-4 sm:p-5">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             {t('grade.cancel')}
           </Button>

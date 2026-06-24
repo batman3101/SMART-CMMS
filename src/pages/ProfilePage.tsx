@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 
 export default function ProfilePage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user, language, setLanguage, updateUser, currentFactory } = useAuthStore()
 
   const [isSaving, setIsSaving] = useState(false)
@@ -175,6 +175,7 @@ export default function ProfilePage() {
 
   const handleLanguageChange = (lang: 'ko' | 'vi') => {
     setLanguage(lang)
+    i18n.changeLanguage(lang)
   }
 
   return (

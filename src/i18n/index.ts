@@ -13,9 +13,24 @@ const updateDocumentLanguage = (lng: string) => {
   document.documentElement.lang = lng
 }
 
+// Read persisted language from Zustand auth store (localStorage key: 'amms-auth')
+const getPersistedLanguage = (): 'ko' | 'vi' => {
+  try {
+    const raw = localStorage.getItem('amms-auth')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const lang = parsed?.state?.language
+      if (lang === 'ko' || lang === 'vi') return lang
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return 'ko'
+}
+
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'ko',
+  lng: getPersistedLanguage(),
   fallbackLng: 'ko',
   interpolation: {
     escapeValue: false,

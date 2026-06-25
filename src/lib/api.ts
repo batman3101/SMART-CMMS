@@ -3058,14 +3058,69 @@ export const paintApi = {
   },
 
   async updateSchedule(id: string, updates: Partial<PaintSchedule>): Promise<{ success: boolean; error: string | null }> {
+    const factoryId = getCurrentFactoryId()
     const { error } = await getSupabase()
       .from('paint_schedules')
       .update({
         ...updates,
         updated_at: new Date().toISOString(),
       })
-      .eq('factory_id', getCurrentFactoryId())
+      .eq('factory_id', factoryId)
       .eq('id', id)
+
+    if (error) return { success: false, error: error.message }
+
+    // 설비 정정 시 실행 이력 스냅샷(paint_executions.equipment_id)도 일관되게 맞춤.
+    // 실행 기록이 없는 일정은 영향 없음. (paint_step_executions는 설비 컬럼이 없어 조치 불필요)
+    if (updates.equipment_id) {
+      const { error: execError } = await getSupabase()
+        .from('paint_executions')
+        .update({ equipment_id: updates.equipment_id })
+        .eq('factory_id', factoryId)
+        .eq('schedule_id', id)
+      if (execError) return { success: false, error: execError.message }
+    }
+
+    return { success: true, error: null }
+  },
+
+  // 완료 일정의 완료일(실행 기록 completed_at) 조회 — 수정 모달에서 현재값 표시용
+  async getScheduleCompletedAt(scheduleId: string): Promise<{ data: string | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('paint_executions')
+      .select('completed_at')
+      .eq('factory_id', getCurrentFactoryId())
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    return { data: (data?.completed_at as string | undefined) ?? null, error: error?.message || null }
+  },
+
+  // 완료 일정의 완료일 정정 — 해당 일정의 완료 실행 기록 completed_at 갱신
+  async updateScheduleCompletedAt(scheduleId: string, completedAt: string): Promise<{ success: boolean; error: string | null }> {
+    const { error } = await getSupabase()
+      .from('paint_executions')
+      .update({ completed_at: completedAt })
+      .eq('factory_id', getCurrentFactoryId())
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'completed')
+
+    return { success: !error, error: error?.message || null }
+  },
+
+  // 건너뛴/미완료 단계를 일괄 완료 처리 (수정 모달의 단계 체크용).
+  // completeStep과 달리 일정/실행 완료 같은 부작용 없이 단계 상태만 갱신한다.
+  async markStepsCompleted(stepExecutionIds: string[]): Promise<{ success: boolean; error: string | null }> {
+    if (stepExecutionIds.length === 0) return { success: true, error: null }
+    const now = new Date().toISOString()
+    const { error } = await getSupabase()
+      .from('paint_step_executions')
+      .update({ status: 'completed', completed_at: now, updated_at: now })
+      .eq('factory_id', getCurrentFactoryId())
+      .in('id', stepExecutionIds)
 
     return { success: !error, error: error?.message || null }
   },

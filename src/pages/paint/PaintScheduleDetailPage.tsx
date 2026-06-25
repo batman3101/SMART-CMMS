@@ -209,7 +209,7 @@ export default function PaintScheduleDetailPage() {
 
   const canStart = schedule.status === 'scheduled'
   const canContinue = schedule.status === 'in_progress'
-  const canEdit = schedule.status === 'scheduled'
+  const canEdit = true // 모든 상태에서 설비/일정 정정 가능 (목록 수정 모달로 이동)
   const canDelete = schedule.status === 'scheduled'
   const progress = calculateProgress()
 
@@ -416,7 +416,7 @@ export default function PaintScheduleDetailPage() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => navigate(`/paint/schedules/${schedule.id}/edit`)}
+                  onClick={() => navigate(`/paint/schedules?edit=${schedule.id}`)}
                 >
                   <Edit className="mr-2 h-4 w-4" />
                   {t('paint.editSchedule')}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -35,7 +36,7 @@ import { getTodayInTimezone } from '@/lib/dateUtils'
 import { paintApi, equipmentApi, usersApi } from '@/lib/api'
 import { useTableSort } from '@/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import type { PaintSchedule, PaintScheduleFilter, PaintScheduleStatus, PaintPriority, Equipment, EquipmentType, PaintTemplate, User } from '@/types'
+import type { PaintSchedule, PaintScheduleFilter, PaintScheduleStatus, PaintPriority, Equipment, EquipmentType, PaintTemplate, PaintStepExecution, User } from '@/types'
 
 const PAGE_SIZE = 15
 
@@ -70,6 +71,7 @@ export default function PaintScheduleListPage() {
   const [schedules, setSchedules] = useState<PaintSchedule[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
   const [technicians, setTechnicians] = useState<User[]>([])
+  const [equipments, setEquipments] = useState<Equipment[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; schedule: PaintSchedule | null }>({ open: false, schedule: null })
   const [editModal, setEditModal] = useState<{ open: boolean; schedule: PaintSchedule | null }>({ open: false, schedule: null })
@@ -80,8 +82,16 @@ export default function PaintScheduleListPage() {
     notes: '',
     current_step: 0,
     status: 'scheduled' as PaintScheduleStatus,
+    equipment_id: '',
+    equipment_code: '',
+    completed_date: '',
   })
   const [editLoading, setEditLoading] = useState(false)
+  // 수정 모달의 단계 체크리스트(건너뛴 단계 완료 처리용)
+  const [stepExecs, setStepExecs] = useState<PaintStepExecution[]>([])
+  const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean>>({})
+  // ?edit=<scheduleId> 진입(상세 페이지 수정 버튼) 시 모달 1회 자동 오픈용
+  const editParamHandledRef = useRef(false)
 
   // Filters
   const [search, setSearch] = useState('')
@@ -99,15 +109,17 @@ export default function PaintScheduleListPage() {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      const [typesRes, techRes] = await Promise.all([
+      const [typesRes, techRes, eqRes] = await Promise.all([
         equipmentApi.getEquipmentTypes(),
         usersApi.getTechnicians(),
+        equipmentApi.getEquipments({ raw: true }),
       ])
       if (typesRes.data) setEquipmentTypes(typesRes.data)
       if (techRes.data) setTechnicians(techRes.data)
+      if (eqRes.data) setEquipments(eqRes.data)
     }
     loadInitialData()
-  }, [])
+  }, [currentFactory])
 
   useEffect(() => {
     fetchSchedules()
@@ -261,12 +273,19 @@ export default function PaintScheduleListPage() {
       notes: schedule.notes || '',
       current_step: schedule.current_step || 0,
       status: schedule.status,
+      equipment_id: schedule.equipment_id,
+      equipment_code: schedule.equipment?.equipment_code || '',
+      completed_date: '', // 모달 오픈 시 비동기 로드
     })
+    setStepExecs([])
+    setCheckedSteps({})
     setEditModal({ open: true, schedule })
   }
 
   const closeEditModal = () => {
     setEditModal({ open: false, schedule: null })
+    setStepExecs([])
+    setCheckedSteps({})
     setEditForm({
       scheduled_date: '',
       assigned_technician_id: '',
@@ -274,11 +293,71 @@ export default function PaintScheduleListPage() {
       notes: '',
       current_step: 0,
       status: 'scheduled',
+      equipment_id: '',
+      equipment_code: '',
+      completed_date: '',
     })
   }
 
+  // 모달 오픈 시: 단계 실행 목록 + (완료 일정이면) 완료일 비동기 로드
+  useEffect(() => {
+    if (!editModal.open || !editModal.schedule) return
+    const sched = editModal.schedule
+    let cancelled = false
+    ;(async () => {
+      const stepRes = await paintApi.getStepExecutions(sched.id)
+      if (cancelled) return
+      const steps = stepRes.data ?? []
+      setStepExecs(steps)
+      // checkedSteps는 사용자 토글만 추적(비동기 로드가 클릭을 덮어쓰는 레이스 방지).
+      // 이미 완료된 단계의 체크 표시는 렌더 시 se.status에서 직접 파생한다.
+
+      if (sched.status === 'completed') {
+        const cRes = await paintApi.getScheduleCompletedAt(sched.id)
+        if (cancelled) return
+        const dateStr = cRes.data
+          ? new Date(cRes.data).toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })
+          : ''
+        setEditForm((prev) => ({ ...prev, completed_date: dateStr }))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [editModal.open, editModal.schedule])
+
+  // 단계명(다국어)
+  const getStepName = (se: PaintStepExecution) => {
+    const s = se.step
+    if (!s) return `${t('paint.step')} ${se.step_order}`
+    return i18n.language === 'vi' ? s.name_vi || s.name : s.name_ko || s.name
+  }
+
+  // 입력한 설비 코드 → 설비 resolve (정확 일치, 대소문자 무시). 미일치면 저장 비활성화.
+  const handleEditEquipmentCode = (code: string) => {
+    const match = equipments.find(
+      (eq) => eq.equipment_code.toLowerCase() === code.trim().toLowerCase()
+    )
+    setEditForm((prev) => ({ ...prev, equipment_code: code, equipment_id: match?.id || '' }))
+  }
+  const selectedEditEquipment = equipments.find((eq) => eq.id === editForm.equipment_id)
+  const editEquipmentValid = !!editForm.equipment_id
+
+  // 상세 페이지의 "수정" 버튼(?edit=<id>)으로 진입하면 해당 일정의 수정 모달을 1회 자동 오픈
+  useEffect(() => {
+    const editId = searchParams.get('edit')
+    if (editId && schedules.length > 0 && !editParamHandledRef.current) {
+      const target = schedules.find((s) => s.id === editId)
+      if (target) {
+        openEditModal(target)
+        editParamHandledRef.current = true
+      }
+    }
+  }, [schedules, searchParams])
+
   const handleEdit = async () => {
     if (!editModal.schedule) return
+    if (!editForm.equipment_id) return // 유효한 설비가 선택되지 않으면 저장 불가
 
     setEditLoading(true)
 
@@ -299,7 +378,25 @@ export default function PaintScheduleListPage() {
       notes: editForm.notes,
       current_step: editForm.current_step,
       status: newStatus,
+      equipment_id: editForm.equipment_id,
     })
+    if (success) {
+      // 완료일 정정 (완료 일정만, 단계 유지 시)
+      if (editModal.schedule.status === 'completed' && editForm.completed_date && newStatus === 'completed') {
+        await paintApi.updateScheduleCompletedAt(
+          editModal.schedule.id,
+          `${editForm.completed_date}T12:00:00+07:00`
+        )
+      }
+      // 건너뛴/미완료 단계 완료 처리
+      const toComplete = stepExecs
+        .filter((se) => checkedSteps[se.id] && se.status !== 'completed')
+        .map((se) => se.id)
+      if (toComplete.length > 0) {
+        await paintApi.markStepsCompleted(toComplete)
+      }
+    }
+
     setEditLoading(false)
 
     if (success) {
@@ -475,25 +572,23 @@ export default function PaintScheduleListPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditModal(schedule)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       {schedule.status !== 'completed' && schedule.status !== 'cancelled' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openEditModal(schedule)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDeleteConfirm({ open: true, schedule })}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeleteConfirm({ open: true, schedule })}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -612,26 +707,24 @@ export default function PaintScheduleListPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => openEditModal(schedule)}
+                          title={t('paint.editSchedule')}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         {schedule.status !== 'completed' && schedule.status !== 'cancelled' && (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => openEditModal(schedule)}
-                              title={t('paint.editSchedule')}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setDeleteConfirm({ open: true, schedule })}
-                              title={t('paint.deleteSchedule')}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setDeleteConfirm({ open: true, schedule })}
+                            title={t('paint.deleteSchedule')}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -717,18 +810,37 @@ export default function PaintScheduleListPage() {
       {/* Edit Modal */}
       {editModal.open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
-          <Card className="w-full sm:max-w-lg mx-0 sm:mx-4 rounded-b-none sm:rounded-b-lg max-h-[90vh] overflow-y-auto">
-            <CardContent className="p-4 sm:p-6">
+          <Card className="w-full sm:max-w-lg mx-0 sm:mx-4 rounded-b-none sm:rounded-b-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
               <h3 className="text-base sm:text-lg font-semibold mb-4">{t('paint.editSchedule')}</h3>
 
-              {editModal.schedule && (
-                <div className="bg-muted p-3 rounded-md mb-4 text-xs sm:text-sm space-y-1">
-                  <p><strong>{t('equipment.equipmentCode')}:</strong> {editModal.schedule.equipment?.equipment_code}</p>
-                  <p><strong>{t('equipment.equipmentName')}:</strong> {getEquipmentName(editModal.schedule.equipment)}</p>
-                </div>
-              )}
-
               <div className="space-y-4">
+                {/* 설비 선택기 (검색형 datalist) — 잘못 입력된 설비 번호 정정 */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-equipment">{t('paint.selectEquipment')}</Label>
+                  <Input
+                    id="edit-equipment"
+                    list="paint-edit-equipment-codes"
+                    value={editForm.equipment_code}
+                    onChange={(e) => handleEditEquipmentCode(e.target.value)}
+                    placeholder={t('paint.equipmentCodePlaceholder')}
+                    autoComplete="off"
+                    className={editForm.equipment_code && !editEquipmentValid ? 'border-destructive focus-visible:ring-destructive' : ''}
+                  />
+                  <datalist id="paint-edit-equipment-codes">
+                    {equipments.map((eq) => (
+                      <option key={eq.id} value={eq.equipment_code}>
+                        {getEquipmentName(eq)}
+                      </option>
+                    ))}
+                  </datalist>
+                  {editEquipmentValid ? (
+                    <p className="text-xs text-muted-foreground">{getEquipmentName(selectedEditEquipment)}</p>
+                  ) : editForm.equipment_code ? (
+                    <p className="text-xs text-destructive">{t('paint.invalidEquipmentCode')}</p>
+                  ) : null}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-scheduled-date">{t('paint.scheduledDate')}</Label>
                   <Input
@@ -738,6 +850,19 @@ export default function PaintScheduleListPage() {
                     onChange={(e) => setEditForm(prev => ({ ...prev, scheduled_date: e.target.value }))}
                   />
                 </div>
+
+                {/* 완료일 — 완료 일정에서만 표시 (실행 기록 completed_at 정정) */}
+                {editModal.schedule?.status === 'completed' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-completed-date">{t('paint.completedDate')}</Label>
+                    <Input
+                      id="edit-completed-date"
+                      type="date"
+                      value={editForm.completed_date}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, completed_date: e.target.value }))}
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-technician">{t('paint.assignedTechnician')}</Label>
@@ -785,6 +910,35 @@ export default function PaintScheduleListPage() {
                   </Select>
                 </div>
 
+                {/* 단계별 완료 체크 — 건너뛴/미완료 단계를 체크하여 완료 처리 */}
+                {stepExecs.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>{t('paint.markStepsComplete')}</Label>
+                    <div className="space-y-2 rounded-md border p-3">
+                      {stepExecs.map((se) => {
+                        const done = se.status === 'completed'
+                        return (
+                          <label key={se.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <Checkbox
+                              checked={done || !!checkedSteps[se.id]}
+                              disabled={done}
+                              onCheckedChange={(v) =>
+                                setCheckedSteps((prev) => ({ ...prev, [se.id]: v === true }))
+                              }
+                            />
+                            <span className={done ? 'text-muted-foreground' : ''}>
+                              {se.step_order}. {getStepName(se)}
+                            </span>
+                            {se.status === 'skipped' && (
+                              <span className="text-xs text-amber-600">({t('paint.stepSkipped')})</span>
+                            )}
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="edit-notes">{t('paint.paintNotes')}</Label>
                   <textarea
@@ -798,18 +952,18 @@ export default function PaintScheduleListPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-6">
-                <Button variant="outline" onClick={closeEditModal} disabled={editLoading} className="w-full sm:w-auto">
-                  {t('common.cancel')}
-                </Button>
-                <Button onClick={handleEdit} disabled={editLoading} className="w-full sm:w-auto">
-                  {editLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  {t('common.save')}
-                </Button>
-              </div>
             </CardContent>
+            <div className="shrink-0 border-t bg-background p-4 sm:p-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={closeEditModal} disabled={editLoading} className="w-full sm:w-auto">
+                {t('common.cancel')}
+              </Button>
+              <Button onClick={handleEdit} disabled={editLoading || !editEquipmentValid} className="w-full sm:w-auto">
+                {editLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {t('common.save')}
+              </Button>
+            </div>
           </Card>
         </div>
       )}

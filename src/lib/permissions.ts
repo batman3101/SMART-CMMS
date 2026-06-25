@@ -9,6 +9,8 @@ export type Permission =
   | 'maintenance:create'
   | 'maintenance:complete'
   | 'maintenance:view'
+  | 'maintenance:edit'
+  | 'maintenance:delete'
   | 'equipment:create'
   | 'equipment:edit'
   | 'equipment:view'
@@ -25,6 +27,7 @@ const permissionMatrix: Record<number, Permission[]> = {
   // Admin - Full access
   1: [
     'maintenance:create', 'maintenance:complete', 'maintenance:view',
+    'maintenance:edit', 'maintenance:delete',
     'equipment:create', 'equipment:edit', 'equipment:view',
     'pm:create', 'pm:execute', 'pm:view',
     'admin:users', 'admin:settings',
@@ -33,6 +36,7 @@ const permissionMatrix: Record<number, Permission[]> = {
   // Supervisor - Manage maintenance and PM
   2: [
     'maintenance:create', 'maintenance:complete', 'maintenance:view',
+    'maintenance:edit', 'maintenance:delete',
     'equipment:edit', 'equipment:view',
     'pm:create', 'pm:execute', 'pm:view',
     'analytics:view', 'ai:chat'

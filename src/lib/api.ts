@@ -678,6 +678,47 @@ export const maintenanceApi = {
 
     return { data, error: error?.message || null }
   },
+
+  async updateRecord(
+    id: string,
+    updates: Partial<{
+      date: string
+      repair_type_id: string
+      technician_id: string
+      symptom: string | null
+      repair_content: string | null
+      start_time: string
+      end_time: string | null
+      rating: number | null
+      duration_minutes: number | null
+      status: 'in_progress' | 'completed'
+    }>
+  ): Promise<{ data: MaintenanceRecord | null; error: string | null }> {
+    const { data, error } = await getSupabase()
+      .from('maintenance_records')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('factory_id', getCurrentFactoryId())
+      .eq('id', id)
+      .select(`
+        *,
+        equipment:equipments(*,equipment_type:equipment_types(*)),
+        repair_type:repair_types(*),
+        technician:users(*)
+      `)
+      .single()
+
+    return { data, error: error?.message || null }
+  },
+
+  async deleteRecord(id: string): Promise<{ error: string | null }> {
+    const { error } = await getSupabase()
+      .from('maintenance_records')
+      .delete()
+      .eq('factory_id', getCurrentFactoryId())
+      .eq('id', id)
+
+    return { error: error?.message || null }
+  },
 }
 
 // ========================================

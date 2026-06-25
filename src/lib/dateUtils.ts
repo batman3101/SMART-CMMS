@@ -275,6 +275,73 @@ export function getNowInstantISO(): string {
 }
 
 /**
+ * 특정 시점에 주어진 타임존이 UTC보다 앞서는 오프셋(ms)을 반환한다.
+ * (예: 베트남 Asia/Ho_Chi_Minh → +7h → 25200000)
+ */
+function getTimezoneOffsetMs(date: Date, timeZone: string): number {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+  const map: Record<string, number> = {}
+  for (const p of formatter.formatToParts(date)) {
+    if (p.type !== 'literal') map[p.type] = parseInt(p.value, 10)
+  }
+  const asUtc = Date.UTC(map.year, map.month - 1, map.day, map.hour, map.minute, map.second)
+  return asUtc - date.getTime()
+}
+
+/**
+ * 저장된 instant(timestamptz, ISO)를 설정 타임존 기준 datetime-local 입력용
+ * 'YYYY-MM-DDTHH:mm' 문자열로 변환한다. (수정 폼에서 기존 시각을 채울 때 사용)
+ */
+export function instantToInputString(iso: string, timezone?: string): string {
+  const tz = timezone || getConfiguredTimezone()
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const parts = formatter.formatToParts(new Date(iso))
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00'
+
+  let hour = getPart('hour')
+  if (hour === '24') hour = '00'
+
+  return `${getPart('year')}-${getPart('month')}-${getPart('day')}T${hour}:${getPart('minute')}`
+}
+
+/**
+ * datetime-local 입력값('YYYY-MM-DDTHH:mm', 설정 타임존 벽시계)을
+ * DB 저장용 UTC instant(ISO)로 변환한다.
+ *
+ * 벽시계 문자열을 그대로 timestamptz에 저장하면 UTC로 해석돼 표시 시 +7시간 밀린다.
+ * (베트남은 DST가 없어 오프셋이 일정하지만, 오프셋을 동적 계산해 일반적으로 처리한다)
+ */
+export function inputStringToInstantISO(input: string, timezone?: string): string {
+  const tz = timezone || getConfiguredTimezone()
+  const [datePart, timePart] = input.replace(' ', 'T').split('T')
+  const [year, month, day] = datePart.split('-').map(Number)
+  const [hour, minute] = (timePart || '00:00').split(':').map(Number)
+
+  // 입력 구성요소를 UTC로 가정한 임시 instant
+  const guessUtcMs = Date.UTC(year, month - 1, day, hour, minute)
+  // 해당 시점 tz 오프셋(ms)을 빼서 실제 instant 산출
+  const offsetMs = getTimezoneOffsetMs(new Date(guessUtcMs), tz)
+  return new Date(guessUtcMs - offsetMs).toISOString()
+}
+
+/**
  * 현재 시각을 설정된 타임존 기준 표시용 문자열로 반환
  * (예: "2026-02-06 오전 11:32")
  */

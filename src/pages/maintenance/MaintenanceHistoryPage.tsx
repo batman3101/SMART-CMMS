@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
-import { getTodayInTimezone, getConfiguredTimezone } from '@/lib/dateUtils'
+import { getTodayInTimezone, getConfiguredTimezone, instantToInputString, inputStringToInstantISO } from '@/lib/dateUtils'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -26,8 +27,12 @@ import {
   ChevronRight,
   Filter,
   Star,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { maintenanceApi, usersApi, equipmentApi } from '@/lib/api'
+import { useToast } from '@/components/ui/toast'
+import { hasPermission } from '@/lib/permissions'
 import { useTableSort } from '@/hooks'
 import type { MaintenanceRecord, RepairType, User, Equipment, EquipmentType } from '@/types'
 
@@ -36,7 +41,10 @@ const ITEMS_PER_PAGE = 15
 export default function MaintenanceHistoryPage() {
   const { t, i18n } = useTranslation()
   const location = useLocation()
-  const { currentFactory } = useAuthStore()
+  const { user, currentFactory } = useAuthStore()
+  const { addToast } = useToast()
+  const canEdit = hasPermission(user, 'maintenance:edit')
+  const canDelete = hasPermission(user, 'maintenance:delete')
 
   // Get equipmentId from navigation state
   const passedEquipmentId = (location.state as { equipmentId?: string })?.equipmentId
@@ -69,6 +77,22 @@ export default function MaintenanceHistoryPage() {
 
   // 선택된 레코드
   const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null)
+
+  // 수정/삭제 모달 상태
+  const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<MaintenanceRecord | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [editForm, setEditForm] = useState({
+    date: '',
+    repair_type_id: '',
+    technician_id: '',
+    status: 'in_progress' as 'in_progress' | 'completed',
+    start_time: '',
+    end_time: '',
+    rating: 0,
+    symptom: '',
+    repair_content: '',
+  })
 
   // 데이터 로드
   useEffect(() => {
@@ -209,6 +233,91 @@ export default function MaintenanceHistoryPage() {
   const handleClearEquipmentFilter = () => {
     setEquipmentIdFilter('')
     setCurrentPage(1)
+  }
+
+  // 수정 모달 열기 — 저장된 instant를 설정 타임존 벽시계로 변환해 폼에 채운다
+  const handleEditClick = (record: MaintenanceRecord) => {
+    setEditingRecord(record)
+    setEditForm({
+      date: record.date,
+      repair_type_id: record.repair_type_id,
+      technician_id: record.technician_id,
+      status: record.status,
+      start_time: record.start_time ? instantToInputString(record.start_time) : '',
+      end_time: record.end_time ? instantToInputString(record.end_time) : '',
+      rating: record.rating ?? 0,
+      symptom: record.symptom ?? '',
+      repair_content: record.repair_content ?? '',
+    })
+  }
+
+  // 수정 저장 — 벽시계 입력을 instant로 변환하고 소요시간을 재계산한다
+  const handleSaveEdit = async () => {
+    if (!editingRecord) return
+
+    setSaving(true)
+    try {
+      const isCompleted = editForm.status === 'completed'
+      const startInstant = editForm.start_time
+        ? inputStringToInstantISO(editForm.start_time)
+        : editingRecord.start_time
+      const endInstant = isCompleted && editForm.end_time
+        ? inputStringToInstantISO(editForm.end_time)
+        : null
+      const durationMinutes = endInstant
+        ? Math.max(0, Math.round((new Date(endInstant).getTime() - new Date(startInstant).getTime()) / 60000))
+        : null
+
+      const { data, error } = await maintenanceApi.updateRecord(editingRecord.id, {
+        date: editForm.date,
+        repair_type_id: editForm.repair_type_id,
+        technician_id: editForm.technician_id,
+        status: editForm.status,
+        start_time: startInstant,
+        end_time: endInstant,
+        duration_minutes: durationMinutes,
+        rating: isCompleted ? (editForm.rating || null) : null,
+        symptom: editForm.symptom.trim() || null,
+        repair_content: isCompleted ? (editForm.repair_content.trim() || null) : null,
+      })
+
+      if (error) {
+        addToast({ type: 'error', title: t('common.error'), message: error })
+        return
+      }
+      if (data) {
+        setRecords((prev) => prev.map((r) => (r.id === data.id ? data : r)))
+        addToast({ type: 'success', title: t('common.success'), message: t('maintenance.editSuccess') })
+        setEditingRecord(null)
+      }
+    } catch (err) {
+      console.error('Failed to update record:', err)
+      addToast({ type: 'error', title: t('common.error'), message: t('maintenance.saveError') })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // 삭제 확정
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+
+    setSaving(true)
+    try {
+      const { error } = await maintenanceApi.deleteRecord(deleteTarget.id)
+      if (error) {
+        addToast({ type: 'error', title: t('common.error'), message: error })
+        return
+      }
+      setRecords((prev) => prev.filter((r) => r.id !== deleteTarget.id))
+      addToast({ type: 'success', title: t('common.success'), message: t('maintenance.deleteSuccess') })
+      setDeleteTarget(null)
+    } catch (err) {
+      console.error('Failed to delete record:', err)
+      addToast({ type: 'error', title: t('common.error'), message: t('maintenance.saveError') })
+    } finally {
+      setSaving(false)
+    }
   }
 
   // CSV 값 이스케이프 함수 (CSV Injection 방어)
@@ -480,9 +589,36 @@ export default function MaintenanceHistoryPage() {
                       : t('maintenance.statusInProgress')}
                   </Badge>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
-                  <Eye className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={(e) => { e.stopPropagation(); setSelectedRecord(record) }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => { e.stopPropagation(); handleEditClick(record) }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(record) }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-muted-foreground truncate mb-2">
                 {record.equipment?.equipment_code} - {getEquipmentName(record.equipment)}
@@ -638,9 +774,27 @@ export default function MaintenanceHistoryPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedRecord(record)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-center gap-1">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSelectedRecord(record)} title={t('common.detail')}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {canEdit && (
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEditClick(record)} title={t('common.edit')}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget(record)}
+                          title={t('common.delete')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -852,6 +1006,185 @@ export default function MaintenanceHistoryPage() {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 수정 모달 */}
+      {editingRecord && (
+        <div className="fixed inset-0 z-50 bg-black/50 sm:flex sm:items-center sm:justify-center">
+          <Card className="fixed inset-0 sm:relative sm:inset-auto sm:w-full sm:max-w-2xl sm:max-h-[90vh] overflow-auto rounded-none sm:rounded-lg">
+            <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 sticky top-0 bg-card z-10 border-b">
+              <CardTitle className="text-base sm:text-lg">{t('maintenance.editRepair')}</CardTitle>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setEditingRecord(null)}>
+                ✕
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              {/* 설비 정보 (읽기 전용) */}
+              <div className="rounded-lg bg-muted p-3">
+                <p className="font-medium text-sm">{editingRecord.record_no}</p>
+                <p className="text-xs text-muted-foreground">
+                  {editingRecord.equipment?.equipment_code} - {getEquipmentName(editingRecord.equipment)}
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>{t('maintenance.date')}</Label>
+                  <Input
+                    type="date"
+                    value={editForm.date}
+                    onChange={(e) => setEditForm((p) => ({ ...p, date: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('equipment.status')}</Label>
+                  <Select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value as 'in_progress' | 'completed' }))}
+                  >
+                    <option value="in_progress">{t('maintenance.statusInProgress')}</option>
+                    <option value="completed">{t('maintenance.statusCompleted')}</option>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('maintenance.repairType')}</Label>
+                  <Select
+                    value={editForm.repair_type_id}
+                    onChange={(e) => setEditForm((p) => ({ ...p, repair_type_id: e.target.value }))}
+                  >
+                    <option value="">{t('maintenance.repairTypeSelect')}</option>
+                    {repairTypes.map((type) => (
+                      <option key={type.id} value={type.id}>{getRepairTypeName(type)}</option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('maintenance.technician')}</Label>
+                  <Select
+                    value={editForm.technician_id}
+                    onChange={(e) => setEditForm((p) => ({ ...p, technician_id: e.target.value }))}
+                  >
+                    <option value="">{t('maintenance.technicianSelect')}</option>
+                    {technicians.map((tech) => (
+                      <option key={tech.id} value={tech.id}>{tech.name}</option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('maintenance.startTime')}</Label>
+                  <Input
+                    type="datetime-local"
+                    value={editForm.start_time}
+                    onChange={(e) => setEditForm((p) => ({ ...p, start_time: e.target.value }))}
+                  />
+                </div>
+
+                {editForm.status === 'completed' && (
+                  <div className="space-y-2">
+                    <Label>{t('maintenance.endTime')}</Label>
+                    <Input
+                      type="datetime-local"
+                      value={editForm.end_time}
+                      onChange={(e) => setEditForm((p) => ({ ...p, end_time: e.target.value }))}
+                    />
+                  </div>
+                )}
+
+                {editForm.status === 'completed' && (
+                  <div className="space-y-2">
+                    <Label>{t('maintenance.rating')}</Label>
+                    <Select
+                      value={String(editForm.rating)}
+                      onChange={(e) => setEditForm((p) => ({ ...p, rating: Number(e.target.value) }))}
+                    >
+                      <option value="0">-</option>
+                      {Array.from({ length: 10 }, (_, i) => (
+                        <option key={i + 1} value={i + 1}>{i + 1}</option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t('maintenance.symptom')}</Label>
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={editForm.symptom}
+                  onChange={(e) => setEditForm((p) => ({ ...p, symptom: e.target.value }))}
+                />
+              </div>
+
+              {editForm.status === 'completed' && (
+                <div className="space-y-2">
+                  <Label>{t('maintenance.repairContent')}</Label>
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={editForm.repair_content}
+                    onChange={(e) => setEditForm((p) => ({ ...p, repair_content: e.target.value }))}
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditingRecord(null)} className="h-9 sm:h-10">
+                  {t('common.cancel')}
+                </Button>
+                <Button onClick={handleSaveEdit} disabled={saving} className="h-9 sm:h-10">
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('common.saving')}
+                    </>
+                  ) : (
+                    t('common.save')
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4 sm:p-0">
+          <Card className="w-full sm:max-w-md rounded-t-lg sm:rounded-lg">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">{t('maintenance.deleteRepairTitle')}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+              <p className="text-sm sm:text-base">
+                {t('maintenance.deleteConfirm', { recordNo: deleteTarget.record_no })}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {t('maintenance.deleteWarning')}
+              </p>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                <Button variant="outline" onClick={() => setDeleteTarget(null)} className="h-9 sm:h-10">
+                  {t('common.cancel')}
+                </Button>
+                <Button variant="destructive" onClick={handleConfirmDelete} disabled={saving} className="h-9 sm:h-10">
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('common.deleting')}
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {t('common.delete')}
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

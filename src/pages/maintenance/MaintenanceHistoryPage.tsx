@@ -83,6 +83,7 @@ export default function MaintenanceHistoryPage() {
   const [deleteTarget, setDeleteTarget] = useState<MaintenanceRecord | null>(null)
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState({
+    equipment_id: '',
     date: '',
     repair_type_id: '',
     technician_id: '',
@@ -93,17 +94,22 @@ export default function MaintenanceHistoryPage() {
     symptom: '',
     repair_content: '',
   })
+  // 수정 모달 설비 검색
+  const [equipments, setEquipments] = useState<Equipment[]>([])
+  const [editEquipmentSearch, setEditEquipmentSearch] = useState('')
+  const [showEditEquipmentList, setShowEditEquipmentList] = useState(false)
 
   // 데이터 로드
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const [recordsRes, repairTypesRes, techRes, equipmentTypesRes] = await Promise.all([
+        const [recordsRes, repairTypesRes, techRes, equipmentTypesRes, equipmentsRes] = await Promise.all([
           maintenanceApi.getRecords(),
           maintenanceApi.getRepairTypes(),
           usersApi.getTechnicians(),
           equipmentApi.getEquipmentTypes(),
+          equipmentApi.getEquipments(),
         ])
 
         if (recordsRes.data) {
@@ -117,6 +123,7 @@ export default function MaintenanceHistoryPage() {
         if (repairTypesRes.data) setRepairTypes(repairTypesRes.data)
         if (techRes.data) setTechnicians(techRes.data)
         if (equipmentTypesRes.data) setEquipmentTypes(equipmentTypesRes.data)
+        if (equipmentsRes.data) setEquipments(equipmentsRes.data)
       } catch (error) {
         console.error('Failed to fetch data:', error)
       } finally {
@@ -238,7 +245,10 @@ export default function MaintenanceHistoryPage() {
   // 수정 모달 열기 — 저장된 instant를 설정 타임존 벽시계로 변환해 폼에 채운다
   const handleEditClick = (record: MaintenanceRecord) => {
     setEditingRecord(record)
+    setEditEquipmentSearch(record.equipment?.equipment_code ?? '')
+    setShowEditEquipmentList(false)
     setEditForm({
+      equipment_id: record.equipment_id,
       date: record.date,
       repair_type_id: record.repair_type_id,
       technician_id: record.technician_id,
@@ -249,6 +259,13 @@ export default function MaintenanceHistoryPage() {
       symptom: record.symptom ?? '',
       repair_content: record.repair_content ?? '',
     })
+  }
+
+  // 수정 모달에서 설비 선택 (검색 텍스트는 라벨, 실제 선택은 equipment_id)
+  const handleEditEquipmentSelect = (eq: Equipment) => {
+    setEditForm((p) => ({ ...p, equipment_id: eq.id }))
+    setEditEquipmentSearch(eq.equipment_code)
+    setShowEditEquipmentList(false)
   }
 
   // 수정 저장 — 벽시계 입력을 instant로 변환하고 소요시간을 재계산한다
@@ -270,6 +287,7 @@ export default function MaintenanceHistoryPage() {
 
       const { data, error } = await maintenanceApi.updateRecord(editingRecord.id, {
         date: editForm.date,
+        equipment_id: editForm.equipment_id,
         repair_type_id: editForm.repair_type_id,
         technician_id: editForm.technician_id,
         status: editForm.status,
@@ -412,6 +430,18 @@ export default function MaintenanceHistoryPage() {
     if (i18n.language === 'vi') return type.name_vi || type.name
     return type.name_ko || type.name
   }
+
+  // 수정 모달 설비 검색 결과 (검색어 2자 이상일 때만)
+  const editFilteredEquipments =
+    editingRecord && editEquipmentSearch.length >= 2
+      ? equipments
+          .filter(
+            (eq) =>
+              eq.equipment_code.toLowerCase().includes(editEquipmentSearch.toLowerCase()) ||
+              getEquipmentName(eq).toLowerCase().includes(editEquipmentSearch.toLowerCase())
+          )
+          .slice(0, 10)
+      : []
 
   if (loading) {
     return (
@@ -1022,12 +1052,41 @@ export default function MaintenanceHistoryPage() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-4 p-4 sm:p-6">
-              {/* 설비 정보 (읽기 전용) */}
+              {/* 수리번호 (읽기 전용) */}
               <div className="rounded-lg bg-muted p-3">
                 <p className="font-medium text-sm">{editingRecord.record_no}</p>
-                <p className="text-xs text-muted-foreground">
-                  {editingRecord.equipment?.equipment_code} - {getEquipmentName(editingRecord.equipment)}
-                </p>
+              </div>
+
+              {/* 설비 선택 (검색형) */}
+              <div className="space-y-2">
+                <Label>{t('equipment.equipmentNo')}</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t('maintenance.equipmentSearch')}
+                    value={editEquipmentSearch}
+                    onChange={(e) => {
+                      setEditEquipmentSearch(e.target.value)
+                      setShowEditEquipmentList(true)
+                    }}
+                    onFocus={() => editEquipmentSearch.length >= 2 && setShowEditEquipmentList(true)}
+                    className="pl-9"
+                  />
+                  {showEditEquipmentList && editFilteredEquipments.length > 0 && (
+                    <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover shadow-lg">
+                      {editFilteredEquipments.map((eq) => (
+                        <div
+                          key={eq.id}
+                          className="cursor-pointer px-3 py-2 hover:bg-muted"
+                          onClick={() => handleEditEquipmentSelect(eq)}
+                        >
+                          <p className="font-medium">{eq.equipment_code}</p>
+                          <p className="text-sm text-muted-foreground">{getEquipmentName(eq)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

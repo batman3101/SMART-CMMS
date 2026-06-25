@@ -683,6 +683,7 @@ export const maintenanceApi = {
     id: string,
     updates: Partial<{
       date: string
+      equipment_id: string
       repair_type_id: string
       technician_id: string
       symptom: string | null

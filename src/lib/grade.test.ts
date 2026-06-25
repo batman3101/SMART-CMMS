@@ -237,6 +237,7 @@ describe('computeChecksheetGrade: excluded item does not affect overall', () => 
     expect(res.overall).toBe('A')          // excluded D must not pull overall down
     expect(res.includedTotal).toBe(2)
     expect(res.measuredCount).toBe(3)      // all three were measured (D item counted for display)
+    expect(res.total).toBe(3)
   })
 
   it('all included items A+ with excluded item B → overall A+', () => {
@@ -350,6 +351,7 @@ describe('computeChecksheetGrade', () => {
     expect(res.overall).toBe('B')           // worst of included {B, A}
     expect(res.includedTotal).toBe(2)
     expect(res.measuredCount).toBe(3)        // all three measured (incl. excluded)
+    expect(res.total).toBe(3)                // progress denominator counts all active items (incl. excluded)
   })
 
   it('a failing included pass_fail drags the whole grade to D', () => {
@@ -369,6 +371,7 @@ describe('computeChecksheetGrade', () => {
     expect(res.overall).toBe('A+')
     expect(res.includedTotal).toBe(1)
     expect(res.measuredCount).toBe(1)
+    expect(res.total).toBe(1)                // inactive criteria excluded from total
   })
 
   it('returns null overall when no included item is measured yet', () => {

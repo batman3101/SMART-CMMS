@@ -91,7 +91,7 @@ export default function GradeChecksheetDialog({ equipment, open, onClose, onSave
   )
 
   // Live grade computation as the user types.
-  const { overall, itemGrades, measuredCount, includedTotal } = useMemo(() => {
+  const { overall, itemGrades, measuredCount, total } = useMemo(() => {
     const entries: ChecksheetEntry[] = criteria.map((c) => ({ criteria: c, measurement: measurementFor(c) }))
     return computeChecksheetGrade(entries)
   }, [criteria, measurementFor])
@@ -162,7 +162,7 @@ export default function GradeChecksheetDialog({ equipment, open, onClose, onSave
               {t('grade.checksheetTitle', { code: equipment.equipment_code })}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {t('grade.progress', { measured: measuredCount, total: includedTotal })}
+              {t('grade.progress', { measured: measuredCount, total })}
             </p>
           </div>
           <div className="flex items-center gap-3">

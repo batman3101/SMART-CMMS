@@ -126,14 +126,17 @@ export function computeChecksheetGrade(entries: ChecksheetEntry[]): {
   itemGrades: Record<string, GradeLetter | null>
   measuredCount: number
   includedTotal: number
+  total: number
 } {
   const itemGrades: Record<string, GradeLetter | null> = {}
   const includedGrades: (GradeLetter | null)[] = []
   let measuredCount = 0
   let includedTotal = 0
+  let total = 0 // all active items shown on the checksheet (incl. grade-excluded ones)
 
   for (const { criteria, measurement } of entries) {
     if (!criteria.is_active) continue
+    total++
     const grade = computeItemGrade(criteria, measurement)
     itemGrades[criteria.id] = grade
     if (grade != null) measuredCount++
@@ -148,6 +151,7 @@ export function computeChecksheetGrade(entries: ChecksheetEntry[]): {
     itemGrades,
     measuredCount,
     includedTotal,
+    total,
   }
 }
 

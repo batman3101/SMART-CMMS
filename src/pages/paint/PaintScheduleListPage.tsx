@@ -32,8 +32,8 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
-import { getTodayInTimezone } from '@/lib/dateUtils'
 import { paintApi, equipmentApi, usersApi } from '@/lib/api'
+import { isPaintScheduleOverdue } from '@/lib/paint'
 import { useTableSort } from '@/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import type { PaintSchedule, PaintScheduleFilter, PaintScheduleStatus, PaintPriority, Equipment, EquipmentType, PaintTemplate, PaintStepExecution, User } from '@/types'
@@ -175,11 +175,8 @@ export default function PaintScheduleListPage() {
   )
 
   // Helper to check if a schedule is overdue
-  const isOverdue = (schedule: PaintSchedule): boolean => {
-    const today = getTodayInTimezone()
-    return schedule.scheduled_date < today &&
-           (schedule.status === 'scheduled' || schedule.status === 'in_progress')
-  }
+  const isOverdue = (schedule: PaintSchedule): boolean =>
+    isPaintScheduleOverdue(schedule)
 
   const getStatusBadge = (schedule: PaintSchedule) => {
     const displayStatus = isOverdue(schedule) ? 'overdue' : schedule.status

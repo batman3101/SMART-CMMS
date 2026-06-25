@@ -9,6 +9,7 @@ import { scopedDb } from './scopedDb'
 import { toErrorMessage } from './dataErrors'
 import { computeItemGrade, hasMeasurement } from './grade'
 import { getTodayInTimezone, getRelativeDateInTimezone, getMonthEndInTimezone, getMonthStartInTimezone, getCurrentDateInTimezone } from '@/lib/dateUtils'
+import { isPaintScheduleOverdue, type PaintOverdueInput } from '@/lib/paint'
 import type {
   Equipment,
   EquipmentType,
@@ -2960,7 +2961,8 @@ export const paintApi = {
           *,
           template:paint_templates(*),
           equipment:equipments(*,equipment_type:equipment_types(*)),
-          assigned_technician:users(*)
+          assigned_technician:users(*),
+          paint_executions(started_at)
         `)
         .eq('factory_id', factoryId)
       if (filter?.start_date) q = q.gte('scheduled_date', filter.start_date)
@@ -2998,20 +3000,25 @@ export const paintApi = {
   async getOverdueSchedules(): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
     const today = getTodayInTimezone()
 
+    // 예정일이 지난 미착수/진행중 후보를 가져온 뒤, 76시간 규칙으로 실제 지연만 남긴다.
+    // (진행중 + 시작 후 76시간 이내는 '진행중'이므로 지연 목록에서 제외)
     const { data, error } = await getSupabase()
       .from('paint_schedules')
       .select(`
         *,
         template:paint_templates(*),
         equipment:equipments(*,equipment_type:equipment_types(*)),
-        assigned_technician:users(*)
+        assigned_technician:users(*),
+        paint_executions(started_at)
       `)
       .eq('factory_id', getCurrentFactoryId())
       .lt('scheduled_date', today)
       .in('status', ['scheduled', 'in_progress'])
       .order('scheduled_date')
 
-    return { data, error: error?.message || null }
+    if (error) return { data: null, error: error.message }
+    const overdue = (data ?? []).filter((s) => isPaintScheduleOverdue(s as PaintSchedule))
+    return { data: overdue, error: null }
   },
 
   async getUpcomingSchedules(days: number = 7): Promise<{ data: PaintSchedule[] | null; error: string | null }> {
@@ -3049,7 +3056,8 @@ export const paintApi = {
         *,
         template:paint_templates(*),
         equipment:equipments(*,equipment_type:equipment_types(*)),
-        assigned_technician:users(*)
+        assigned_technician:users(*),
+        paint_executions(started_at)
       `)
       .eq('factory_id', getCurrentFactoryId())
       .gte('scheduled_date', startDate)
@@ -3328,7 +3336,8 @@ export const paintApi = {
         .gte('scheduled_date', monthStart)
         .lte('scheduled_date', monthEnd)
         .eq('status', 'completed'),
-      sb.from('paint_schedules').select('*', { count: 'exact', head: true })
+      // 지연 후보(예정일 경과 + 미착수/진행중)를 행으로 가져와 76h 규칙으로 카운트.
+      sb.from('paint_schedules').select('status, scheduled_date, paint_executions(started_at)')
         .eq('factory_id', factoryId)
         .lt('scheduled_date', today)
         .in('status', inProgressStatuses),
@@ -3337,18 +3346,21 @@ export const paintApi = {
         .gte('scheduled_date', today)
         .lte('scheduled_date', weekLaterStr)
         .in('status', inProgressStatuses),
-      sb.from('paint_schedules').select('*', { count: 'exact', head: true })
+      sb.from('paint_schedules').select('status, scheduled_date, paint_executions(started_at)')
         .eq('factory_id', factoryId)
         .gte('scheduled_date', monthStart)
         .lt('scheduled_date', today)
         .in('status', inProgressStatuses),
     ])
 
+    const countOverdue = (rows: unknown): number =>
+      ((rows as PaintOverdueInput[] | null) ?? []).filter((s) => isPaintScheduleOverdue(s)).length
+
     const totalScheduled = totalRes.count ?? 0
     const completedThisMonth = completedRes.count ?? 0
-    const overdueCount = overdueRes.count ?? 0
+    const overdueCount = countOverdue(overdueRes.data)
     const upcomingWeek = upcomingRes.count ?? 0
-    const overdueThisMonth = overdueMonthRes.count ?? 0
+    const overdueThisMonth = countOverdue(overdueMonthRes.data)
 
     const totalEvaluatedThisMonth = completedThisMonth + overdueThisMonth
     const complianceRate = totalEvaluatedThisMonth > 0

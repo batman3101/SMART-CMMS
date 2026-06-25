@@ -653,6 +653,7 @@ export interface PaintSchedule {
   priority: PaintPriority
   notes?: string
   step_executions?: PaintStepExecution[]  // 단계별 실행 기록
+  paint_executions?: { started_at?: string | null }[]  // 실행 시작시각 임베드 (지연 판정용)
   created_at: string
   updated_at: string
 }

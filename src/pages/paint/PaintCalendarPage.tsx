@@ -16,6 +16,7 @@ import { paintApi } from '@/lib/api'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { getTodayInTimezone, formatDateInTimezone, parseLocalDate } from '@/lib/dateUtils'
+import { isPaintScheduleOverdue } from '@/lib/paint'
 import type { PaintSchedule } from '@/types'
 
 interface CalendarDay {
@@ -114,11 +115,7 @@ export default function PaintCalendarPage() {
   ]
 
   const getStatusColor = (schedule: PaintSchedule) => {
-    const today = getTodayInTimezone(timezone)
-    const isOverdue = schedule.scheduled_date < today &&
-                      (schedule.status === 'scheduled' || schedule.status === 'in_progress')
-
-    if (isOverdue) return 'bg-red-100 text-red-800 border-red-300'
+    if (isPaintScheduleOverdue(schedule, new Date(), timezone)) return 'bg-red-100 text-red-800 border-red-300'
 
     switch (schedule.status) {
       case 'scheduled':
@@ -136,11 +133,8 @@ export default function PaintCalendarPage() {
     }
   }
 
-  const isOverdue = (schedule: PaintSchedule): boolean => {
-    const today = getTodayInTimezone(timezone)
-    return schedule.scheduled_date < today &&
-           (schedule.status === 'scheduled' || schedule.status === 'in_progress')
-  }
+  const isOverdue = (schedule: PaintSchedule): boolean =>
+    isPaintScheduleOverdue(schedule, new Date(), timezone)
 
   const getProgressPercent = (schedule: PaintSchedule): number => {
     if (schedule.status === 'completed') return 100

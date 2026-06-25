@@ -20,7 +20,6 @@ import {
 import { maintenanceApi, settingsApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import { hasPermission } from '@/lib/permissions'
-import { getNowDateTimeString, getCurrentDateInTimezone } from '@/lib/dateUtils'
 import type { MaintenanceRecord, Equipment } from '@/types'
 
 export default function MaintenanceMonitorPage() {
@@ -172,25 +171,18 @@ export default function MaintenanceMonitorPage() {
 
     setSubmitting(true)
     try {
-      // 버튼 클릭 시점의 현재 시간을 완료 시간으로 사용 (베트남 타임존 기준)
-      const endTime = getCurrentDateInTimezone()
-      const endTimeStr = getNowDateTimeString()
+      // 버튼 클릭 시점의 현재 시각(UTC instant)을 완료 시간으로 저장.
+      // DB(timestamptz)에는 instant를 저장해야 표시(베트남 타임존 변환)가 정확하다.
+      const nowInstant = new Date()
+      const endTimeStr = nowInstant.toISOString()
 
-      // Parse start_time with proper timezone handling
-      let parsedStartTime: Date
-      const startTimeStr = selectedRecord.start_time
-      if (startTimeStr.includes('Z') || startTimeStr.includes('+') || (startTimeStr.includes('-') && startTimeStr.lastIndexOf('-') > 9)) {
-        parsedStartTime = new Date(startTimeStr)
-      } else {
-        // Parse as local time
-        const cleanedStr = startTimeStr.replace(' ', 'T').slice(0, 16)
-        const [datePart, timePart] = cleanedStr.split('T')
-        const [year, month, day] = datePart.split('-').map(Number)
-        const [hour, minute] = (timePart || '00:00').split(':').map(Number)
-        parsedStartTime = new Date(year, month - 1, day, hour, minute)
-      }
+      // start_time은 DB에 timestamptz(instant)로 저장되어 있으므로 그대로 파싱한다.
+      const parsedStartTime = new Date(selectedRecord.start_time)
 
-      const durationMinutes = Math.round((endTime.getTime() - parsedStartTime.getTime()) / (1000 * 60))
+      const durationMinutes = Math.max(
+        0,
+        Math.round((nowInstant.getTime() - parsedStartTime.getTime()) / (1000 * 60))
+      )
 
       const { data, error } = await maintenanceApi.completeRecord(selectedRecord.id, {
         repair_content: completeForm.repair_content,

@@ -22,7 +22,7 @@ import { equipmentApi, maintenanceApi, usersApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import { hasPermission } from '@/lib/permissions'
 import { searchPartsByCode, getPartWithInventory, isPartsSupabaseConnected } from '@/lib/supabase'
-import { getNowDateString, getNowDateTimeString } from '@/lib/dateUtils'
+import { getNowDateString, getNowDateTimeString, getNowInstantISO } from '@/lib/dateUtils'
 import type { Equipment, RepairType, User, EquipmentType } from '@/types'
 
 interface PartUsage {
@@ -344,12 +344,14 @@ export default function MaintenanceInputPage() {
 
     setSubmitting(true)
     try {
-      // 버튼 클릭 시점의 현재 시간을 수리 시작 시간으로 사용 (베트남 타임존 기준)
-      const currentStartTime = getNowDateTimeString()
+      // 버튼 클릭 시점의 현재 시각을 수리 시작 시간으로 사용.
+      // DB(timestamptz)에는 UTC instant를 저장해야 표시(베트남 타임존 변환)가 정확하다.
+      // 벽시계 문자열을 그대로 저장하면 UTC로 해석돼 표시 시 +7시간(야간)으로 밀린다.
+      const currentStartInstant = getNowInstantISO()
       const currentDate = getNowDateString()
 
-      // 화면에 표시된 시간도 업데이트
-      setFormData((prev) => ({ ...prev, start_time: currentStartTime, date: currentDate }))
+      // 화면의 datetime-local 표시는 벽시계 형식(YYYY-MM-DDTHH:mm) 유지
+      setFormData((prev) => ({ ...prev, start_time: getNowDateTimeString(), date: currentDate }))
 
       // 부품 정보 변환 (코드, 이름, 수량만 저장)
       const usedParts = parts
@@ -365,7 +367,7 @@ export default function MaintenanceInputPage() {
         equipment_id: formData.equipment_id,
         repair_type_id: formData.repair_type_id,
         technician_id: formData.technician_id || user?.id || '',
-        start_time: currentStartTime,
+        start_time: currentStartInstant,
         symptom: formData.symptom || undefined,
         used_parts: usedParts.length > 0 ? usedParts : undefined,
       })

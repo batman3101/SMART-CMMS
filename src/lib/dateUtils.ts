@@ -262,6 +262,19 @@ export function getNowDateTimeString(timezone?: string): string {
 }
 
 /**
+ * 현재 시각을 DB 저장용 UTC instant(ISO 8601, 'Z')로 반환.
+ *
+ * start_time/end_time 등 timestamptz 컬럼에는 반드시 이 "진짜 instant"를 저장해야 한다.
+ * getNowDateTimeString()이 만드는 오프셋 없는 벽시계 문자열(예: "2026-06-25T16:08")을
+ * timestamptz에 넣으면 Postgres가 UTC로 해석해 저장하고, 화면에서 다시 설정 타임존
+ * (베트남, +7)으로 변환되면서 7시간 밀린 야간 시간으로 표시되는 버그가 발생한다.
+ * 벽시계 문자열은 datetime-local 입력 표시 용도로만 사용한다.
+ */
+export function getNowInstantISO(): string {
+  return new Date().toISOString()
+}
+
+/**
  * 현재 시각을 설정된 타임존 기준 표시용 문자열로 반환
  * (예: "2026-02-06 오전 11:32")
  */

@@ -44,3 +44,14 @@
 로컬 증거: `.omx/state/dashboard-status/`의 `browser-test.mjs`, `browser-results.json`, `desktop.png`, `mobile.png`, `mobile-vi.png`, `width-768.png`, `width-1920.png`, `ralph-progress.json`. 시각 검증 95/100, pass.
 
 운영 배포와 DB 변경은 수행하지 않았다. 기존 미커밋 파일은 이번 변경에 포함하지 않았다.
+
+## 후속 수정: 지시선 복원
+
+사용자 확인 후 도넛 차트의 지시선을 복원했다. 좌우 라벨을 각 조각의 각도 순으로 배치하고 최소 36px 수직 간격을 확보한다. 상태명과 숫자를 두 줄로 표시하며 좁은 화면에서는 도넛 반지름을 줄인다. 기존 범례와 집계는 유지한다.
+
+- 보이는 Google Chrome에서 새로고침 및 기존 집계 시나리오 재검증
+- 390 / 768 / 1400px에서 지시선 5개, 라벨 간 겹침 없음, 화면 밖 잘림 없음 자동 측정
+- 스크린샷: `.omx/state/dashboard-status/leader-lines-1400.png`, `leader-lines-390.png`
+- 단위 테스트 총 91개 통과, 변경 파일 ESLint 및 빌드 통과
+- 독립 코드 검토: No findings
+- Chrome은 수정 차트가 보이는 상태로 열어둠 (재현 데이터)

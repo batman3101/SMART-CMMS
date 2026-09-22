@@ -33,6 +33,7 @@ import {
   LineChart,
   Line,
 } from 'recharts'
+import { layoutStatusLabels } from '@/lib/pieLabels'
 import { statisticsApi, maintenanceApi } from '@/lib/api'
 import { getTodayInTimezone, getRelativeDateInTimezone } from '@/lib/dateUtils'
 import { useAuthStore } from '@/stores/authStore'
@@ -55,6 +56,7 @@ export default function DashboardPage() {
     return (item as unknown as { equipment_name_ko?: string }).equipment_name_ko || item.equipment_name
   }
 
+  const [statusChartWidth, setStatusChartWidth] = useState(400)
   const [loading, setLoading] = useState(true)
   const [dashboardError, setDashboardError] = useState(false)
   const requestId = useRef(0)
@@ -82,6 +84,37 @@ export default function DashboardPage() {
       standby: t('equipment.statusStandby'),
     }
     return statusMap[status] || status
+  }
+
+  const statusLabels = layoutStatusLabels(statusDistribution)
+  const renderStatusLabel = ({ cx, cy, midAngle, outerRadius, index }: {
+    cx: number; cy: number; midAngle: number; outerRadius: number; index: number
+  }) => {
+    const entry = statusDistribution[index]
+    const label = statusLabels[index]
+    if (!entry || !label) return null
+    const radians = -midAngle * Math.PI / 180
+    const startX = cx + outerRadius * Math.cos(radians)
+    const startY = cy + outerRadius * Math.sin(radians)
+    const lineX = cx + label.side * (outerRadius + 14)
+    const textX = lineX + label.side * 6
+    const y = cy + label.y
+    const name = getStatusLabel(entry.status)
+    const availableWidth = Math.max(40, cx - outerRadius - 28)
+    return (
+      <g className="equipment-status-label">
+        <polyline points={`${startX},${startY} ${lineX},${y} ${textX},${y}`}
+          fill="none" stroke={entry.color} strokeWidth={1.2} />
+        <text x={textX} y={y - 6} textAnchor={label.side > 0 ? 'start' : 'end'}
+          fill={entry.color} fontSize={11}
+          textLength={name.length * 6.5 > availableWidth ? availableWidth : undefined}
+          lengthAdjust="spacingAndGlyphs">
+          {name}
+        </text>
+        <text x={textX} y={y + 12} textAnchor={label.side > 0 ? 'start' : 'end'}
+          fill={entry.color} fontSize={12} fontWeight={600}>{entry.value}</text>
+      </g>
+    )
   }
 
   // Weekday translation helper
@@ -544,7 +577,7 @@ export default function DashboardPage() {
             <CardTitle className="text-base sm:text-lg">{t('dashboard.equipmentStatus')}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-            <ResponsiveContainer width="100%" height={220} className="sm:!h-[300px]">
+            <ResponsiveContainer width="100%" height={220} className="sm:!h-[300px]" onResize={width => setStatusChartWidth(width)}>
               <PieChart>
                 <Pie
                   data={statusDistribution.map(item => ({
@@ -553,11 +586,13 @@ export default function DashboardPage() {
                   }))}
                   cx="50%"
                   cy="50%"
-                  innerRadius={40}
-                  outerRadius={70}
+                  innerRadius={statusChartWidth < 400 ? 30 : 40}
+                  outerRadius={statusChartWidth < 400 ? 50 : 70}
                   paddingAngle={2}
                   dataKey="value"
+                  label={renderStatusLabel}
                   labelLine={false}
+                  isAnimationActive={false}
                 >
                   {statusDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />

@@ -991,19 +991,13 @@ export const usersApi = {
 // ========================================
 export const statisticsApi = {
   async getDashboardStats(): Promise<{ data: DashboardStats | null; error: string | null }> {
-    // Get equipment counts
-    const { data: equipments } = await getSupabase()
-      .from('equipments')
-      .select('status')
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('is_active', true)
-
-    // Get in-progress maintenance records (all dates)
-    const { data: inProgressRecords } = await getSupabase()
-      .from('maintenance_records')
-      .select('id')
-      .eq('factory_id', getCurrentFactoryId())
-      .eq('status', 'in_progress')
+    // Use the same effective equipment states as the equipment list and chart.
+    // Count equipment once, rather than subtracting maintenance record counts.
+    const { data: distribution, error } = await statisticsApi.getEquipmentStatusDistribution()
+    if (error || !distribution) {
+      return { data: null, error: error || 'Failed to fetch equipment status' }
+    }
+    const count = (status: string) => distribution.find(item => item.status === status)?.value || 0
 
     // Get today's records
     const today = getTodayInTimezone()
@@ -1013,15 +1007,14 @@ export const statisticsApi = {
       .eq('factory_id', getCurrentFactoryId())
       .eq('date', today)
 
-    const totalEquipment = equipments?.length || 0
-    const inProgressCount = inProgressRecords?.length || 0
-    const standbyCount = equipments?.filter(e => e.status === 'standby').length || 0
-
     const stats: DashboardStats = {
-      total_equipment: totalEquipment,
-      running_equipment: totalEquipment - inProgressCount - standbyCount,
-      repair_equipment: inProgressCount,
-      standby_equipment: standbyCount,
+      total_equipment: distribution.reduce((total, item) => total + item.value, 0),
+      running_equipment: count('normal'),
+      repair_equipment: count('repair') + count('emergency'),
+      pm_equipment: count('pm'),
+      paint_equipment: count('paint'),
+      standby_equipment: count('standby'),
+      status_distribution: distribution,
       today_repairs: todayRecords?.length || 0,
       completed_repairs: todayRecords?.filter(r => r.status === 'completed').length || 0,
       emergency_count: todayRecords?.filter(r => (r.repair_type as RepairTypeJoin)?.code === 'EM').length || 0,

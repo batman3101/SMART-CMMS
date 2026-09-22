@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -9,6 +9,8 @@ import {
   Server,
   PlayCircle,
   Wrench,
+  Paintbrush,
+  ClipboardCheck,
   AlertTriangle,
   CheckCircle,
   Plus,
@@ -54,6 +56,8 @@ export default function DashboardPage() {
   }
 
   const [loading, setLoading] = useState(true)
+  const [dashboardError, setDashboardError] = useState(false)
+  const requestId = useRef(0)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [statusDistribution, setStatusDistribution] = useState<
     { status: string; value: number; color: string }[]
@@ -72,6 +76,7 @@ export default function DashboardPage() {
     const statusMap: Record<string, string> = {
       normal: t('equipment.statusNormal'),
       pm: t('equipment.statusPM'),
+      paint: t('equipment.statusPaint'),
       repair: t('equipment.statusRepair'),
       emergency: t('equipment.statusEmergency'),
       standby: t('equipment.statusStandby'),
@@ -241,7 +246,17 @@ export default function DashboardPage() {
   }
 
   const fetchDashboardData = async () => {
+    const currentRequest = ++requestId.current
     setLoading(true)
+    setDashboardError(false)
+    setStats(null)
+    setStatusDistribution([])
+    setInProgressRecords([])
+    setKpis(null)
+    setRepairTypeData([])
+    setWeeklyTrend([])
+    setFailureRank([])
+    setTechPerformance([])
     try {
       // 1단계: 핵심 데이터 먼저 로드 (stats, inProgress, kpis)
       // KPI는 현재 선택된 기간 필터를 적용해서 로드 (기본: 최근 30일)
@@ -256,7 +271,12 @@ export default function DashboardPage() {
         statisticsApi.getFilteredKPIs({ startDate: kpiStart, endDate: kpiEnd }),
       ])
 
-      if (statsRes.data) setStats(statsRes.data)
+      if (currentRequest !== requestId.current) return
+      if (statsRes.error || !statsRes.data) throw new Error(statsRes.error || 'Missing dashboard stats')
+      if (statsRes.data) {
+        setStats(statsRes.data)
+        setStatusDistribution(statsRes.data.status_distribution)
+      }
       if (inProgressRes.data) setInProgressRecords(inProgressRes.data)
       if (kpisRes.data) {
         setKpis({
@@ -270,20 +290,21 @@ export default function DashboardPage() {
       setLoading(false)
 
       // 2단계: 차트 및 보조 데이터 백그라운드 로드
-      const [statusRes, repairTypeRes, weeklyRes, failureRes, techRes] = await Promise.all([
-        statisticsApi.getEquipmentStatusDistribution(),
+      const [repairTypeRes, weeklyRes, failureRes, techRes] = await Promise.all([
         statisticsApi.getRepairTypeDistribution('7days'),
         statisticsApi.getWeeklyRepairTrend(),
         statisticsApi.getEquipmentFailureRank(5),
         statisticsApi.getTechnicianPerformance(),
       ])
 
-      if (statusRes.data) setStatusDistribution(statusRes.data)
+      if (currentRequest !== requestId.current) return
       if (repairTypeRes.data) setRepairTypeData(repairTypeRes.data)
       if (weeklyRes.data) setWeeklyTrend(weeklyRes.data)
       if (failureRes.data) setFailureRank(failureRes.data)
       if (techRes.data) setTechPerformance(techRes.data)
     } catch (error) {
+      if (currentRequest !== requestId.current) return
+      setDashboardError(true)
       console.error('Failed to fetch dashboard data:', error)
       setLoading(false)
     }
@@ -291,6 +312,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData()
+    return () => { requestId.current += 1 }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFactory])
 
@@ -298,6 +320,15 @@ export default function DashboardPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (dashboardError) {
+    return (
+      <div role="alert" className="space-y-3 rounded-lg border p-6">
+        <p>{t('dashboard.loadError')}</p>
+        <Button variant="outline" onClick={fetchDashboardData}>{t('common.refresh')}</Button>
       </div>
     )
   }
@@ -325,8 +356,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Cards - 모바일: 2열, 태블릿: 2열, 데스크톱: 4열 */}
-      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+      {/* Stats Cards - 모바일: 2열, 데스크톱: 3열, 넓은 화면: 6열 */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
         <Card>
           <CardContent className="flex items-center gap-2 p-3 sm:gap-4 sm:p-6">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
@@ -359,6 +390,30 @@ export default function DashboardPage() {
             <div className="min-w-0">
               <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('dashboard.repairEquipment')}</p>
               <p className="text-xl sm:text-2xl font-bold">{stats?.repair_equipment || 0}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex items-center gap-2 p-3 sm:gap-4 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+              <Paintbrush className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('equipment.statusPaint')}</p>
+              <p className="text-xl sm:text-2xl font-bold">{stats?.paint_equipment || 0}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex items-center gap-2 p-3 sm:gap-4 sm:p-6">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+              <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('equipment.statusPM')}</p>
+              <p className="text-xl sm:text-2xl font-bold">{stats?.pm_equipment || 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -502,8 +557,7 @@ export default function DashboardPage() {
                   outerRadius={70}
                   paddingAngle={2}
                   dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                  labelLine={{ strokeWidth: 1 }}
+                  labelLine={false}
                 >
                   {statusDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -512,6 +566,14 @@ export default function DashboardPage() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+            <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs sm:text-sm">
+              {statusDistribution.map(entry => (
+                <li key={entry.status} className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: entry.color }} />
+                  <span>{getStatusLabel(entry.status)}: {entry.value}</span>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
 

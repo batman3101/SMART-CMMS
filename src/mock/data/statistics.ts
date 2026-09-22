@@ -10,10 +10,13 @@ export const getDashboardStats = (): DashboardStats => {
   const todayRecords = mockMaintenanceRecords.filter((r) => r.date === today)
 
   return {
+    pm_equipment: mockEquipments.filter(e => e.status === 'pm').length,
+    paint_equipment: mockEquipments.filter(e => e.status === 'paint').length,
+    status_distribution: getEquipmentStatusDistribution(),
     total_equipment: mockEquipments.length,
     running_equipment: mockEquipments.filter((e) => e.status === 'normal').length,
     repair_equipment: mockEquipments.filter((e) =>
-      ['repair', 'pm', 'emergency'].includes(e.status)
+      ['repair', 'emergency'].includes(e.status)
     ).length,
     standby_equipment: mockEquipments.filter((e) => e.status === 'standby').length,
     today_repairs: todayRecords.length,
@@ -35,6 +38,7 @@ export const getEquipmentStatusDistribution = () => {
   // Return status keys for translation (equipment.statusNormal, equipment.statusPM, etc.)
   return [
     { status: 'normal', value: statusCounts.normal || 0, color: '#10B981' },
+    { status: 'paint', value: statusCounts.paint || 0, color: '#8B5CF6' },
     { status: 'pm', value: statusCounts.pm || 0, color: '#3B82F6' },
     { status: 'repair', value: statusCounts.repair || 0, color: '#F59E0B' },
     { status: 'emergency', value: statusCounts.emergency || 0, color: '#EF4444' },

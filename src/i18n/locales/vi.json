@@ -125,6 +125,7 @@
     "mainFeatures": "Tính năng chính"
   },
   "dashboard": {
+    "loadError": "Không thể tải dữ liệu bảng điều khiển. Vui lòng làm mới để thử lại.",
     "title": "Bảng điều khiển",
     "totalEquipment": "Tổng thiết bị",
     "runningEquipment": "Đang hoạt động",

@@ -125,6 +125,7 @@
     "mainFeatures": "주요 기능"
   },
   "dashboard": {
+    "loadError": "대시보드 데이터를 불러오지 못했습니다. 새로고침하여 다시 시도해 주세요.",
     "title": "대시보드",
     "totalEquipment": "전체 설비",
     "runningEquipment": "가동 중",

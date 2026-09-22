@@ -336,6 +336,9 @@ export interface ActivityLog {
 
 // Dashboard statistics
 export interface DashboardStats {
+  pm_equipment: number
+  paint_equipment: number
+  status_distribution: { status: string; value: number; color: string }[]
   total_equipment: number
   running_equipment: number
   repair_equipment: number
